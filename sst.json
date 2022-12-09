@@ -1,0 +1,5 @@
+{
+  "name": "sutra-translation",
+  "region": "ap-southeast-2",
+  "main": "stacks/index.ts"
+}
