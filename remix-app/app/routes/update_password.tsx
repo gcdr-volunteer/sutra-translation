@@ -14,6 +14,7 @@ import { useActionData, Form, useTransition } from '@remix-run/react';
 import { assertAuthUser, authenticator } from '~/auth.server';
 import { updateUserPassword } from '~/models/user';
 import { commitSession, getSession } from '~/session.server';
+import { logger } from '~/utils';
 
 export const loader = async ({ request }: LoaderArgs) => {
   await assertAuthUser(request);
@@ -26,23 +27,33 @@ export async function action({ request }: ActionArgs) {
     const form = await clonedRequest.formData();
     const newPass = form.get('new_pass') as string;
     const confirmPass = form.get('confirm_pass') as string;
+    logger.info('update_password', 'before validation');
     if (!newPass || !confirmPass) {
       return json({ password: 'password cannot be empty' }, { status: 400 });
     }
     if (newPass !== confirmPass) {
       return json({ password: 'two passwords are not equal' }, { status: 400 });
     }
+    logger.info('update_password', 'after validation');
 
+    logger.info('update_password', 'before authentication');
     const user = await authenticator.isAuthenticated(request);
+    logger.info('update_password', 'after authentication');
     if (user) {
+      logger.info('update_password', 'before update password');
       await updateUserPassword({ email: user.email, password: confirmPass });
-      let session = await getSession(clonedRequest.headers.get('cookie'));
+      logger.info('update_password', 'after update password');
 
-      let headers = new Headers({ 'Set-Cookie': await commitSession(session) });
+      const session = await getSession(clonedRequest.headers.get('cookie'));
+      session.set(authenticator.sessionKey, user);
+
+      const headers = new Headers({ 'Set-Cookie': await commitSession(session) });
       return redirect('/', { headers });
     }
     return redirect('/login');
   } catch (error) {
+    logger.error('update_password', 'message', (error as Error)?.message);
+    logger.error('update_password', 'stack trace', (error as Error)?.stack);
     return json({ password: 'Internal Server Error' }, { status: 500 });
   }
 }

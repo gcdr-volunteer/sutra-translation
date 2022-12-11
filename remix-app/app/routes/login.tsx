@@ -18,6 +18,8 @@ import {
 import { useActionData, useTransition, Form } from '@remix-run/react';
 import { commitSession, getSession } from '~/session.server';
 import { onlyCreateAdminUserWhenFirstSystemUp } from '~/models/user';
+import { logger } from '~/utils';
+import { Error } from '~/components/common/errors';
 
 export const loader = async () => {
   await onlyCreateAdminUserWhenFirstSystemUp();
@@ -28,31 +30,42 @@ export async function action({ request }: ActionArgs) {
   try {
     const clonedRequest = request.clone();
     const form = await clonedRequest.formData();
-    const username = form.get('username');
-    const password = form.get('password');
+    const username = form.get('username') as string;
+    const password = form.get('password') as string;
+    logger.log('login', 'username', username);
+    logger.info('login', 'before validation');
     if (!username) {
       return json({ username: 'username cannot be empty' }, { status: 400 });
     }
-    if (!emailRegex.test(username as string)) {
+    if (!emailRegex.test(username)) {
       return json({ username: 'please enter valid email' }, { status: 400 });
     }
     if (!password) {
       return json({ password: 'password cannot be empty' }, { status: 400 });
     }
+    logger.info('login', 'after validation');
+    logger.info('login', 'before authentication');
     const user = await authenticator.authenticate('form', request);
+    logger.info('login', 'after authentication');
+    logger.log('login', 'user', user);
     if (user) {
-      let session = await getSession(request.headers.get('cookie'));
+      const session = await getSession(request.headers.get('cookie'));
       session.set(authenticator.sessionKey, user);
 
-      let headers = new Headers({ 'Set-Cookie': await commitSession(session) });
+      const headers = new Headers({ 'Set-Cookie': await commitSession(session) });
       if (user.first_login) {
+        logger.info('login', 'first login user');
         return redirect('/update_password', { headers });
       }
+      logger.info('login', 'redirect to root page');
       return redirect('/', { headers });
     } else {
+      logger.info('login', 'wrong credentials');
       return json({ password: 'please enter correct credentials' }, { status: 401 });
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    logger.error('login', 'message', (error as Error)?.message);
+    logger.error('login', 'stack trace', (error as Error)?.stack);
     return json({ password: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -129,3 +142,9 @@ const LoginForm = (props: LoginFormProps) => {
     </Box>
   );
 };
+
+export function ErrorBoundary({ error }: { error: Error }) {
+  return (
+    <Error heading="Oops" content="We have trouble process your request, Please contact admin" />
+  );
+}

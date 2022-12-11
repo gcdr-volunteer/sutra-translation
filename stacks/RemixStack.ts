@@ -20,6 +20,7 @@ export function RemixStack({ stack }: StackContext) {
       SESSION_SECRET: process.env.SESSION_SECRET!,
       USER_TABLE: userTable.tableName,
       REGION: process.env.REGION!,
+      ENV: process.env.ENV!,
     },
   });
   site.attachPermissions([userTable]);

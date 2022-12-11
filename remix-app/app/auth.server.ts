@@ -7,6 +7,7 @@ import invariant from 'tiny-invariant';
 import bcrypt from 'bcryptjs';
 import { LoaderArgs } from '@remix-run/node';
 import { getUserByEmail } from './models/user';
+import { logger } from '~/utils';
 export let authenticator = new Authenticator<User | undefined>(sessionStorage);
 
 authenticator.use(
@@ -14,9 +15,15 @@ authenticator.use(
     let username = form.get('username');
     let password = form.get('password');
 
+    logger.info('authenticator', 'before getUserByEmail');
     const user = await getUserByEmail(username as string);
+    logger.info('authenticator', 'after getUserByEmail');
+    logger.log('authenticator', 'user', user);
     if (user) {
+      logger.info('authenticator', 'before bcrypt compare');
       const isValid = await bcrypt.compare(password as string, user.password);
+      logger.info('authenticator', 'after bcrypt compare');
+      logger.log('authenticator', 'isValid', isValid);
       if (isValid) {
         const { password, ...rest } = user;
         return rest;

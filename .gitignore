@@ -15,6 +15,7 @@ remix-app/.cache
 .cache
 remix-app/server/index.js
 remix-app/public/build
+remix-app/build
 remix-app/preferences.arc
 remix-app/sam.json
 remix-app/sam.yaml

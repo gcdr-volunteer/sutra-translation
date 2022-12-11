@@ -75,10 +75,8 @@ export const updateUserPassword = async ({
   email: string;
   password: string;
 }) => {
-  console.log(`caller name`, updateUserPassword.caller);
   const SK = composeIdForUser({ email });
-  const salt = await bcrypt.genSalt(15);
-  const hashedPassword = await bcrypt.hash(password, salt);
+  const hashedPassword = await bcrypt.hash(password, 10);
   const params: UpdateItemCommandInput = {
     TableName: process.env.USER_TABLE,
     Key: marshall({
@@ -110,8 +108,7 @@ export const createNewUser = async (user: DBUser) => {
     updatedBy = 'Admin',
     ...rest
   } = user;
-  const salt = await bcrypt.genSalt(15);
-  const hashedPassword = await bcrypt.hash(password, salt);
+  const hashedPassword = await bcrypt.hash(password, 10);
   const sortKey = composeIdForUser({ email: email });
   const params: PutItemCommandInput = {
     TableName: process.env.USER_TABLE,
