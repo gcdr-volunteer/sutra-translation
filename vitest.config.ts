@@ -12,7 +12,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@sutra-translation/core": "./services/core",
+      "@temp-project/core": "./services/core",
     },
   },
 });

@@ -1,4 +1,4 @@
-import { RemixStack } from "./MyStack";
+import { RemixStack } from "./RemixStack";
 import { App } from "@serverless-stack/resources";
 
 export default function (app: App) {

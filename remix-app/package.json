@@ -1,0 +1,74 @@
+{
+  "name": "remix-app",
+  "private": true,
+  "scripts": {
+    "build": "remix build",
+    "dev": "sst-env -- remix dev",
+    "start": "remix-serve build",
+    "test:unit": "vitest",
+    "test:unit:nowatch": "vitest run",
+    "test:coverage": "vitest run -coverage",
+    "format": "prettier --write .",
+    "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
+    "prettier:check": "prettier --config .prettierrc.json --check \"app/**/*.{ts,tsx,css,html}\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.226.0",
+    "@aws-sdk/util-dynamodb": "^3.226.0",
+    "@casl/ability": "^6.3.2",
+    "@casl/react": "^3.1.0",
+    "@chakra-ui/icons": "^2.0.12",
+    "@chakra-ui/react": "^2.4.1",
+    "@emotion/react": "^11.10.5",
+    "@emotion/server": "^11.10.0",
+    "@emotion/styled": "^11.10.5",
+    "@remix-run/architect": "^1.7.6",
+    "@remix-run/node": "^1.7.6",
+    "@remix-run/react": "^1.7.6",
+    "@remix-run/serve": "^1.7.6",
+    "bcryptjs": "^2.4.3",
+    "cross-env": "^7.0.3",
+    "dayjs": "^1.11.7",
+    "deepl-node": "^1.7.2",
+    "framer-motion": "^6.5.1",
+    "isbot": "^3.6.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^4.6.0",
+    "remix-auth": "^3.4.0",
+    "remix-auth-form": "^1.3.0",
+    "tiny-invariant": "^1.3.1"
+  },
+  "devDependencies": {
+    "@remix-run/dev": "^1.7.6",
+    "@remix-run/eslint-config": "^1.7.6",
+    "@serverless-stack/static-site-env": "^1.18.4",
+    "@testing-library/cypress": "^8.0.3",
+    "@testing-library/dom": "^8.19.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.4.3",
+    "@types/bcryptjs": "^2.4.2",
+    "@types/invariant": "^2.2.35",
+    "@types/react": "^18.0.25",
+    "@types/react-dom": "^18.0.8",
+    "@vitejs/plugin-react": "^2.2.0",
+    "eslint": "^8.27.0",
+    "happy-dom": "^7.7.0",
+    "lint-staged": "^13.0.4",
+    "npm-run-all": "^4.1.5",
+    "prettier": "2.8.0",
+    "typescript": "^4.8.4",
+    "vite-tsconfig-paths": "^3.6.0",
+    "vitest": "^0.25.3"
+  },
+  "lint-staged": {
+    "app/**/*.{ts,tsx,css,html}": [
+      "eslint",
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
