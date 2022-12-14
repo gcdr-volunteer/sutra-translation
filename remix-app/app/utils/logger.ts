@@ -1,5 +1,3 @@
-import * as AWS from 'aws-sdk';
-
 export interface LogInfoMethod {
   /**
    * Logs info message (non-critical only).
@@ -49,9 +47,6 @@ const init = (): CustomLogger => {
   // Console is probably best logger
   // https://github1s.com/serverless/serverless/blob/HEAD/lib/plugins/aws/custom-resources/resources/utils.js
   const logger = console;
-
-  // For verbose logging from AWS
-  AWS.config.logger = console;
 
   return {
     log: (...args) => {

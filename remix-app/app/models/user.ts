@@ -4,18 +4,23 @@ import type {
   PutItemCommandInput,
   GetItemCommandInput,
   UpdateItemCommandInput,
+  QueryCommandInput,
 } from '@aws-sdk/client-dynamodb';
 import {
   PutItemCommand,
   ReturnValue,
   GetItemCommand,
   UpdateItemCommand,
+  QueryCommand,
 } from '@aws-sdk/client-dynamodb';
-import { composeIdForUser } from './utils';
-import { Team, User } from '~/types/user';
+import { composeSKForUser } from './utils';
+import { User } from '~/types/user';
 import bcrypt from 'bcryptjs';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { Team } from '~/types/team';
+import { Lang } from '~/types/lang';
+import { Role } from '~/types/role';
 dayjs.extend(utc);
 interface DBUser extends User {
   password: string;
@@ -32,13 +37,20 @@ const _isAdminUserExist = async (): Promise<boolean> => {
   return Boolean(Item);
 };
 const _createAdminUser = async () => {
-  const adminUser: DBUser = {
+  const adminUser: User = {
     username: 'Terry Pan',
     password: '0987654321',
-    team: Team.TEAM0001,
+    team: {
+      name: 'Team1',
+      alias: 'Master Sure',
+    },
     origin_lang: 'ZH',
     target_lang: 'EN',
-    roles: ['Admin'],
+    roles: [
+      {
+        name: 'Admin',
+      },
+    ],
     email: 'pttdev123@gmail.com',
     first_login: true,
   };
@@ -53,7 +65,7 @@ export const onlyCreateAdminUserWhenFirstSystemUp = async (): Promise<void> => {
 };
 
 export const getUserByEmail = async (email: string): Promise<DBUser | undefined> => {
-  const SK = composeIdForUser({ email });
+  const SK = composeSKForUser({ email });
   const params: GetItemCommandInput = {
     TableName: process.env.USER_TABLE,
     Key: marshall({
@@ -75,7 +87,7 @@ export const updateUserPassword = async ({
   email: string;
   password: string;
 }) => {
-  const SK = composeIdForUser({ email });
+  const SK = composeSKForUser({ email });
   const hashedPassword = await bcrypt.hash(password, 10);
   const params: UpdateItemCommandInput = {
     TableName: process.env.USER_TABLE,
@@ -98,7 +110,7 @@ export const updateUserPassword = async ({
   await dbClient.send(new UpdateItemCommand(params));
 };
 
-export const createNewUser = async (user: DBUser) => {
+export const createNewUser = async (user: User) => {
   const {
     password,
     email,
@@ -108,8 +120,8 @@ export const createNewUser = async (user: DBUser) => {
     updatedBy = 'Admin',
     ...rest
   } = user;
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const sortKey = composeIdForUser({ email: email });
+  const hashedPassword = await bcrypt.hash(password!, 10);
+  const sortKey = composeSKForUser({ email: email });
   const params: PutItemCommandInput = {
     TableName: process.env.USER_TABLE,
     Item: marshall({
@@ -131,4 +143,24 @@ export const createNewUser = async (user: DBUser) => {
   };
   const results = await dbClient.send(new PutItemCommand(params));
   return results;
+};
+
+type UserTableResp =
+  | (Team & { kind: 'TEAM' })
+  | (User & { kind: 'USER' })
+  | (Lang & { kind: 'LANG' })
+  | (Role & { kind: 'ROLE' });
+export const getWholeUserTable = async () => {
+  const params: QueryCommandInput = {
+    TableName: process.env.USER_TABLE,
+    KeyConditionExpression: 'PK = :team',
+    ExpressionAttributeValues: marshall({
+      ':team': 'TEAM',
+    }),
+  };
+  const { Items } = await dbClient.send(new QueryCommand(params));
+  if (Items?.length) {
+    return Items.map((Item) => unmarshall(Item) as UserTableResp);
+  }
+  return [];
 };

@@ -1,5 +1,6 @@
 import {
   Flex,
+  Text,
   Box,
   Accordion,
   AccordionItem,
@@ -10,7 +11,6 @@ import {
   FormControl,
   FormLabel,
   Input,
-  useBoolean,
   Select,
   useDisclosure,
   IconButton,
@@ -18,50 +18,159 @@ import {
   VStack,
   Tooltip,
   SimpleGrid,
+  FormErrorMessage,
+  HStack,
+  List,
+  ListItem,
+  UnorderedList,
+  TableContainer,
+  Table,
+  TableCaption,
+  Thead,
+  Tr,
+  Th,
+  Tbody,
+  Td,
 } from '@chakra-ui/react';
-import { json, LoaderArgs } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
-import { assertAuthUser } from '~/auth.server';
-import { Team, roles, User, langs } from '~/types/user';
+import * as yup from 'yup';
+import { ChangeEvent, useCallback, useState } from 'react';
+import { json, ActionArgs } from '@remix-run/node';
+import { useLoaderData, useActionData, Form } from '@remix-run/react';
+import { User } from '~/types/user';
 import { EditIcon } from '@chakra-ui/icons';
 import { RiUser2Line, RiTeamLine } from 'react-icons/ri';
 import { FaLanguage } from 'react-icons/fa';
 import { FormModal } from '~/components/common';
+import { logger, utcNow } from '~/utils';
+import { Team } from '~/types/team';
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import { createNewTeam, getAllTeams, getTeam } from '~/models/team';
+import { getWholeUserTable } from '~/models/user';
+import { Lang } from '~/types/lang';
+import { Role } from '~/types/role';
+import { DeleteIcon } from '@chakra-ui/icons';
+import { baseSchemaForCreate, schemaValidator } from '~/utils/schema_validator';
+const getLoaderData = async () => {
+  const userTable = await getWholeUserTable();
+  const teams: Team[] = [];
+  const roles: Role[] = [];
+  const users: User[] = [];
+  const langs: Lang[] = [];
+  for (const ttype of userTable) {
+    if (ttype.SK?.startsWith('USER') && ttype.kind === 'USER') {
+      users.push(ttype);
+    }
+    if (ttype.SK?.startsWith('TEAM') && ttype.kind === 'TEAM') {
+      teams.push(ttype);
+    }
+    if (ttype.SK?.startsWith('ROLE') && ttype.kind === 'ROLE') {
+      roles.push(ttype);
+    }
+    if (ttype.SK?.startsWith('LANG') && ttype.kind === 'LANG') {
+      langs.push(ttype);
+    }
+  }
+  return {
+    teams,
+    roles,
+    users,
+    langs,
+  };
+};
 export const loader = async () => {
-  return json<{ teams: string[]; roles: string[]; users: User[]; langs: string[] }>({
-    teams: Object.values(Team),
-    roles: roles as unknown as string[],
-    langs: langs as unknown as string[],
-    users: [
-      {
-        username: 'Terry Pan',
-        roles: ['Viewer'],
-        email: 'pantaotao@icloud.com',
-        origin_lang: 'ZH',
-        target_lang: 'EN',
-        team: Team.TEAM0001,
-        first_login: false,
-      },
-      {
-        username: 'Tao Pan',
-        roles: ['Admin'],
-        email: 'pttdev123@gmail.com',
-        origin_lang: 'ZH',
-        target_lang: 'EN',
-        team: Team.TEAM0002,
-        first_login: false,
-      },
-    ],
+  const teams = await getAllTeams();
+  return json<{ teams: Team[]; roles: string[]; users: User[]; langs: string[] }>({
+    teams,
+    roles: [],
+    users: [],
+    langs: [],
   });
 };
-export default function TripitakaRoute() {
+
+const newTeamSchema = (baseSchema: yup.AnyObjectSchema) => {
+  const teamSchema = baseSchema.shape({
+    name: yup
+      .string()
+      .trim()
+      .required('team name cannot be empty')
+      .test('is-name-exist', 'team name already registered', async (value) => {
+        const team = await getTeam(value!);
+        return !Boolean(team);
+      }),
+    alias: yup.string().trim().required('team alias cannot be empty'),
+  });
+  return teamSchema;
+};
+
+const newUserSchema = (baseSchema: yup.AnyObjectSchema) => {
+  const userSchema = baseSchema.shape({
+    username: yup
+      .string()
+      .lowercase()
+      .trim()
+      .required('email canot be empty')
+      .email('this is not valid email format'),
+    password: yup.string().required('password cannot be empty'),
+    team: yup
+      .string()
+      .test('is-team-exist', 'we dont have this team, please create first', async (value) => {
+        const team = await getTeam(value!);
+        return Boolean(team);
+      }),
+    orgin_lang: yup.string().required(),
+  });
+};
+
+const handleCreateNewTeam = async (team: Team) => {
+  try {
+    const result = await schemaValidator({
+      schema: newTeamSchema(baseSchemaForCreate()),
+      obj: team,
+    });
+    await createNewTeam(result);
+    return json({ data: [] }, { status: 200 });
+  } catch (errors) {
+    return json({ errors: errors });
+  }
+};
+
+export const action = async ({ request }: ActionArgs) => {
+  const formData = await request.formData();
+  const entryData = Object.fromEntries(formData.entries());
+  const {
+    intent,
+    username,
+    password,
+    role,
+    team,
+    origin_lang,
+    target_lang,
+    team_name,
+    team_alias,
+  } = entryData;
+  if (intent && intent === 'new_user') {
+    logger.log('action', 'new_user', {
+      username,
+      password,
+      team,
+      role,
+      origin_lang,
+      target_lang,
+    });
+  }
+  if (intent && intent === 'new_team') {
+    return await handleCreateNewTeam({ name: team_name as string, alias: team_alias as string });
+  }
+  return json({});
+};
+export default function AdminRoute() {
   const { users, teams, roles, langs } = useLoaderData<typeof loader>();
   const usersComp = users?.map((user) => {
     return (
       <UserConfig
         key={user.email}
         user={user}
-        userform={<UserForm {...user} teams={teams} langs={langs} roless={roles} />}
+        userform={<UserForm {...user} teams={teams} langs={langs} roles={roles} />}
       />
     );
   });
@@ -101,31 +210,24 @@ const UserConfig = (props: UserConfigProps) => {
   );
 };
 
-interface UserFormProps extends User {
-  teams: string[];
+interface UserFormProps {
+  teams: Team[];
   langs: string[];
-  roless: string[];
+  roles: string[];
   isNew?: boolean;
 }
 
 interface AdminActionButtonsProps {
   roles: string[];
-  teams: string[];
+  teams: Team[];
   langs: string[];
 }
 const AdminActionButtons = (props: AdminActionButtonsProps) => {
   const { roles, teams, langs } = props;
   const { isOpen, onToggle } = useDisclosure();
   const { isOpen: isOpenNewUser, onOpen: onOpenNewUser, onClose: onCloseNewUser } = useDisclosure();
-  const user: User = {
-    username: '',
-    email: '',
-    roles: ['Viewer'],
-    team: Team.TEAM0001,
-    origin_lang: 'ZH',
-    target_lang: 'EN',
-    first_login: false,
-  };
+  const { isOpen: isOpenNewTeam, onOpen: onOpenNewTeam, onClose: onCloseNewTeam } = useDisclosure();
+
   return (
     <Box pos={'fixed'} right={8} bottom={8}>
       <Fade in={isOpen}>
@@ -143,24 +245,32 @@ const AdminActionButtons = (props: AdminActionButtonsProps) => {
               />
               <FormModal
                 header="Add a New User"
-                body={
-                  <UserForm {...user} teams={teams} roless={roles} langs={langs} isNew={true} />
-                }
+                body={<UserForm teams={teams} roles={roles} langs={langs} isNew={true} />}
                 isOpen={isOpenNewUser}
                 onClose={onCloseNewUser}
-                name="newuser"
+                value="new_user"
               />
             </span>
           </Tooltip>
           <Tooltip label="add a new team" placement="left">
-            <IconButton
-              colorScheme={'iconButton'}
-              borderRadius={'50%'}
-              w={12}
-              h={12}
-              aria-label="open admin edit buttons"
-              icon={<RiTeamLine />}
-            />
+            <span>
+              <IconButton
+                colorScheme={'iconButton'}
+                borderRadius={'50%'}
+                w={12}
+                h={12}
+                aria-label="open admin edit buttons"
+                icon={<RiTeamLine />}
+                onClick={onOpenNewTeam}
+              />
+              <FormModal
+                header="Add a New Team"
+                body={<TeamForm teams={teams} onClose={onCloseNewTeam} />}
+                isOpen={isOpenNewTeam}
+                onClose={onCloseNewTeam}
+                value="new_team"
+              />
+            </span>
           </Tooltip>
           <Tooltip label="add a new language" placement="left">
             <IconButton
@@ -188,67 +298,192 @@ const AdminActionButtons = (props: AdminActionButtonsProps) => {
 };
 
 const UserForm = (props: UserFormProps) => {
-  const [toggleEdit, setToggleEdit] = useBoolean(true);
-  const { username, email, team, teams, langs, origin_lang, target_lang, roles, roless, isNew } =
-    props;
+  const [formState, setFormState] = useState<User>({
+    username: '',
+    email: '',
+    roles: ['Viewer'],
+    team: {
+      name: 'Team1',
+      alias: 'Master Sure',
+    },
+    origin_lang: 'ZH',
+    target_lang: 'EN',
+    first_login: false,
+    password: '',
+  });
+
+  const handleFormStateUpdate = (
+    type: string,
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    let newFormState: User;
+    if (type === 'roles') {
+      const roles = e.target.value as Role['name'];
+
+      newFormState = { ...formState, roles: [roles] };
+    } else {
+      newFormState = { ...formState, [type]: e.target.value };
+    }
+    setFormState(newFormState);
+  };
+  const { teams, langs, roles, isNew } = props;
   return (
-    <form method="post">
-      <SimpleGrid columns={isNew ? 2 : 3} spacing={4}>
+    <SimpleGrid columns={isNew ? 2 : 3} spacing={4}>
+      <FormControl>
+        <FormLabel>User name:</FormLabel>
+        <Input
+          type="text"
+          value={formState.username}
+          onChange={(e) => handleFormStateUpdate('username', e)}
+          name="username"
+        />
+      </FormControl>
+      {isNew ? (
         <FormControl>
-          <FormLabel>User name:</FormLabel>
-          <Input type="text" value={username} onChange={() => {}} name="username" />
+          <FormLabel>Password: </FormLabel>
+          <Input
+            type="text"
+            value={formState.password}
+            onChange={(e) => handleFormStateUpdate('password', e)}
+            name="password"
+          />
         </FormControl>
-        {isNew ? (
-          <FormControl>
-            <FormLabel>Password: </FormLabel>
-            <Input type="text" value={''} onChange={() => {}} name="password" />
-          </FormControl>
-        ) : null}
-        <FormControl>
-          <FormLabel>Email:</FormLabel>
-          <Input type="email" value={email} onChange={() => {}} name="email" />
+      ) : null}
+      <FormControl>
+        <FormLabel>Email:</FormLabel>
+        <Input
+          type="email"
+          value={formState.email}
+          onChange={(e) => handleFormStateUpdate('email', e)}
+          name="email"
+        />
+      </FormControl>
+      <FormControl>
+        <FormLabel>Team:</FormLabel>
+        <Select
+          value={formState.team.name}
+          onChange={(e) => handleFormStateUpdate('team', e)}
+          name="team"
+          multiple={false}
+        >
+          {teams?.map((team, index) => (
+            <option key={team.name} value={team.name}>
+              {team.alias || team.name}
+            </option>
+          ))}
+        </Select>
+      </FormControl>
+      <FormControl>
+        <FormLabel>Source Language:</FormLabel>
+        <Select
+          value={formState.origin_lang}
+          onChange={(e) => handleFormStateUpdate('origin_lang', e)}
+          name="origin_lang"
+          multiple={false}
+        >
+          {langs?.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang}
+            </option>
+          ))}
+        </Select>
+      </FormControl>
+      <FormControl>
+        <FormLabel>Target Language:</FormLabel>
+        <Select
+          value={formState.target_lang}
+          onChange={(e) => handleFormStateUpdate('target_lang', e)}
+          name="target_lang"
+          multiple={false}
+        >
+          {langs?.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang}
+            </option>
+          ))}
+        </Select>
+      </FormControl>
+      <FormControl>
+        <FormLabel>Role:</FormLabel>
+        <Select
+          value={formState.roles[0]}
+          onChange={(e) => handleFormStateUpdate('roles', e)}
+          name="role"
+          multiple={false}
+        >
+          {roles?.map((role) => (
+            <option key={role} value={role}>
+              {role}
+            </option>
+          ))}
+        </Select>
+      </FormControl>
+    </SimpleGrid>
+  );
+};
+
+interface TeamFormProps {
+  teams: Team[];
+  onClose: () => void;
+}
+const TeamForm = (props: TeamFormProps) => {
+  const { errors } = useActionData<{ errors: { name: string; alias: string } }>() || {};
+  const [formState, setFormState] = useState<Team>({
+    name: '',
+    alias: '',
+  });
+  const handleFormStateUpdate = (
+    type: string,
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const newFormState = { ...formState, [type]: e.target.value };
+    setFormState(newFormState);
+  };
+  const { teams } = props;
+  return (
+    <Box>
+      {teams.length ? (
+        <TableContainer mb={8}>
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th>Team</Th>
+                <Th>Alias</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {teams.map((team) => (
+                <Tr key={team.name}>
+                  <Td>{team.name}</Td>
+                  <Td>{team.alias}</Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </TableContainer>
+      ) : null}
+      <SimpleGrid columns={2} spacing={4}>
+        <FormControl isInvalid={Boolean(errors?.name)}>
+          <FormLabel>Team name:</FormLabel>
+          <Input
+            type="text"
+            value={formState.name}
+            onChange={(e) => handleFormStateUpdate('name', e)}
+            name="team_name"
+          />
+          {errors?.name ? <FormErrorMessage>{errors?.name}</FormErrorMessage> : null}
         </FormControl>
-        <FormControl>
-          <FormLabel>Team:</FormLabel>
-          <Select value={team} onChange={() => {}}>
-            {teams?.map((team) => (
-              <option key={team} value={team}>
-                {team}
-              </option>
-            ))}
-          </Select>
-        </FormControl>
-        <FormControl>
-          <FormLabel>Role:</FormLabel>
-          <Select value={roles[0]} onChange={() => {}}>
-            {roless?.map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </Select>
-        </FormControl>
-        <FormControl>
-          <FormLabel>Source Language:</FormLabel>
-          <Select value={origin_lang} onChange={() => {}}>
-            {langs?.map((lang) => (
-              <option key={lang} value={lang}>
-                {lang}
-              </option>
-            ))}
-          </Select>
-        </FormControl>
-        <FormControl>
-          <FormLabel>Target Language:</FormLabel>
-          <Select value={target_lang} onChange={() => {}}>
-            {langs?.map((lang) => (
-              <option key={lang} value={lang}>
-                {lang}
-              </option>
-            ))}
-          </Select>
+        <FormControl isInvalid={Boolean(errors?.alias)}>
+          <FormLabel>Team alias:</FormLabel>
+          <Input
+            type="text"
+            value={formState.alias}
+            onChange={(e) => handleFormStateUpdate('alias', e)}
+            name="team_alias"
+          />
+          {errors?.alias ? <FormErrorMessage>{errors?.alias}</FormErrorMessage> : null}
         </FormControl>
       </SimpleGrid>
-    </form>
+    </Box>
   );
 };

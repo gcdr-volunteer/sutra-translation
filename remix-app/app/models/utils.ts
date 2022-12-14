@@ -93,6 +93,15 @@ export const composeIdFor = ({ type, id }: { type: CounterType; id: number }) =>
  * @param id the user id
  * @returns composed user id
  */
-export const composeIdForUser = ({ email }: { email: string }) => {
+export const composeSKForUser = ({ email }: { email: string }) => {
   return `USER-${email}`;
+};
+
+export const composeSKForTeam = ({ name }: { name: string }) => {
+  const newName = name.replace(/\s+/, '-');
+  return `TEAM-${newName}`;
+};
+
+export const composeSKForLang = ({ name }: { name: string }) => {
+  return `LANG-${name}`;
 };

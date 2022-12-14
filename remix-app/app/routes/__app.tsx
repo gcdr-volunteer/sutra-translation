@@ -1,10 +1,10 @@
-import { Box, Flex, SkeletonCircle, SkeletonText } from '@chakra-ui/react';
-import { json, LoaderArgs, redirect } from '@remix-run/node';
-import { Outlet, useLoaderData, useTransition } from '@remix-run/react';
+import { Flex } from '@chakra-ui/react';
+import { json, LoaderArgs } from '@remix-run/node';
+import { Outlet, useLoaderData } from '@remix-run/react';
 import { assertAuthUser } from '~/auth.server';
 import { Sidebar } from '~/components/common/sidebar';
 import { createContext } from 'react';
-import { Team, User } from '~/types/user';
+import { User } from '~/types/user';
 import { defineAbilityFor } from '~/authorisation';
 import { AbilityContext } from '~/authorisation';
 export const loader = async ({ request }: LoaderArgs) => {
@@ -17,7 +17,10 @@ export const UserContext = createContext<User | undefined>({
   roles: ['Viewer'],
   origin_lang: 'ZH',
   target_lang: 'EN',
-  team: Team.TEAM0001,
+  team: {
+    name: '',
+    alias: '',
+  },
   first_login: false,
 });
 export default function AppRoute() {
