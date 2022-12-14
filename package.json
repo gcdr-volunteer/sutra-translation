@@ -5,6 +5,7 @@
   "scripts": {
     "start": "sst start",
     "build": "sst build",
+    "frontend": "npm run dev -w remix-app",
     "deploy": "sst deploy",
     "remove": "sst remove",
     "console": "sst console",
