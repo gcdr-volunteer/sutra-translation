@@ -105,3 +105,7 @@ export const composeSKForTeam = ({ name }: { name: string }) => {
 export const composeSKForLang = ({ name }: { name: string }) => {
   return `LANG-${name}`;
 };
+
+export const composeSKForRole = ({ name }: { name: string }) => {
+  return `ROLE-${name}`;
+};
