@@ -5,7 +5,7 @@
 You need to open to terminal sessions side by side, one session run following command
 
 ```
-npm run start
+npm run backend
 ```
 
 the command above will help you deploy and start the whole infrastracture (Database, Static file storage, Backend Server, etc).
