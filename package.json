@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "sst start",
-    "build": "sst build",
     "frontend": "npm run dev -w remix-app",
+    "backend": "sst start",
+    "build": "sst build",
     "deploy": "sst deploy",
     "remove": "sst remove",
     "console": "sst console",

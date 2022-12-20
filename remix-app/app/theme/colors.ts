@@ -10,7 +10,9 @@ export const colors = {
       800: '#3c3b4b',
     },
     secondary: {
-      300: '#FEFCF6',
+      200: '#FEFCF6',
+      300: '#F3EDE5',
+      400: '#D6C8B6',
       500: '#F5F3F4',
       800: '#DCD9DA',
     },

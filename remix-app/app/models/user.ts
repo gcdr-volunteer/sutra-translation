@@ -19,8 +19,8 @@ import bcrypt from 'bcryptjs';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { Team } from '~/types/team';
-import { Lang } from '~/types/lang';
-import { Role } from '~/types/role';
+import { Lang, LangCode } from '~/types/lang';
+import { Role, RoleType } from '~/types/role';
 dayjs.extend(utc);
 interface DBUser extends User {
   password: string;
@@ -40,17 +40,10 @@ const _createAdminUser = async () => {
   const adminUser: User = {
     username: 'Terry Pan',
     password: '0987654321',
-    team: {
-      name: 'Team1',
-      alias: 'Master Sure',
-    },
-    origin_lang: 'ZH',
-    target_lang: 'EN',
-    roles: [
-      {
-        name: 'Admin',
-      },
-    ],
+    team: 'Team1',
+    origin_lang: LangCode.ZH,
+    target_lang: LangCode.EN,
+    roles: [RoleType.Admin],
     email: 'pttdev123@gmail.com',
     first_login: true,
   };
@@ -111,15 +104,7 @@ export const updateUserPassword = async ({
 };
 
 export const createNewUser = async (user: User) => {
-  const {
-    password,
-    email,
-    createdAt = dayjs.utc().format(),
-    createdBy = 'Admin',
-    updatedAt = dayjs.utc().format(),
-    updatedBy = 'Admin',
-    ...rest
-  } = user;
+  const { password, email, ...rest } = user;
   const hashedPassword = await bcrypt.hash(password!, 10);
   const sortKey = composeSKForUser({ email: email });
   const params: PutItemCommandInput = {
@@ -129,10 +114,6 @@ export const createNewUser = async (user: User) => {
       SK: sortKey,
       email,
       password: hashedPassword,
-      createdAt,
-      createdBy,
-      updatedAt,
-      updatedBy,
       ...rest,
     }),
     ConditionExpression: 'attribute_not_exists(#SK)',
@@ -148,8 +129,7 @@ export const createNewUser = async (user: User) => {
 type UserTableResp =
   | (Team & { kind: 'TEAM' })
   | (User & { kind: 'USER' })
-  | (Lang & { kind: 'LANG' })
-  | (Role & { kind: 'ROLE' });
+  | (Lang & { kind: 'LANG' });
 export const getWholeUserTable = async () => {
   const params: QueryCommandInput = {
     TableName: process.env.USER_TABLE,

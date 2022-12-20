@@ -1,29 +1,26 @@
 import { StackContext, RemixSite } from "@serverless-stack/resources";
-import { AttributeType, Table } from "aws-cdk-lib/aws-dynamodb";
+import {
+  createUserTable,
+  createCommentTable,
+  createTranslationTable,
+} from "./database";
 
-export function RemixStack({ stack }: StackContext) {
-  const userTable = new Table(stack, "UserTable", {
-    tableName: `${process.env.ENV}-USER-TABLE`,
-    partitionKey: {
-      name: "PK",
-      type: AttributeType.STRING,
-    },
-    sortKey: {
-      name: "SK",
-      type: AttributeType.STRING,
-    },
-  });
-
+export async function RemixStack({ stack }: StackContext) {
+  const userTable = await createUserTable(stack);
+  const commentTable = await createCommentTable(stack);
+  const translationTable = await createTranslationTable(stack);
   const site = new RemixSite(stack, `${process.env.ENV}-Site`, {
     path: "remix-app/",
     environment: {
       SESSION_SECRET: process.env.SESSION_SECRET!,
       USER_TABLE: userTable.tableName,
+      COMMENT_TABLE: commentTable.tableName,
+      TRANSLATION_TABLE: translationTable.tableName,
       REGION: process.env.REGION!,
       ENV: process.env.ENV!,
     },
   });
-  site.attachPermissions([userTable]);
+  site.attachPermissions([userTable, commentTable, translationTable]);
 
   stack.addOutputs({
     URL: site.url,

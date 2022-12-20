@@ -43,10 +43,10 @@ export const CommonModal = (props: CommonModalProps) => {
 interface FormModalProps {
   header: string;
   body: ReactNode;
-  modalSize?: string;
   isOpen: boolean;
   onClose: () => void;
   value: string;
+  modalSize?: string;
 }
 export const FormModal = (props: FormModalProps) => {
   const actionData = useActionData<{ data: Record<string, string> }>();

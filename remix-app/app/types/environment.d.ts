@@ -7,6 +7,8 @@ declare global {
       ENV: 'test' | 'dev' | 'prod' | 'sirius';
       REGION: string;
       USER_TABLE: string;
+      COMMENT_TABLE: string;
+      TRANSLATION_TABLE: string;
     }
   }
 }

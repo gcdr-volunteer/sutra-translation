@@ -1,4 +1,4 @@
-import { Box, Flex } from '@chakra-ui/react';
+import { Box, Flex, VStack } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 import { Sutra } from '~/components/common/sutra';
@@ -67,11 +67,5 @@ export const loader = async () => {
 export default function TripitakaRoute() {
   const { sutras } = useLoaderData<typeof loader>();
   const sutraComp = sutras.map((sutra) => <Sutra key={sutra.slug} {...sutra} />);
-  return (
-    <Box p={10}>
-      <Flex gap={8} flexWrap={'wrap'}>
-        {sutraComp}
-      </Flex>
-    </Box>
-  );
+  return <VStack spacing={8}>{sutraComp}</VStack>;
 }

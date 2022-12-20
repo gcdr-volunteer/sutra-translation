@@ -70,10 +70,10 @@ export default function RollRoute() {
     <Paragraph
       key={paragraph.num}
       origin={paragraph.content}
+      comments={[]}
       target={''}
       index={index}
       checkedParagraphs={checkedParagraphs}
-      disabled={paragraph.finish}
       finish={paragraph.finish}
       footnotes={footnotes.filter(({ paragraphId }) => paragraphId === paragraph.num)}
     />
