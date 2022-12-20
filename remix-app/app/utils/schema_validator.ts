@@ -1,6 +1,8 @@
 import * as yup from 'yup';
 import { utcNow } from './datetime';
 import type { ValidationError, AnyObjectSchema } from 'yup';
+type BaseSchemaType = ReturnType<typeof baseSchemaForCreate>;
+
 export const schemaValidator = async <S extends AnyObjectSchema, T>({
   schema,
   obj,

@@ -22,13 +22,13 @@ export function Sutra(props: SutraProps) {
     <LinkBox as="article" key={slug}>
       <Card
         background="secondary.500"
-        w={300}
-        h={250}
+        w={800}
+        h={'100%'}
         borderRadius={12}
         boxShadow="0 12px 12px 0 rgba(0, 0, 0, 0.05)"
       >
         <CardHeader>
-          <Heading size="lg">
+          <Heading size="md">
             <Badge colorScheme="green" variant="solid">
               <Text fontSize={'md'}>{category}</Text>
             </Badge>

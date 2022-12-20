@@ -103,7 +103,7 @@ function TranlationWorkspace({ origin, translation, reference }: WorkSpaceProps)
   return (
     <Flex gap={4} flexDir="row" justifyContent="space-between">
       <VStack flex={1} spacing={4}>
-        <Card background={'secondary.500'} borderRadius={12}>
+        <Card background={'secondary.200'} borderRadius={12}>
           <CardHeader>
             <Heading size="sm">Origin</Heading>
           </CardHeader>
@@ -111,7 +111,7 @@ function TranlationWorkspace({ origin, translation, reference }: WorkSpaceProps)
             <Text fontSize={'xl'}>{origin}</Text>
           </CardBody>
         </Card>
-        <Card background={'secondary.500'} borderRadius={12}>
+        <Card background={'secondary.300'} borderRadius={12}>
           <CardHeader as={Flex} justifyContent="space-between" alignItems="center">
             <Heading size="sm">DeepL</Heading>
             <ButtonGroup variant="outline" spacing="6">
@@ -127,7 +127,7 @@ function TranlationWorkspace({ origin, translation, reference }: WorkSpaceProps)
             <Text fontSize={'xl'}>{translation}</Text>
           </CardBody>
         </Card>
-        <Card background={'secondary.500'} borderRadius={12}>
+        <Card background={'secondary.400'} borderRadius={12}>
           <CardHeader as={Flex} justifyContent="space-between" alignItems="center">
             <Heading size="sm">Reference</Heading>
             <ButtonGroup variant="outline" spacing="6">
