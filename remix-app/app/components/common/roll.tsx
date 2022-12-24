@@ -2,25 +2,25 @@ import { LinkBox, Card, CardHeader, CardBody, Heading, LinkOverlay, Text } from 
 import { Link } from '@remix-run/react';
 interface RollProps {
   slug: string;
-  roll_num: string;
+  subtitle: string;
   title: string;
 }
 export function Roll(props: RollProps) {
-  const { slug, roll_num, title } = props;
+  const { slug, subtitle, title } = props;
   return (
     <LinkBox as="article" key={slug}>
       <Card
         background="secondary.500"
-        w={200}
+        w={400}
         borderRadius={12}
         boxShadow="0 12px 12px 0 rgba(0, 0, 0, 0.05)"
       >
         <CardHeader>
-          <Heading size="lg">{roll_num}</Heading>
+          <Heading size="lg">{title}</Heading>
         </CardHeader>
         <CardBody>
           <LinkOverlay as={Link} to={slug}>
-            <Text>{title}</Text>
+            <Text>{subtitle}</Text>
           </LinkOverlay>
         </CardBody>
       </Card>

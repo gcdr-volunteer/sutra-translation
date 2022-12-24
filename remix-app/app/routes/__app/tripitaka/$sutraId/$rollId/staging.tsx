@@ -43,7 +43,9 @@ export const loader = async () => {
 interface stateType {
   paragraphs: {
     num: string;
-    origin: string;
+    finish: boolean;
+    content: string;
+    comments: [];
   }[];
 }
 export default function StagingRoute() {
@@ -52,7 +54,7 @@ export default function StagingRoute() {
   const paragraphsComp = paragraphs?.map((paragraph, index, arr) => (
     <Box key={index}>
       <TranlationWorkspace
-        origin={paragraph.origin}
+        origin={paragraph.content}
         translation="Mauris nisi lectus, bibendum id cursus auctor, aliquet sit amet ante. Pellentesque id libero urna. Cras egestas dolor sed fringilla imperdiet. Donec pellentesque lacus non libero euismod interdum. Sed placerat cursus nisl. Duis nec erat feugiat, accumsan quam et, ullamcorper purus. Integer ac molestie ex, eu egestas sapien. Duis maximus viverra urna a consectetur. Praesent rutrum tortor a euismod venenatis."
         reference="Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur."
       />
@@ -103,7 +105,7 @@ function TranlationWorkspace({ origin, translation, reference }: WorkSpaceProps)
   return (
     <Flex gap={4} flexDir="row" justifyContent="space-between">
       <VStack flex={1} spacing={4}>
-        <Card background={'secondary.200'} borderRadius={12}>
+        <Card w="100%" background={'secondary.200'} borderRadius={12}>
           <CardHeader>
             <Heading size="sm">Origin</Heading>
           </CardHeader>

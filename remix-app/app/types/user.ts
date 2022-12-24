@@ -9,6 +9,7 @@ export interface CommonMeta {
   updatedBy?: string;
   PK?: string;
   SK?: string;
+  kind?: string;
 }
 export interface User extends CommonMeta {
   /**

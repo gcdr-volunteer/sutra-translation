@@ -16,9 +16,13 @@ export enum RoleType {
    */
   Editor = 'Editor',
   /**
-   * Viewer only has read permission
+   * Reviewer only has read | comment permission
    */
-  Viewer = 'Viewer',
+  Reviewer = 'Reviewer',
+  /**
+   * Reader can only read, and see translation tab
+   */
+  Reader = 'Reader',
   /**
    * The role is to help debug system issue, like view history to identify
    * issues
