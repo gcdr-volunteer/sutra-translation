@@ -1,5 +1,5 @@
 import { Team } from '~/types/team';
-import { dbClient } from '~/clients/dynamodb';
+import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import {
   DeleteItemCommandInput,
@@ -32,7 +32,7 @@ export const createNewTeam = async (team: Team) => {
     },
     ReturnValues: ReturnValue.ALL_OLD,
   };
-  const results = await dbClient.send(new PutItemCommand(params));
+  const results = await dbClient().send(new PutItemCommand(params));
   return results;
 };
 
@@ -45,7 +45,7 @@ export const getTeam = async (name: string) => {
       SK,
     }),
   };
-  const { Item } = await dbClient.send(new GetItemCommand(params));
+  const { Item } = await dbClient().send(new GetItemCommand(params));
   if (Item) {
     return unmarshall(Item) as Team;
   }
@@ -61,7 +61,7 @@ export const deleteTeam = async (name: string) => {
       SK,
     }),
   };
-  await dbClient.send(new DeleteItemCommand(params));
+  await dbClient().send(new DeleteItemCommand(params));
 };
 
 export const getAllTeams = async (): Promise<Team[]> => {
@@ -72,7 +72,7 @@ export const getAllTeams = async (): Promise<Team[]> => {
       ':team': 'TEAM',
     }),
   };
-  const { Items } = await dbClient.send(new QueryCommand(params));
+  const { Items } = await dbClient().send(new QueryCommand(params));
   if (Items?.length) {
     return Items.map((Item) => unmarshall(Item) as Team);
   }

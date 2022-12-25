@@ -1,4 +1,4 @@
-import { dbClient } from '~/clients/dynamodb';
+import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import type { PutItemCommandInput } from '@aws-sdk/client-dynamodb';
 import { PutItemCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
@@ -25,5 +25,5 @@ export const createNewRole = async (role: Role) => {
     },
     ReturnValues: ReturnValue.ALL_OLD,
   };
-  return await dbClient.send(new PutItemCommand(params));
+  return await dbClient().send(new PutItemCommand(params));
 };

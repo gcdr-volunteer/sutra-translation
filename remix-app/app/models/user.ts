@@ -1,4 +1,4 @@
-import { dbClient } from '~/clients/dynamodb';
+import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import type {
   PutItemCommandInput,
@@ -33,7 +33,7 @@ const _isAdminUserExist = async (): Promise<boolean> => {
       SK: 'USER-pttdev123@gmail.com',
     }),
   };
-  const { Item } = await dbClient.send(new GetItemCommand(params));
+  const { Item } = await dbClient().send(new GetItemCommand(params));
   return Boolean(Item);
 };
 const _createAdminUser = async () => {
@@ -66,7 +66,7 @@ export const getUserByEmail = async (email: string): Promise<DBUser | undefined>
       SK,
     }),
   };
-  const { Item } = await dbClient.send(new GetItemCommand(params));
+  const { Item } = await dbClient().send(new GetItemCommand(params));
   if (Item) {
     return unmarshall(Item) as DBUser;
   }
@@ -100,7 +100,7 @@ export const updateUserPassword = async ({
     UpdateExpression: 'Set #password = :password, first_login = :first_login',
   };
 
-  await dbClient.send(new UpdateItemCommand(params));
+  await dbClient().send(new UpdateItemCommand(params));
 };
 
 export const createNewUser = async (user: User) => {
@@ -122,7 +122,7 @@ export const createNewUser = async (user: User) => {
     },
     ReturnValues: ReturnValue.ALL_OLD,
   };
-  const results = await dbClient.send(new PutItemCommand(params));
+  const results = await dbClient().send(new PutItemCommand(params));
   return results;
 };
 
@@ -138,7 +138,7 @@ export const getWholeUserTable = async () => {
       ':team': 'TEAM',
     }),
   };
-  const { Items } = await dbClient.send(new QueryCommand(params));
+  const { Items } = await dbClient().send(new QueryCommand(params));
   if (Items?.length) {
     return Items.map((Item) => unmarshall(Item) as UserTableResp);
   }

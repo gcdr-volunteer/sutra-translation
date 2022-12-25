@@ -1,10 +1,10 @@
 import * as deepl from 'deepl-node';
 import { QuotaExceededError, TooManyRequestsError } from 'deepl-node';
-const translator = new deepl.Translator(process.env.DEEPL_AUTHKEY);
+const deeplClient = () => new deepl.Translator(process.env.DEEPL_AUTHKEY);
 
 export const translateZH2EN = async (content: string[]): Promise<string[] | undefined> => {
   try {
-    const results = await translator.translateText(content, 'zh', 'en-US');
+    const results = await deeplClient().translateText(content, 'zh', 'en-US');
 
     return results?.map((result) => result.text);
   } catch (error) {

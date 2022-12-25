@@ -1,4 +1,4 @@
-import { dbClient } from '~/clients/dynamodb';
+import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import type {
   UpdateItemCommandInput,
@@ -23,7 +23,7 @@ const _createCounterFor = async (type: CounterType): Promise<{ counter: number }
       counter: 0,
     }),
   };
-  await dbClient.send(new PutItemCommand(params));
+  await dbClient().send(new PutItemCommand(params));
   return { counter: 0 };
 };
 
@@ -50,7 +50,7 @@ const _updateCounterFor = async (
     UpdateExpression: 'set #counter = #counter + :val',
     ReturnValues: ReturnValue.ALL_NEW,
   };
-  const { Attributes } = await dbClient.send(new UpdateItemCommand(params));
+  const { Attributes } = await dbClient().send(new UpdateItemCommand(params));
   if (Attributes) {
     return unmarshall(Attributes) as { counter: number };
   }
@@ -70,7 +70,7 @@ export const getCounterFor = async (type: CounterType): Promise<{ counter: numbe
       SK: `${type}-COUNTER`,
     }),
   };
-  const { Item } = await dbClient.send(new GetItemCommand(params));
+  const { Item } = await dbClient().send(new GetItemCommand(params));
   if (Item) {
     const { counter } = unmarshall(Item) as { counter: number };
     await _updateCounterFor(type, counter);

@@ -8,7 +8,7 @@ import {
   ReturnValue,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { dbClient } from '~/clients/dynamodb';
+import { dbClient } from '~/models/external_services/dynamodb';
 import type { Paragraph } from '~/types/paragraph';
 
 const getParagraphsByRollId = async (PK: string): Promise<Paragraph[]> => {
@@ -19,7 +19,7 @@ const getParagraphsByRollId = async (PK: string): Promise<Paragraph[]> => {
       ':PK': PK,
     }),
   };
-  const { Items } = await dbClient.send(new QueryCommand(params));
+  const { Items } = await dbClient().send(new QueryCommand(params));
   if (Items?.length) {
     return Items.map((Item) => unmarshall(Item) as Paragraph);
   }
@@ -49,7 +49,7 @@ export const getParagraphByPrimaryKey = async ({
       SK,
     }),
   };
-  const { Item } = await dbClient.send(new GetItemCommand(params));
+  const { Item } = await dbClient().send(new GetItemCommand(params));
   if (Item) {
     return unmarshall(Item) as Paragraph;
   }
@@ -68,5 +68,5 @@ export const createNewParagraph = async (paragraph: Paragraph) => {
     },
     ReturnValues: ReturnValue.ALL_OLD,
   };
-  return await dbClient.send(new PutItemCommand(params));
+  return await dbClient().send(new PutItemCommand(params));
 };
