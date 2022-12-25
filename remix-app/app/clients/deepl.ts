@@ -1,7 +1,6 @@
 import * as deepl from 'deepl-node';
 import { QuotaExceededError, TooManyRequestsError } from 'deepl-node';
-const authKey = '6f78ed14-d798-d2ec-4870-b59302fa942f:fx';
-const translator = new deepl.Translator(authKey);
+const translator = new deepl.Translator(process.env.DEEPL_AUTHKEY);
 
 export const translateZH2EN = async (content: string[]): Promise<string[] | undefined> => {
   try {

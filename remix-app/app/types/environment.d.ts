@@ -9,6 +9,7 @@ declare global {
       USER_TABLE: string;
       COMMENT_TABLE: string;
       TRANSLATION_TABLE: string;
+      DEEPL_AUTHKEY: string;
     }
   }
 }
