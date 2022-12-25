@@ -18,6 +18,7 @@ export async function RemixStack({ stack }: StackContext) {
       TRANSLATION_TABLE: translationTable.tableName,
       REGION: process.env.REGION!,
       ENV: process.env.ENV!,
+      DEEPL_AUTHKEY: process.env.DEEPL_AUTHKEY!,
     },
   });
   site.attachPermissions([userTable, commentTable, translationTable]);

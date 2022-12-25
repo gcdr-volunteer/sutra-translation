@@ -1,8 +1,8 @@
 import { ActionArgs, json, LoaderArgs } from '@remix-run/node';
-import { useLoaderData, useLocation, useNavigate } from '@remix-run/react';
-import { Text, IconButton, Flex, Checkbox, useBoolean } from '@chakra-ui/react';
+import { useLoaderData, useNavigate } from '@remix-run/react';
+import { IconButton, Flex } from '@chakra-ui/react';
 import { useRef } from 'react';
-import { Paragraph, ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
+import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
 import { getOriginParagraphsByRollId, getTargetParagraphsByRollId } from '~/models/paragraph';
 
@@ -10,7 +10,9 @@ export const loader = async ({ params }: LoaderArgs) => {
   const { rollId } = params;
   const originParagraphs = await getOriginParagraphsByRollId(rollId!);
   const targetParagraphs = await getTargetParagraphsByRollId(rollId!);
-  const origins = originParagraphs?.map(({ category, content, num }) => ({
+  const origins = originParagraphs?.map(({ PK, SK, category, content, num }) => ({
+    PK,
+    SK,
     category,
     content,
     num,
@@ -34,23 +36,22 @@ export const action = async ({ request }: ActionArgs) => {
   const entryData = Object.fromEntries(formData.entries());
   return json({});
 };
+
+export type ParagraphLoadData = {
+  PK: string;
+  SK: string;
+  num: string;
+  finish: boolean;
+  content: string;
+  comments: [];
+};
 export default function RollRoute() {
   const {
     data: { origins, targets, footnotes },
   } = useLoaderData<{
     data: {
-      origins: {
-        num: string;
-        finish: boolean;
-        content: string;
-        comments: [];
-      }[];
-      targets: {
-        num: string;
-        finish: boolean;
-        content: string;
-        comments: [];
-      }[];
+      origins: ParagraphLoadData[];
+      targets: ParagraphLoadData[];
       footnotes: [];
     };
   }>();
@@ -60,7 +61,7 @@ export default function RollRoute() {
   const paragraphsComp = origins?.map((origin, index) => {
     const target = targets[index];
     if (target) {
-      return <ParagraphPair origin={origin} target={target} footnotes={footnotes} />;
+      return <ParagraphPair key={index} origin={origin} target={target} footnotes={footnotes} />;
     }
     return (
       <ParagraphOrigin
