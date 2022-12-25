@@ -3,7 +3,6 @@ import { Authenticator } from 'remix-auth';
 import { sessionStorage } from './session.server';
 import { User } from './types/user';
 import { FormStrategy } from 'remix-auth-form';
-import invariant from 'tiny-invariant';
 import bcrypt from 'bcryptjs';
 import { LoaderArgs } from '@remix-run/node';
 import { getUserByEmail } from './models/user';

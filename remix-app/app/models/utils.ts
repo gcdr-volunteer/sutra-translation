@@ -109,3 +109,7 @@ export const composeSKForLang = ({ name }: { name: string }) => {
 export const composeSKForRole = ({ name }: { name: string }) => {
   return `ROLE-${name}`;
 };
+
+export const composeSKForSutra = ({ lang, version }: { lang: string; version: string }) => {
+  return `${lang}-SUTRA-${version?.toUpperCase()}`;
+};

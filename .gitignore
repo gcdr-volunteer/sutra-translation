@@ -13,6 +13,7 @@ node_modules
 
 remix-app/.cache
 .cache
+.env
 remix-app/server/index.js
 remix-app/public/build
 remix-app/build
