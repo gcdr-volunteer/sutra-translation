@@ -1,4 +1,4 @@
-import { MutableRefObject, useState } from 'react';
+import { MutableRefObject, useRef, useState } from 'react';
 import {
   Text,
   Flex,
@@ -16,13 +16,15 @@ type TextSelection = {
   selectedText?: string;
 };
 
-export const Paragraph = ({
+export const ParagraphTarget = ({
+  paragraphId,
   content,
   comments,
   footnotes,
   toggle,
   background,
 }: {
+  paragraphId: string;
   content: string;
   comments: {
     content: string;
@@ -32,14 +34,82 @@ export const Paragraph = ({
   toggle?: boolean;
   background?: string;
 }) => {
+  const [selectedText, setSelectedText] = useState<TextSelection>({});
+  const { onOpen, onClose, isOpen } = useDisclosure();
   const highlights = comments?.map((comment) => comment.content);
   const argumentedContent = comments?.length ? (
-    <Highlight query={highlights} styles={{ px: '1', py: '1', bg: 'orange.100' }}>
+    <Highlight
+      query={highlights}
+      styles={{ px: '1', py: '1', bg: 'orange.100', userSelect: 'none' }}
+    >
       {content}
     </Highlight>
   ) : (
     content
   );
+  const handleMouseUp = () => {
+    const selection = document.getSelection();
+    if (selection?.toString() !== '') {
+      const data = selection?.anchorNode?.nodeValue as string;
+      const { baseOffset, extentOffset } = (selection || {}) as {
+        baseOffset: number;
+        extentOffset: number;
+      };
+      const [start, end] =
+        baseOffset > extentOffset ? [extentOffset, baseOffset] : [baseOffset, extentOffset];
+      const selectedText = data?.slice(start, end);
+      selectedText.trim().length && onOpen();
+      setSelectedText((prev) => ({ ...prev, start, end, selectedText }));
+    }
+  };
+  return (
+    <Flex
+      flex={1}
+      background={toggle ? 'primary.300' : background ?? 'inherit'}
+      p={4}
+      borderRadius={toggle || background ? 12 : 0}
+      flexDir={'row'}
+      gap={8}
+    >
+      <Text
+        textAlign={'left'}
+        flex={1}
+        color={toggle ? 'white' : 'inherit'}
+        lineHeight={1.8}
+        fontSize={'xl'}
+        fontFamily="Noto Sans TC"
+        onMouseUp={handleMouseUp}
+      >
+        {argumentedContent}
+      </Text>
+      <FormModal
+        value="new_comment"
+        header="Add comment"
+        body={
+          <Comment
+            paragraphId={paragraphId}
+            {...selectedText}
+            users={['Master Sure', 'Master Lai']}
+          />
+        }
+        isOpen={isOpen}
+        onClose={onClose}
+      />
+    </Flex>
+  );
+};
+
+export const Paragraph = ({
+  content,
+  toggle,
+  background,
+  footnotes,
+}: {
+  content: string;
+  toggle?: boolean;
+  background?: string;
+  footnotes?: string[];
+}) => {
   return (
     <Flex
       flex={1}
@@ -57,7 +127,7 @@ export const Paragraph = ({
         fontSize={'xl'}
         fontFamily="Noto Sans TC"
       >
-        {argumentedContent}
+        {content}
       </Text>
     </Flex>
   );
@@ -65,19 +135,16 @@ export const Paragraph = ({
 
 export const ParagraphOrigin = ({
   content,
-  comments,
   footnotes,
   index,
   checkedParagraphs,
+  background,
 }: {
   content: string;
-  comments: {
-    content: string;
-    comment: string;
-  }[];
   footnotes: string[];
   index: number;
   checkedParagraphs?: MutableRefObject<Set<number>>;
+  background?: string;
 }) => {
   const [toggle, setToggle] = useBoolean(false);
   if (toggle) {
@@ -88,7 +155,7 @@ export const ParagraphOrigin = ({
   return (
     <Flex w={'90%'} flexDir={'row'} alignItems={'flex-start'}>
       <Checkbox borderColor={'primary.300'} onChange={setToggle.toggle}>
-        <Paragraph content={content} comments={comments} footnotes={footnotes} toggle={toggle} />
+        <Paragraph content={content} toggle={toggle} background={background} />
       </Checkbox>
     </Flex>
   );
@@ -101,6 +168,7 @@ export const ParagraphPair = ({
 }: {
   origin: {
     content: string;
+    SK: string;
     comments: {
       content: string;
       comment: string;
@@ -114,85 +182,20 @@ export const ParagraphPair = ({
     }[];
   };
   footnotes: string[];
-}) => (
-  <Flex w={'90%'} pl={4} flexDir={'row'} gap={8}>
-    <Paragraph
-      background="secondary.300"
-      content={origin?.content}
-      comments={origin?.comments}
-      footnotes={footnotes}
-    />
-    <Paragraph
-      background="secondary.200"
-      content={target?.content}
-      comments={target?.comments}
-      footnotes={footnotes}
-    />
-  </Flex>
-);
-// export const Paragraph = ({
-//   origin,
-//   target,
-//   index,
-//   checkedParagraphs,
-//   finish,
-//   comments,
-//   footnotes,
-// }: {
-//   origin: {
-//     content: string;
-//     num: string;
-//     finish: boolean;
-//   };
-//   target: string;
-//   index: number;
-//   checkedParagraphs: MutableRefObject<Set<number>>;
-//   finish: boolean;
-//   comments: {
-//     content: string;
-//     comment: string;
-//   }[];
-//   footnotes: {
-//     offset: number;
-//     content: string;
-//     num: number;
-//     paragraphId: string;
-//   }[];
-// }) => {
-//   const [toggle, setToggle] = useBoolean(false);
-//   const [selectedText, setSelectedText] = useState<TextSelection>({});
-//   if (toggle) {
-//     checkedParagraphs.current.add(index);
-//   } else {
-//     checkedParagraphs.current.delete(index);
-//   }
-//   const { onOpen, onClose, isOpen } = useDisclosure();
-
-//   const handleMouseUp = () => {
-//     const selection = document.getSelection();
-//     if (selection?.toString() !== '') {
-//       const data = selection?.anchorNode?.nodeValue as string;
-//       const { baseOffset, extentOffset } = (selection || {}) as {
-//         baseOffset: number;
-//         extentOffset: number;
-//       };
-//       const [start, end] =
-//         baseOffset > extentOffset ? [extentOffset, baseOffset] : [baseOffset, extentOffset];
-//       const selectedText = data?.slice(start, end);
-//       selectedText.trim().length && onOpen();
-//       setSelectedText((prev) => ({ ...prev, start, end, selectedText }));
-//     }
-//   };
-
-//   const highlights = comments?.map((comment) => comment.content);
-//   const argumentedTarget = comments?.length ? (
-//     <Highlight key={index} query={highlights} styles={{ px: '1', py: '1', bg: 'orange.100' }}>
-//       {target}
-//     </Highlight>
-//   ) : (
-//     target
-//   );
-
+}) => {
+  return (
+    <Flex pl={4} flexDir={'row'} gap={8}>
+      <Paragraph background="secondary.300" content={origin?.content} footnotes={footnotes} />
+      <ParagraphTarget
+        paragraphId={origin.SK}
+        background="secondary.200"
+        content={target?.content}
+        comments={target?.comments}
+        footnotes={footnotes}
+      />
+    </Flex>
+  );
+};
 //   const textWithFootNote = footnotes.length
 //     ? footnotes.map((footnote, index, arr) => {
 //         const { num, offset, content } = footnote;
@@ -208,74 +211,3 @@ export const ParagraphPair = ({
 //         );
 //       })
 //     : origin;
-//   return (
-//     <Flex w={finish ? '50%' : '90%'} flexDir={'row'} alignItems={'flex-start'}>
-//       {finish ? (
-//         <Flex
-//           background={toggle ? 'primary.300' : 'inherit'}
-//           pl={4}
-//           borderRadius={toggle ? 12 : 0}
-//           flexDir={'row'}
-//           gap={8}
-//         >
-//           <Text fontSize={'xl'}>{textWithFootNote}</Text>
-//         </Flex>
-//       ) : Boolean(target) ? (
-//         <Flex
-//           background={toggle ? 'primary.300' : 'inherit'}
-//           pl={4}
-//           borderRadius={toggle ? 12 : 0}
-//           flexDir={'row'}
-//           gap={8}
-//         >
-//           <Text
-//             flex={1}
-//             color={toggle ? 'white' : 'inherit'}
-//             lineHeight={1.8}
-//             fontSize={'xl'}
-//             fontFamily="Noto Sans TC"
-//           >
-//             {origin}
-//           </Text>
-//           <Text
-//             flex={1}
-//             color={toggle ? 'white' : 'inherit'}
-//             lineHeight={1.8}
-//             fontSize={'xl'}
-//             fontFamily="Noto Sans TC"
-//             onMouseUp={handleMouseUp}
-//           >
-//             {argumentedTarget}
-//           </Text>
-//           <FormModal
-//             value="new_comment"
-//             header="Add comment"
-//             body={<Comment {...selectedText} users={['Master Sure', 'Master Lai']} />}
-//             isOpen={isOpen}
-//             onClose={onClose}
-//           />
-//         </Flex>
-//       ) : (
-//         <Checkbox borderColor={'primary.300'} onChange={setToggle.toggle}>
-//           <Flex
-//             background={toggle ? 'primary.300' : 'inherit'}
-//             pl={4}
-//             borderRadius={toggle ? 12 : 0}
-//             flexDir={'row'}
-//             gap={8}
-//           >
-//             <Text
-//               flex={1}
-//               color={toggle ? 'white' : 'inherit'}
-//               lineHeight={1.8}
-//               fontSize={'xl'}
-//               fontFamily="Noto Sans TC"
-//             >
-//               {origin}
-//             </Text>
-//           </Flex>
-//         </Checkbox>
-//       )}
-//     </Flex>
-//   );
-// };

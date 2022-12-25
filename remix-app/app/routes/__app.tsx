@@ -15,7 +15,7 @@ export const loader = async ({ request }: LoaderArgs) => {
 export const UserContext = createContext<User | undefined>({
   username: '',
   email: 'admin@gmail.com',
-  roles: [RoleType.Viewer],
+  roles: [RoleType.Reader],
   origin_lang: LangCode.ZH,
   target_lang: LangCode.EN,
   team: '',

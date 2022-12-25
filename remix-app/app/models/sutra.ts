@@ -1,6 +1,6 @@
 import { QueryCommand, QueryCommandInput } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { dbClient } from '~/clients/dynamodb';
+import { dbClient } from '~/models/external_services/dynamodb';
 import { LangCode } from '~/types';
 import { Sutra } from '~/types/sutra';
 import { composeSKForSutra } from './utils';
@@ -18,7 +18,7 @@ export const getSutrasByLangAndVersion = async (
       ':SK': SK,
     }),
   };
-  const { Items } = await dbClient.send(new QueryCommand(params));
+  const { Items } = await dbClient().send(new QueryCommand(params));
   if (Items?.length) {
     return Items.map((Item) => unmarshall(Item) as Sutra);
   }

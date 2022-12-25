@@ -11,12 +11,14 @@ export const loader = async ({ params }: LoaderArgs) => {
         rolls: [
           {
             title: 'Chapter One: Wondrous Adornments of World-Rulers',
+            subtitle: '',
             slug: 'EN-ROLL-V1-0001',
             roll_num: 'Roll one',
             finish: true,
           },
           {
             title: 'Chapter One: Wondrous Adornments of World-Rulers',
+            subtitle: '',
             slug: 'EN-ROLL-V1-0002',
             roll_num: 'Roll two',
             finish: true,
@@ -28,12 +30,14 @@ export const loader = async ({ params }: LoaderArgs) => {
         rolls: [
           {
             title: 'Chapter One: Wondrous Adornments of World-Rulers',
+            subtitle: '',
             slug: 'EN-ROLL-V1-0001',
             roll_num: 'Roll one',
             finish: true,
           },
           {
             title: 'Chapter One: Wondrous Adornments of World-Rulers',
+            subtitle: '',
             slug: 'EN-ROLL-V1-0002',
             roll_num: 'Roll two',
             finish: true,
@@ -45,12 +49,14 @@ export const loader = async ({ params }: LoaderArgs) => {
         rolls: [
           {
             title: 'Chapter One: Wondrous Adornments of World-Rulers',
+            subtitle: '',
             slug: 'EN-ROLL-V1-0001',
             roll_num: 'Roll one',
             finish: true,
           },
           {
             title: 'Chapter One: Wondrous Adornments of World-Rulers',
+            subtitle: '',
             slug: 'EN-ROLL-V1-0002',
             roll_num: 'Roll two',
             finish: true,

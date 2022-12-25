@@ -1,4 +1,4 @@
-import { useActionData, useLocation, useSubmit, Form } from '@remix-run/react';
+import { useActionData, useLocation, useSubmit, Form, useNavigate } from '@remix-run/react';
 import {
   Tag,
   Box,
@@ -27,69 +27,35 @@ import {
   InputLeftElement,
 } from '@chakra-ui/react';
 import { RepeatIcon, CopyIcon, SearchIcon } from '@chakra-ui/icons';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, MutableRefObject } from 'react';
 import { ActionArgs, json, LoaderArgs } from '@remix-run/node';
 import { BiTable, BiSearch, BiNote, BiCheck } from 'react-icons/bi';
 import { Warning } from '~/components/common/errors';
-import { translateZH2EN } from '~/clients/deepl';
 import { FormModal } from '~/components/common';
 import { ParagraphLoadData } from '.';
-import { createNewParagraph, getParagraphByPrimaryKey } from '~/models/paragraph';
-import { schemaValidator } from '~/utils/schema_validator';
-import { newTranslationSchema } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
+import {
+  handleNewTranslationParagraph,
+  hanldeDeepLFetch,
+} from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 
 export const loader = async ({ params }: LoaderArgs) => {
   return json({});
 };
 
-const hanldeDeepLFetch = async (origins: string[]) => {
-  try {
-    const results = await translateZH2EN(origins);
-    console.log(results);
-    return json({ data: results });
-  } catch (error) {
-    return json({ errors: { deepl: (error as unknown as Error)?.message } }, { status: 400 });
-  }
-};
-
-const handleNewTranslationParagraph = async (newTranslation: {
-  PK: string;
-  SK: string;
-  translation: string;
-}) => {
-  try {
-    const result = await schemaValidator({
-      schema: newTranslationSchema(),
-      obj: newTranslation,
-    });
-    const originParagraph = await getParagraphByPrimaryKey({
-      PK: result.PK,
-      SK: result.SK,
-    });
-    if (originParagraph) {
-      const translatedParagraph = {
-        ...originParagraph,
-        content: result.translation,
-        PK: result.PK?.replace('ZH', 'EN'),
-        SK: result.SK?.replace('ZH', 'EN'),
-      };
-      await createNewParagraph(translatedParagraph);
-      return json({});
-    }
-  } catch (errors) {
-    console.log(errors);
-    return json({ errors: { errors } });
-  }
-};
 export const action = async ({ request }: ActionArgs) => {
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
   if (entryData?.intent === 'deepl') {
     const { intent, ...rest } = entryData;
+    // Uncomment the following line when doing debug
+    // return json({ data: {}, intent: 'deepl' });
     return await hanldeDeepLFetch(Object.values(rest) as string[]);
   }
-  if (entryData?.translation) {
+  if (entryData?.intent === 'translation') {
+    // Uncomment the following line when doing debug
+    // return json({ data: { index: entryData?.index }, intent: 'translation' });
     return await handleNewTranslationParagraph({
+      index: entryData?.index as string,
       PK: entryData?.PK as string,
       SK: entryData?.SK as string,
       translation: entryData?.translation as string,
@@ -102,14 +68,12 @@ interface stateType {
   paragraphs: ParagraphLoadData[];
 }
 export default function StagingRoute() {
-  const actionData = useActionData<{ data: string[] }>();
+  const actionData = useActionData<{
+    data: { index: number } | string[];
+    intent: 'translation' | 'deepl';
+  }>();
   const [translation, setTranslation] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (actionData?.data) {
-      setTranslation(actionData.data);
-    }
-  }, [actionData]);
   const location = useLocation();
   const paragraphs = (location.state as stateType)?.paragraphs;
   const ref = useRef(paragraphs);
@@ -127,13 +91,27 @@ export default function StagingRoute() {
     }
   }, []);
 
-  console.log(ref.current);
+  useEffect(() => {
+    if (actionData?.intent === 'deepl') {
+      setTranslation(actionData.data as string[]);
+    }
+    if (actionData?.intent === 'translation') {
+      const { index } = actionData.data as { index: number };
+      const paragraphs = ref.current;
+      paragraphs.splice(index, 1);
+      translation.splice(index, 1);
+      ref.current = paragraphs;
+      setTranslation(translation);
+    }
+  }, [actionData?.intent]);
   const paragraphsComp = ref.current?.map((paragraph, index, arr) => (
     <Box key={index}>
       <TranlationWorkspace
         origin={paragraph}
+        index={index}
         translation={translation.length ? translation[index] : 'loading....'}
         reference="Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur."
+        isLastParagraph={ref.current?.length === 1}
       />
       {index !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
     </Box>
@@ -147,10 +125,21 @@ export default function StagingRoute() {
 
 interface WorkSpaceProps {
   origin: ParagraphLoadData;
+  index: number;
   translation: string;
   reference: string;
+  isLastParagraph?: boolean;
 }
-function TranlationWorkspace({ origin, translation, reference }: WorkSpaceProps) {
+function TranlationWorkspace({
+  origin,
+  translation,
+  index,
+  reference,
+  isLastParagraph,
+}: WorkSpaceProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const actionData = useActionData();
   const [content, setContent] = useState('');
   const [glossary, setGlossary] = useBoolean(false);
   const submit = useSubmit();
@@ -163,12 +152,19 @@ function TranlationWorkspace({ origin, translation, reference }: WorkSpaceProps)
     onOpen: onOpenFootnote,
     onClose: onCloseFootnote,
   } = useDisclosure();
-  const initialRef = useRef(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmitTranslation = () => {
     submit(textAreaFormRef.current, { replace: true });
+    setContent('');
   };
+
+  useEffect(() => {
+    if (isLastParagraph) {
+      const newLocation = location.pathname.replace('/staging', '');
+      navigate(newLocation);
+    }
+  }, [actionData?.data]);
 
   const getCurrentCursorText = (): string | undefined => {
     const cursorPos = textareaRef.current?.selectionStart;
@@ -318,11 +314,17 @@ function TranlationWorkspace({ origin, translation, reference }: WorkSpaceProps)
               />
               <Input name="PK" value={origin.PK} hidden readOnly />
               <Input name="SK" value={origin.SK} hidden readOnly />
+              <Input name="index" value={index} hidden readOnly />
+              <Input name="intent" value={'translation'} hidden readOnly />
             </Form>
           </CardBody>
           <Divider />
           <CardFooter>
-            <Button onClick={handleSubmitTranslation} colorScheme={'iconButton'}>
+            <Button
+              onClick={handleSubmitTranslation}
+              colorScheme={'iconButton'}
+              disabled={!Boolean(content)}
+            >
               Submit
             </Button>
           </CardFooter>

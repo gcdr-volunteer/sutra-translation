@@ -1,15 +1,21 @@
 import { ActionArgs, json, LoaderArgs } from '@remix-run/node';
-import { useLoaderData, useNavigate } from '@remix-run/react';
-import { IconButton, Flex } from '@chakra-ui/react';
-import { useRef } from 'react';
+import { useLoaderData, useLocation, useNavigate } from '@remix-run/react';
+import { IconButton, Flex, useEditable, Box, Container } from '@chakra-ui/react';
+import { MutableRefObject, useEffect, useRef } from 'react';
 import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
 import { getOriginParagraphsByRollId, getTargetParagraphsByRollId } from '~/models/paragraph';
+import { getAllCommentsForRoll } from '~/models/comment';
+import { logger } from '~/utils';
+import { handleNewComment } from '~/services/__app/tripitaka/$sutraId/$rollId';
+import { Comment } from '~/types/comment';
+import { Element } from 'react-scroll';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId } = params;
   const originParagraphs = await getOriginParagraphsByRollId(rollId!);
   const targetParagraphs = await getTargetParagraphsByRollId(rollId!);
+  const targetComments = await getAllCommentsForRoll(rollId?.replace('ZH', 'EN')!);
   const origins = originParagraphs?.map(({ PK, SK, category, content, num }) => ({
     PK,
     SK,
@@ -17,11 +23,16 @@ export const loader = async ({ params }: LoaderArgs) => {
     content,
     num,
   }));
-  const targets = targetParagraphs?.map(({ category, content, num }) => ({
-    category,
-    content,
-    num,
-  }));
+  const targets = targetParagraphs?.map(({ category, content, num, SK }) => {
+    const comments = targetComments.filter((comment) => comment?.paragraphId === SK);
+    return {
+      comments,
+      category,
+      content,
+      num,
+      SK,
+    };
+  });
   return json({
     data: {
       footnotes: [],
@@ -34,6 +45,13 @@ export const loader = async ({ params }: LoaderArgs) => {
 export const action = async ({ request }: ActionArgs) => {
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
+  if (entryData?.intent === 'new_comment') {
+    const newComment = {
+      ...entryData,
+      targets: [entryData?.targets],
+    };
+    return await handleNewComment(newComment as unknown as Comment);
+  }
   return json({});
 };
 
@@ -58,16 +76,34 @@ export default function RollRoute() {
   const navigate = useNavigate();
   const checkedParagraphs = useRef(new Set<number>());
 
+  const location = useLocation();
+  const refs = targets?.reduce((acc, cur) => {
+    acc[`#${cur.SK}`] = useRef<HTMLDivElement>(null);
+    return acc;
+  }, {} as Record<string, MutableRefObject<HTMLDivElement | null>>);
+
+  useEffect(() => {
+    if (location?.hash) {
+      refs[location.hash].current?.scrollIntoView({
+        behavior: 'smooth',
+      });
+    }
+  }, [location?.hash]);
+
   const paragraphsComp = origins?.map((origin, index) => {
     const target = targets[index];
+    const ref = refs[`#${target?.SK}`];
     if (target) {
-      return <ParagraphPair key={index} origin={origin} target={target} footnotes={footnotes} />;
+      return (
+        <Box w="90%" ref={ref}>
+          <ParagraphPair key={origin.SK} origin={origin} target={target} footnotes={footnotes} />
+        </Box>
+      );
     }
     return (
       <ParagraphOrigin
         content={origin?.content}
-        comments={origin?.comments}
-        key={origin.num}
+        key={origin.SK}
         index={index}
         footnotes={footnotes}
         checkedParagraphs={checkedParagraphs}
