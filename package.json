@@ -10,13 +10,15 @@
     "remove": "sst remove",
     "console": "sst console",
     "typecheck": "tsc --noEmit",
-    "test": "sst bind -- vitest run"
+    "test": "sst bind -- vitest run",
+    "prepare": "husky install"
   },
   "devDependencies": {
     "@serverless-stack/cli": "^1.18.4",
     "@serverless-stack/resources": "^1.18.4",
     "@tsconfig/node16": "^1.0.3",
     "aws-cdk-lib": "2.50.0",
+    "husky": "^8.0.2",
     "typescript": "^4.9.4",
     "vitest": "^0.25.6"
   },

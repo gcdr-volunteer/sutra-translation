@@ -7,4 +7,5 @@ module.exports = {
   serverBuildTarget: 'node-cjs',
   server: undefined,
   appDirectory: 'app',
+  serverDependenciesToBundle: ['franc', 'trigram-utils', 'n-gram', 'collapse-white-space'],
 };

@@ -21,6 +21,7 @@ import utc from 'dayjs/plugin/utc';
 import { Team } from '~/types/team';
 import { Lang, LangCode } from '~/types/lang';
 import { Role, RoleType } from '~/types/role';
+import { Kind } from '~/types/common';
 dayjs.extend(utc);
 interface DBUser extends User {
   password: string;
@@ -46,6 +47,7 @@ const _createAdminUser = async () => {
     roles: [RoleType.Admin],
     email: 'pttdev123@gmail.com',
     first_login: true,
+    kind: Kind.USER,
   };
   await createNewUser(adminUser);
 };
@@ -126,10 +128,28 @@ export const createNewUser = async (user: User) => {
   return results;
 };
 
-type UserTableResp =
-  | (Team & { kind: 'TEAM' })
-  | (User & { kind: 'USER' })
-  | (Lang & { kind: 'LANG' });
+export const getAllUsers = async (currentUser: string): Promise<User[]> => {
+  const params: QueryCommandInput = {
+    TableName: process.env.USER_TABLE,
+    KeyConditionExpression: 'PK = :team AND begins_with(SK, :user)',
+    FilterExpression: 'email <> :currentUser',
+    ExpressionAttributeValues: marshall({
+      ':team': 'TEAM',
+      ':user': 'USER',
+      ':currentUser': currentUser,
+    }),
+  };
+  const { Items } = await dbClient().send(new QueryCommand(params));
+  if (Items?.length) {
+    return Items.map((Item) => {
+      const { password, ...rest } = unmarshall(Item) as User;
+      return rest as User;
+    });
+  }
+  return [];
+};
+
+type UserTableResp = Team | User | Lang;
 export const getWholeUserTable = async () => {
   const params: QueryCommandInput = {
     TableName: process.env.USER_TABLE,

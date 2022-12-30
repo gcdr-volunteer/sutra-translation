@@ -6,3 +6,4 @@ export * from './team';
 export * from './user';
 export * from './sutra';
 export * from './roll';
+export * from './glossary';

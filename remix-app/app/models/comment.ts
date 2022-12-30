@@ -1,6 +1,12 @@
 import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { PutItemCommandInput, QueryCommand, QueryCommandInput } from '@aws-sdk/client-dynamodb';
+import {
+  PutItemCommandInput,
+  QueryCommand,
+  QueryCommandInput,
+  UpdateItemCommand,
+  UpdateItemCommandInput,
+} from '@aws-sdk/client-dynamodb';
 import { PutItemCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
 import { Comment } from '~/types/comment';
 import { utcNow } from '~/utils/datetime';
@@ -10,7 +16,7 @@ export const createNewComment = async (comment: Comment) => {
     TableName: process.env.COMMENT_TABLE,
     Item: marshall({
       PK: 'COMMENT',
-      SK: utcNow(),
+      SK: `${comment.paragraphId}-${utcNow()}`,
       ...comment,
     }),
     ConditionExpression: 'attribute_not_exists(#SK)',
@@ -37,6 +43,25 @@ export const getAllCommentsForRoll = async (rollId: string) => {
     return Items.map((Item) => unmarshall(Item) as Comment);
   }
   return [];
+};
+
+export const resolveComment = async (SK: string) => {
+  const params: UpdateItemCommandInput = {
+    TableName: process.env.COMMENT_TABLE,
+    Key: marshall({
+      PK: 'COMMENT',
+      SK,
+    }),
+    ExpressionAttributeNames: {
+      '#resolved': 'resolved',
+    },
+    ExpressionAttributeValues: marshall({
+      ':resolved': 1,
+    }),
+    UpdateExpression: 'Set #resolved = :resolved',
+  };
+
+  await dbClient().send(new UpdateItemCommand(params));
 };
 
 export const getAllNotResolvedCommentsForMe = async (): Promise<Comment[]> => {

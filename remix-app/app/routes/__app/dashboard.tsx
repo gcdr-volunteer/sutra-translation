@@ -22,17 +22,18 @@ export const loader = async () => {
 
 export default function TripitakaRoute() {
   const loadData = useLoaderData<{ data: Comment[] }>();
+  loadData?.data?.sort((a, b) => b.priority - a.priority);
   const commentsComp = loadData?.data.map((ccomment) => {
     const { path, content, comment, priority, paragraphId } = ccomment;
-    const statusMapper = {
-      Low: 'info',
-      Medium: 'warning',
-      High: 'error',
-    };
-    const status = statusMapper[priority] as AlertStatus;
+    const priorityLevel = priority as number;
+    const statusValue = {
+      1: 'info',
+      2: 'warning',
+      3: 'error',
+    }[priorityLevel] as AlertStatus;
     return (
       <Link key={comment} to={`${path}#${paragraphId}`} style={{ width: '100%' }}>
-        <Alert status={status}>
+        <Alert status={statusValue}>
           <AlertIcon />
           <AlertTitle textOverflow={'ellipsis'} whiteSpace="nowrap" overflow={'hidden'} maxW="50%">
             {content}

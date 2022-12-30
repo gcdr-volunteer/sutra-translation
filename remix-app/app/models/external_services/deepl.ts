@@ -1,6 +1,10 @@
 import * as deepl from 'deepl-node';
 import { QuotaExceededError, TooManyRequestsError } from 'deepl-node';
-const deeplClient = () => new deepl.Translator(process.env.DEEPL_AUTHKEY);
+import { logger } from '~/utils';
+// The reason we have to pass serverUrl is because different subscription
+// will have different url
+const deeplClient = () =>
+  new deepl.Translator(process.env.DEEPL_AUTHKEY, { serverUrl: process.env.DEEPL_URL });
 
 export const translateZH2EN = async (content: string[]): Promise<string[] | undefined> => {
   try {
@@ -8,6 +12,7 @@ export const translateZH2EN = async (content: string[]): Promise<string[] | unde
 
     return results?.map((result) => result.text);
   } catch (error) {
+    logger.error('translateZH2EN', 'error', error);
     if (error instanceof QuotaExceededError) {
       throw new Error('Oops, we run out of deelp quota, please contact admin for more quotas');
     }

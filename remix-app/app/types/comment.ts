@@ -1,9 +1,9 @@
-import { CommonMeta } from './user';
+import { CommonMeta } from './common';
 
 export enum Priority {
-  High = 'High',
-  Medium = 'Medium',
-  Low = 'Low',
+  High,
+  Medium,
+  Low,
 }
 export interface Comment extends CommonMeta {
   /**
@@ -50,4 +50,17 @@ export interface Comment extends CommonMeta {
    * The path where the comment belongs to
    */
   path: string;
+  /**
+   * The alias to the creator, this can be used during comment conversation
+   */
+  creatorAlias: string;
+  /**
+   * The id is used to make comment update to date by Server Send Event
+   * technology
+   */
+  id: string;
+  /**
+   * This id provide the information that which comment belongs to
+   */
+  parentId: string;
 }

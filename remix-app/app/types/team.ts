@@ -1,4 +1,4 @@
-import { CommonMeta } from './user';
+import { CommonMeta } from './common';
 
 export interface Team extends CommonMeta {
   /**

@@ -23,7 +23,7 @@ interface TeamFormProps {
 }
 export const TeamForm = (props: TeamFormProps) => {
   const { errors } = useActionData<{ errors: { name: string; alias: string } }>() || {};
-  const [formState, setFormState] = useState<Team>({
+  const [formState, setFormState] = useState<Omit<Team, 'kind'>>({
     name: '',
     alias: '',
   });

@@ -23,7 +23,7 @@ interface LangFormProps {
 }
 export const LangForm = (props: LangFormProps) => {
   const { errors } = useActionData<{ errors: { name: string; alias: string } }>() || {};
-  const [formState, setFormState] = useState<Lang>({
+  const [formState, setFormState] = useState<Omit<Lang, 'kind'>>({
     name: '' as LangCode,
     alias: '',
   });

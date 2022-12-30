@@ -20,10 +20,10 @@ interface UserFormProps {
 export const UserForm = (props: UserFormProps) => {
   const { user } = props || {};
   const { errors } = useActionData<{ errors: User }>() || {};
-  const [formState, setFormState] = useState<User>({
+  const [formState, setFormState] = useState<Omit<User, 'kind'>>({
     username: user?.username ?? '',
     email: user?.email ?? '',
-    roles: user?.roles ?? [RoleType.Viewer],
+    roles: user?.roles ?? [RoleType.Reader],
     team: user?.team ?? '',
     origin_lang: LangCode.ZH,
     target_lang: LangCode.EN,
@@ -35,7 +35,7 @@ export const UserForm = (props: UserFormProps) => {
     type: string,
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    let newFormState: User;
+    let newFormState: Omit<User, 'kind'>;
     if (type === 'roles') {
       const role = e.target.value as Role['name'];
       newFormState = { ...formState, roles: [role] };

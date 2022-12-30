@@ -137,9 +137,9 @@ export const Sidebar = () => {
           {/* user profile section */}
           <Flex flexDir="column" w="100%" alignItems="center" mb={4}>
             <Divider borderColor={'primary.300'} />
-            <Flex mt={4} alignItems="center" flexDir="row" justifyContent="space-between">
-              <Avatar size="sm" name="Terry Pan" src="https://bit.ly/broken-link" />
-              <Flex flexDir="column" ml={4}>
+            <Flex mt={4} alignItems="center" flexDir="row" w="100%" justifyContent="space-evenly">
+              <Flex flexDir="row" ml={4}>
+                <Avatar mr={2} size="sm" name="Terry Pan" src="https://bit.ly/broken-link" />
                 <NavLink to="setting">
                   <Heading as="h3" size="sm" color="secondary.500">
                     Terry Pan
@@ -151,7 +151,7 @@ export const Sidebar = () => {
                 background="none"
                 _hover={{ background: 'none' }}
                 aria-label="menu-bar"
-                icon={<ArrowLeftIcon />}
+                icon={<ArrowLeftIcon color="white" />}
                 onClick={setToggle.toggle}
               />
             </Flex>
@@ -167,6 +167,7 @@ export const Sidebar = () => {
         left={8}
         w={12}
         h={12}
+        colorScheme={'iconButton'}
         aria-label="sidebar-menu-button"
         isRound
         icon={<ArrowRightIcon />}

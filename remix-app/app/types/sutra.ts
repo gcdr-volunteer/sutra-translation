@@ -1,6 +1,6 @@
 import { Lang } from './lang';
 import { Team } from './team';
-import { CommonMeta } from './user';
+import { CommonMeta } from './common';
 
 export interface Sutra extends CommonMeta {
   /**

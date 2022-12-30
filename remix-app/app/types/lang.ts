@@ -1,4 +1,4 @@
-import { CommonMeta } from './user';
+import { CommonMeta } from './common';
 export enum LangCode {
   ZH = 'ZH',
   EN = 'EN',
