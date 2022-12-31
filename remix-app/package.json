@@ -5,7 +5,7 @@
     "build": "remix build",
     "dev": "sst-env -- remix dev",
     "start": "remix-serve build",
-    "transpile": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test:unit": "vitest",
     "test:unit:nowatch": "vitest run",
     "test:coverage": "vitest run -coverage",
