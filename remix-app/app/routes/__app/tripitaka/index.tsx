@@ -3,7 +3,7 @@ import { json } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 import { Sutra } from '~/components/common/sutra';
 import { getSutrasByLangAndVersion } from '~/models/sutra';
-import { LangCode, Sutra as TSutra } from '~/types';
+import { LangCode } from '~/types';
 
 export const loader = async () => {
   const sutras = await getSutrasByLangAndVersion(LangCode.ZH, 'V1');

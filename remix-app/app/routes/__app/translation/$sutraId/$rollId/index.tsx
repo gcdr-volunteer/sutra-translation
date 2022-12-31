@@ -1,7 +1,8 @@
-import { json, LoaderArgs } from '@remix-run/node';
-import { useLoaderData, useNavigate } from '@remix-run/react';
-import { Text, Flex, Box, VStack } from '@chakra-ui/react';
+import { json } from '@remix-run/node';
+import { useLoaderData } from '@remix-run/react';
+import { Text, Flex, VStack } from '@chakra-ui/react';
 import { Paragraph } from '~/components/common/paragraph';
+import type { LoaderArgs } from '@remix-run/node';
 
 export const loader = async ({ params }: LoaderArgs) => {
   return json({
@@ -70,7 +71,7 @@ export const loader = async ({ params }: LoaderArgs) => {
 };
 export default function RollRoute() {
   const { paragraphs, footnotes } = useLoaderData<typeof loader>();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const paragraphsComp = paragraphs.map((paragraph, index) => (
     <Paragraph
       key={paragraph.num}
@@ -82,18 +83,18 @@ export default function RollRoute() {
   if (paragraphs.length) {
     return (
       <Flex
-        w="100%"
-        flexDir="column"
-        justifyContent="flex-start"
-        alignItems="center"
+        w='100%'
+        flexDir='column'
+        justifyContent='flex-start'
+        alignItems='center'
         gap={4}
         mt={10}
       >
-        <VStack background={'secondary.300'} borderRadius={16} spacing={4} w="60%">
+        <VStack background={'secondary.300'} borderRadius={16} spacing={4} w='60%'>
           {paragraphsComp}
         </VStack>
         {footnotes.length ? (
-          <Flex flexDir={'column'} justifyContent="flex-start" w="60%">
+          <Flex flexDir={'column'} justifyContent='flex-start' w='60%'>
             {footnotes.map((footnote) => {
               return (
                 <Text key={footnote.num} fontSize={'lg'}>

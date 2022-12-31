@@ -1,13 +1,6 @@
-import { Team } from '~/types/team';
 import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import {
-  DeleteItemCommandInput,
-  GetItemCommand,
-  GetItemCommandInput,
-  PutItemCommandInput,
-  QueryCommandInput,
-} from '@aws-sdk/client-dynamodb';
+import { GetItemCommand } from '@aws-sdk/client-dynamodb';
 import {
   PutItemCommand,
   ReturnValue,
@@ -15,6 +8,13 @@ import {
   DeleteItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import { composeSKForTeam } from './utils';
+import type { Team } from '~/types/team';
+import type {
+  DeleteItemCommandInput,
+  GetItemCommandInput,
+  PutItemCommandInput,
+  QueryCommandInput,
+} from '@aws-sdk/client-dynamodb';
 
 export const createNewTeam = async (team: Team) => {
   const { name } = team;

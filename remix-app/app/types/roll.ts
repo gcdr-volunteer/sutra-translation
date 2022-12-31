@@ -1,6 +1,5 @@
-import { Lang } from './lang';
-import { Team } from './team';
-import { CommonMeta } from './common';
+import type { Team } from './team';
+import type { CommonMeta } from './common';
 
 export interface Roll extends CommonMeta {
   /**

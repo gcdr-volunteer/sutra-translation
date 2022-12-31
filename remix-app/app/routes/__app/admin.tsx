@@ -13,25 +13,24 @@ import {
   VStack,
   Tooltip,
 } from '@chakra-ui/react';
-import { json, ActionArgs, Response } from '@remix-run/node';
+import { json } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
-import { User } from '~/types/user';
 import { EditIcon } from '@chakra-ui/icons';
 import { RiUser2Line, RiTeamLine } from 'react-icons/ri';
 import { FaLanguage } from 'react-icons/fa';
 import { FormModal } from '~/components/common';
-import { Lang, LangCode } from '~/types/lang';
-import { Role, RoleType } from '~/types/role';
+import { RoleType } from '~/types/role';
 import {
   handleCreateNewLang,
   handleCreateNewTeam,
   handleCreateNewUser,
   getLoaderData,
 } from '~/services/__app/admin';
-import { Team } from '~/types/team';
 import { UserForm, TeamForm } from '~/components';
 import { LangForm } from '~/components/lang_form';
 import { Intent } from '~/types/common';
+import type { ActionArgs } from '@remix-run/node';
+import type { Team, User, Lang, LangCode, Role } from '~/types';
 
 export const loader = async () => {
   const { teams, users, langs } = await getLoaderData();
@@ -111,7 +110,7 @@ export default function AdminRoute() {
     );
   });
   return (
-    <Flex p={10} background="secondary.800" w="100%" flexDir="column">
+    <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
       {usersComp}
       <AdminActionButtons teams={teams} langs={langs} />
     </Flex>
@@ -129,7 +128,7 @@ const UserConfig = (props: UserConfigProps) => {
       <AccordionItem>
         <h2>
           <AccordionButton _expanded={{ bg: 'primary.800', color: 'white' }}>
-            <Box flex="1" textAlign="left">
+            <Box flex='1' textAlign='left'>
               {user.username}
               {user.roles?.map((role) => (
                 <Tag key={role} ml={4} background={role === RoleType.Admin ? 'pink' : 'lightgreen'}>
@@ -161,19 +160,19 @@ const AdminActionButtons = (props: AdminActionButtonsProps) => {
     <Box pos={'fixed'} right={8} bottom={8}>
       <Fade in={isOpen}>
         <VStack spacing={4} mb={4}>
-          <Tooltip label="add a new user" placement="left">
+          <Tooltip label='add a new user' placement='left'>
             <span>
               <IconButton
                 colorScheme={'iconButton'}
                 borderRadius={'50%'}
                 w={12}
                 h={12}
-                aria-label="open admin edit buttons"
+                aria-label='open admin edit buttons'
                 icon={<RiUser2Line />}
                 onClick={onOpenNewUser}
               />
               <FormModal
-                header="Add a New User"
+                header='Add a New User'
                 body={<UserForm teams={teams} langs={langs} isNew={true} />}
                 isOpen={isOpenNewUser}
                 onClose={onCloseNewUser}
@@ -181,19 +180,19 @@ const AdminActionButtons = (props: AdminActionButtonsProps) => {
               />
             </span>
           </Tooltip>
-          <Tooltip label="add a new team" placement="left">
+          <Tooltip label='add a new team' placement='left'>
             <span>
               <IconButton
                 colorScheme={'iconButton'}
                 borderRadius={'50%'}
                 w={12}
                 h={12}
-                aria-label="open admin edit buttons"
+                aria-label='open admin edit buttons'
                 icon={<RiTeamLine />}
                 onClick={onOpenNewTeam}
               />
               <FormModal
-                header="Add a New Team"
+                header='Add a New Team'
                 body={<TeamForm teams={teams} onClose={onCloseNewTeam} />}
                 isOpen={isOpenNewTeam}
                 onClose={onCloseNewTeam}
@@ -201,19 +200,19 @@ const AdminActionButtons = (props: AdminActionButtonsProps) => {
               />
             </span>
           </Tooltip>
-          <Tooltip label="add a new language" placement="left">
+          <Tooltip label='add a new language' placement='left'>
             <span>
               <IconButton
                 colorScheme={'iconButton'}
                 borderRadius={'50%'}
                 w={12}
                 h={12}
-                aria-label="open admin edit buttons"
+                aria-label='open admin edit buttons'
                 icon={<FaLanguage />}
                 onClick={onOpenNewLang}
               />
               <FormModal
-                header="Add a New Language"
+                header='Add a New Language'
                 body={<LangForm langs={langs} onClose={onCloseNewLang} />}
                 isOpen={isOpenNewLang}
                 onClose={onCloseNewLang}
@@ -228,7 +227,7 @@ const AdminActionButtons = (props: AdminActionButtonsProps) => {
         borderRadius={'50%'}
         w={12}
         h={12}
-        aria-label="open admin edit buttons"
+        aria-label='open admin edit buttons'
         icon={<EditIcon />}
         onClick={onToggle}
       />

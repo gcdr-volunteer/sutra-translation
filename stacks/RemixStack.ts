@@ -1,16 +1,12 @@
-import { StackContext, RemixSite } from "@serverless-stack/resources";
-import {
-  createUserTable,
-  createCommentTable,
-  createTranslationTable,
-} from "./database";
+import { StackContext, RemixSite } from '@serverless-stack/resources';
+import { createUserTable, createCommentTable, createTranslationTable } from './database';
 
 export async function RemixStack({ stack }: StackContext) {
   const userTable = await createUserTable(stack);
   const commentTable = await createCommentTable(stack);
   const translationTable = await createTranslationTable(stack);
   const site = new RemixSite(stack, `${process.env.ENV}-Site`, {
-    path: "remix-app/",
+    path: 'remix-app/',
     environment: {
       SESSION_SECRET: process.env.SESSION_SECRET!,
       USER_TABLE: userTable.tableName,

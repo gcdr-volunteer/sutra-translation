@@ -1,5 +1,6 @@
 {
-  "name": "remix-app",
+  "name": "@sutra-translation/remix-app",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "build": "remix build",
@@ -8,10 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest",
     "test:unit:nowatch": "vitest run",
-    "test:coverage": "vitest run -coverage",
-    "format": "prettier --write .",
-    "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
-    "prettier:check": "prettier --config .prettierrc.json --check \"app/**/*.{ts,tsx,css,html}\""
+    "test:coverage": "vitest run -coverage"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.226.0",
@@ -59,18 +57,11 @@
     "@vitejs/plugin-react": "^2.2.0",
     "eslint": "^8.27.0",
     "happy-dom": "^7.7.0",
-    "lint-staged": "^13.0.4",
     "npm-run-all": "^4.1.5",
     "prettier": "2.8.0",
     "typescript": "^4.8.4",
     "vite-tsconfig-paths": "^3.6.0",
     "vitest": "^0.25.3"
-  },
-  "lint-staged": {
-    "app/**/*.{ts,tsx,css,html}": [
-      "eslint",
-      "prettier --write"
-    ]
   },
   "engines": {
     "node": ">=14"

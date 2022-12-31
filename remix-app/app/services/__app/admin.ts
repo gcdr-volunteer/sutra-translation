@@ -4,12 +4,13 @@ import * as yup from 'yup';
 import { createNewLang, getLang } from '~/models/lang';
 import { createNewTeam, getTeam } from '~/models/team';
 import { createNewUser, getWholeUserTable } from '~/models/user';
-import { Team, User } from '~/types';
 import { Intent, Kind } from '~/types/common';
-import { Lang, LangCode } from '~/types/lang';
+import { LangCode } from '~/types/lang';
 import { RoleType } from '~/types/role';
 import { logger } from '~/utils';
 import { baseSchemaFor, schemaValidator } from '~/utils/schema_validator';
+import type { Team, User } from '~/types';
+import type { Lang } from '~/types/lang';
 
 const langCodeValidator = yup
   .mixed<LangCode>()
@@ -24,7 +25,7 @@ const newLangSchema = () => {
       'language code already registered',
       async (value) => {
         const lang = await getLang(value!?.trim());
-        return !Boolean(lang);
+        return !!lang;
       }
     ),
     alias: yup.string().trim().required('language alias cannot be empty'),
@@ -41,7 +42,7 @@ const newTeamSchema = () => {
       .required('team name cannot be empty')
       .test('is-name-exist', 'team name already registered', async (value) => {
         const team = await getTeam(value!);
-        return !Boolean(team);
+        return !!team;
       }),
     alias: yup.string().trim().required('team alias cannot be empty'),
   });

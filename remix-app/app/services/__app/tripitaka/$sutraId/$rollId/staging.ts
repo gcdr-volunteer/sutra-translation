@@ -4,10 +4,10 @@ import { translateZH2EN } from '~/models/external_services/deepl';
 import { json } from '@remix-run/node';
 import { createNewParagraph, getParagraphByPrimaryKey } from '~/models/paragraph';
 import { logger } from '~/utils';
-import { Glossary } from '~/types';
 import { createNewGlossary, getAllGlossary } from '~/models/glossary';
 import { Intent, Kind } from '~/types/common';
 import { created, serverError } from 'remix-utils';
+import type { Glossary } from '~/types';
 
 const newTranslationSchema = () => {
   const baseSchema = baseSchemaFor(Kind.PARAGRAPH);

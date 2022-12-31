@@ -1,4 +1,4 @@
-import { MutableRefObject, useContext, useState } from 'react';
+import { useState } from 'react';
 import {
   Text,
   Flex,
@@ -12,9 +12,9 @@ import {
 } from '@chakra-ui/react';
 import { FormModal } from '~/components/common';
 import { Comment } from './comment';
-import { Comment as TComment } from '~/types';
-import { AppContext } from '~/routes/__app';
 import { CommentDialog } from '~/routes/__app/tripitaka/$sutraId/$rollId/dialog';
+import type { MutableRefObject } from 'react';
+import type { Comment as TComment } from '~/types';
 type TextSelection = {
   start?: number;
   end?: number;
@@ -36,7 +36,7 @@ export const ParagraphTarget = ({
   toggle?: boolean;
   background?: string;
 }) => {
-  const { currentUser } = useContext(AppContext);
+  // const { currentUser } = useContext(AppContext);
   const [selectedText, setSelectedText] = useState<TextSelection>({});
   const {
     onOpen: onNewCommentOpen,
@@ -49,12 +49,12 @@ export const ParagraphTarget = ({
     query: query,
   });
   const argumentedContent = comments?.length ? (
-    <Box as="span">
+    <Box as='span'>
       {chunks?.map(({ match, text }) => {
         if (!match) return text;
         const currentComment = comments?.filter((comment) => comment.content.trim() === text)[0];
         return (
-          <Box as={'span'} key={text} px="1" py="1" bg="orange.100">
+          <Box as={'span'} key={text} px='1' py='1' bg='orange.100'>
             {text}
             <CommentDialog comment={currentComment} />
           </Box>
@@ -99,8 +99,8 @@ export const ParagraphTarget = ({
         {argumentedContent}
       </Text>
       <FormModal
-        value="new_comment"
-        header="Add comment"
+        value='new_comment'
+        header='Add comment'
         body={<Comment paragraphId={paragraphId} {...selectedText} />}
         isOpen={isNewCommentOpen}
         onClose={onNewCommentClose}
@@ -132,11 +132,11 @@ export const Paragraph = ({
         const nextOffset = arr[index + 1]?.offset ?? -1;
         return (
           <span key={num}>
-            <Text as="span">{content.slice(0, offset)}</Text>
-            <Tooltip label={note} aria-label="footnote tooltip">
+            <Text as='span'>{content.slice(0, offset)}</Text>
+            <Tooltip label={note} aria-label='footnote tooltip'>
               <span style={{ paddingLeft: 4, paddingRight: 4, color: 'blue' }}>[{num}]</span>
             </Tooltip>
-            <Text as="span">{content.slice(offset, nextOffset)}</Text>
+            <Text as='span'>{content.slice(offset, nextOffset)}</Text>
           </span>
         );
       })
@@ -148,7 +148,7 @@ export const Paragraph = ({
       p={4}
       borderRadius={toggle || background ? 12 : 0}
       flexDir={'row'}
-      w="100%"
+      w='100%'
     >
       {category?.startsWith('HEAD') ? (
         // TODO: this needs improvements
@@ -214,10 +214,10 @@ export const ParagraphPair = ({
 }) => {
   return (
     <Flex flexDir={'row'} gap={4}>
-      <Paragraph background="secondary.300" content={origin?.content} footnotes={[]} />
+      <Paragraph background='secondary.300' content={origin?.content} footnotes={[]} />
       <ParagraphTarget
         paragraphId={origin.SK}
-        background="secondary.200"
+        background='secondary.200'
         content={target?.content}
         comments={target?.comments}
         footnotes={footnotes}

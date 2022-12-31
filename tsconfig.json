@@ -3,5 +3,5 @@
   "include": ["stacks", "remix-app/types/**/*.ts"],
   "compilerOptions": {
     "skipLibCheck": true
-  } 
+  }
 }

@@ -1,7 +1,7 @@
-import { Lang } from './lang';
-import { Role } from './role';
-import { Team } from './team';
-import { CommonMeta } from './common';
+import type { Lang } from './lang';
+import type { Role } from './role';
+import type { Team } from './team';
+import type { CommonMeta } from './common';
 
 export interface User extends CommonMeta {
   /**

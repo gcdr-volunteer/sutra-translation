@@ -1,4 +1,5 @@
-import { ActionArgs, json, redirect } from '@remix-run/node';
+import type { ActionArgs } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { authenticator } from '~/auth.server';
 import { emailRegex } from '~/utils';
 import {
@@ -74,15 +75,15 @@ export default function LoginRoute() {
   const actionData = useActionData<{ username: string; password: string }>();
 
   return (
-    <Flex minHeight="100vh" width="full" align="center" justifyContent="center">
+    <Flex minHeight='100vh' width='full' align='center' justifyContent='center'>
       <Box
         borderWidth={1}
         px={4}
-        width="full"
-        maxWidth="500px"
+        width='full'
+        maxWidth='500px'
         borderRadius={4}
-        textAlign="center"
-        boxShadow="lg"
+        textAlign='center'
+        boxShadow='lg'
       >
         <Box p={4}>
           <LoginHeader />
@@ -95,7 +96,7 @@ export default function LoginRoute() {
 
 const LoginHeader = () => {
   return (
-    <Box textAlign="center">
+    <Box textAlign='center'>
       <Heading>Login to Your Account</Heading>
     </Box>
   );
@@ -112,21 +113,21 @@ const LoginForm = (props: LoginFormProps) => {
   const isLoading = Boolean(transition.submission);
   const { username, password } = props.actionData || {};
   return (
-    <Box my={8} textAlign="left">
-      <Form method="post">
+    <Box my={8} textAlign='left'>
+      <Form method='post'>
         <FormControl isInvalid={Boolean(username)}>
           <FormLabel>Email address</FormLabel>
-          <Input type="email" placeholder="Enter your email address" name="username" />
+          <Input type='email' placeholder='Enter your email address' name='username' />
           {username ? <FormErrorMessage>{username}</FormErrorMessage> : null}
         </FormControl>
 
         <FormControl mt={4} isInvalid={Boolean(password)}>
           <FormLabel>Password</FormLabel>
-          <Input type="password" placeholder="Enter your password" name="password" />
+          <Input type='password' placeholder='Enter your password' name='password' />
           {password ? <FormErrorMessage>{password}</FormErrorMessage> : null}
         </FormControl>
 
-        <Stack isInline justifyContent="space-between" mt={4}>
+        <Stack isInline justifyContent='space-between' mt={4}>
           <Box>
             <Checkbox>Remember Me</Checkbox>
           </Box>
@@ -135,7 +136,7 @@ const LoginForm = (props: LoginFormProps) => {
           </Box>
         </Stack>
 
-        <Button colorScheme={'iconButton'} width="full" mt={4} type="submit" disabled={isLoading}>
+        <Button colorScheme={'iconButton'} width='full' mt={4} type='submit' disabled={isLoading}>
           {isLoading ? <Spinner /> : 'Log In'}
         </Button>
       </Form>
@@ -145,6 +146,6 @@ const LoginForm = (props: LoginFormProps) => {
 
 export function ErrorBoundary({ error }: { error: Error }) {
   return (
-    <Error heading="Oops" content="We have trouble process your request, Please contact admin" />
+    <Error heading='Oops' content='We have trouble process your request, Please contact admin' />
   );
 }

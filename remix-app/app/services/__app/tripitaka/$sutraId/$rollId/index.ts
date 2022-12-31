@@ -3,10 +3,10 @@ import * as yup from 'yup';
 import { json } from '@remix-run/node';
 import { logger } from '~/utils';
 import { createNewComment, resolveComment } from '~/models/comment';
-import { Comment } from '~/types/comment';
 import { nanoid } from 'nanoid';
 import { Intent, Kind } from '~/types/common';
 import { created } from 'remix-utils';
+import type { Comment } from '~/types/comment';
 
 const newCommentSchema = () => {
   const baseSchema = baseSchemaFor(Kind.COMMENT);

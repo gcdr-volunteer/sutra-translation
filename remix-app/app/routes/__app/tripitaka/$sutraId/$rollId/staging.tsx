@@ -28,12 +28,11 @@ import {
   Collapse,
 } from '@chakra-ui/react';
 import { RepeatIcon, CopyIcon, SearchIcon } from '@chakra-ui/icons';
-import { useState, useRef, useEffect, ChangeEvent } from 'react';
-import { ActionArgs, json, LoaderArgs } from '@remix-run/node';
+import { useState, useRef, useEffect } from 'react';
+import { json } from '@remix-run/node';
 import { BiTable, BiSearch, BiNote, BiCheck } from 'react-icons/bi';
 import { Warning } from '~/components/common/errors';
 import { FormModal } from '~/components/common';
-import { ParagraphLoadData } from '.';
 import {
   handleNewGlossary,
   handleNewTranslationParagraph,
@@ -41,9 +40,11 @@ import {
   replaceWithGlossary,
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { logger } from '~/utils';
-import { Glossary } from '~/types';
 import { Intent } from '~/types/common';
 import { assertAuthUser } from '~/auth.server';
+import type { ChangeEvent } from 'react';
+import type { ParagraphLoadData } from '.';
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 
 export const loader = async ({ params }: LoaderArgs) => {
   return json({});
@@ -110,6 +111,7 @@ export default function StagingRoute() {
     if (origins && Object.keys(origins).length) {
       submit(origins, { method: 'post', replace: true });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -124,7 +126,7 @@ export default function StagingRoute() {
   const paragraphsComp = ref.current?.map((paragraph, index, arr) => (
     <Collapse
       key={index}
-      in={!Boolean(paragraph?.finish)}
+      in={!paragraph?.finish}
       unmountOnExit={index !== arr.length - 1}
       animateOpacity={true}
     >
@@ -132,7 +134,7 @@ export default function StagingRoute() {
         origin={paragraph}
         index={index}
         translation={translation.length ? translation[index] : 'loading....'}
-        reference="Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur."
+        reference='Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur.'
         totalParagraphs={ref?.current.length}
       />
       {index !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
@@ -141,7 +143,7 @@ export default function StagingRoute() {
   if (ref.current?.length) {
     return <Box p={16}>{paragraphsComp}</Box>;
   } else {
-    return <Warning content="Please select at least one paragraph from the roll" />;
+    return <Warning content='Please select at least one paragraph from the roll' />;
   }
 }
 
@@ -166,7 +168,7 @@ function TranlationWorkspace({
   const [glossary, setGlossary] = useBoolean(false);
   const submit = useSubmit();
   const textAreaFormRef = useRef(null);
-  const [note, setNote] = useState('');
+  // const [note, setNote] = useState('');
   const { isOpen: isOpenNote, onOpen: onOpenNote, onClose: onCloseNote } = useDisclosure();
   const { isOpen: isOpenSearch, onOpen: onOpenSearch, onClose: onCloseSearch } = useDisclosure();
   const {
@@ -189,7 +191,7 @@ function TranlationWorkspace({
         navigate(newLocation);
       }
     }
-  }, [actionData]);
+  }, [actionData, location.pathname, navigate, totalParagraphs]);
 
   const getCurrentCursorText = (): string | undefined => {
     const cursorPos = textareaRef.current?.selectionStart;
@@ -207,24 +209,24 @@ function TranlationWorkspace({
     return 'You forget to put your cursor in text';
   };
   return (
-    <Flex gap={4} flexDir="row" justifyContent="space-between">
+    <Flex gap={4} flexDir='row' justifyContent='space-between'>
       <VStack flex={1} spacing={4}>
-        <Card w="100%" background={'secondary.200'} borderRadius={12}>
+        <Card w='100%' background={'secondary.200'} borderRadius={12}>
           <CardHeader>
-            <Heading size="sm">Origin</Heading>
+            <Heading size='sm'>Origin</Heading>
           </CardHeader>
           <CardBody>
             <Text fontSize={'xl'}>{origin.content}</Text>
           </CardBody>
         </Card>
-        <Card w="100%" background={'secondary.300'} borderRadius={12}>
-          <CardHeader as={Flex} justifyContent="space-between" alignItems="center">
-            <Heading size="sm">DeepL</Heading>
-            <ButtonGroup variant="outline" spacing="6">
-              <IconButton icon={<RepeatIcon />} aria-label="refresh" />
+        <Card w='100%' background={'secondary.300'} borderRadius={12}>
+          <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+            <Heading size='sm'>DeepL</Heading>
+            <ButtonGroup variant='outline' spacing='6'>
+              <IconButton icon={<RepeatIcon />} aria-label='refresh' />
               <IconButton
                 icon={<CopyIcon />}
-                aria-label="copy"
+                aria-label='copy'
                 onClick={() => setContent(translation)}
               />
             </ButtonGroup>
@@ -233,13 +235,13 @@ function TranlationWorkspace({
             <Text fontSize={'xl'}>{translation}</Text>
           </CardBody>
         </Card>
-        <Card w="100%" background={'secondary.400'} borderRadius={12}>
-          <CardHeader as={Flex} justifyContent="space-between" alignItems="center">
-            <Heading size="sm">Reference</Heading>
-            <ButtonGroup variant="outline" spacing="6">
+        <Card w='100%' background={'secondary.400'} borderRadius={12}>
+          <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+            <Heading size='sm'>Reference</Heading>
+            <ButtonGroup variant='outline' spacing='6'>
               <IconButton
                 icon={<CopyIcon />}
-                aria-label="copy"
+                aria-label='copy'
                 onClick={() => setContent(reference)}
               />
             </ButtonGroup>
@@ -249,36 +251,36 @@ function TranlationWorkspace({
           </CardBody>
         </Card>
       </VStack>
-      <Flex flex={1} justifyContent="stretch" alignSelf={'stretch'}>
-        <Card background={'secondary.500'} w="100%" borderRadius={12}>
-          <CardHeader as={Flex} justifyContent="space-between" alignItems="center">
-            <Heading size="sm">Workspace</Heading>
+      <Flex flex={1} justifyContent='stretch' alignSelf={'stretch'}>
+        <Card background={'secondary.500'} w='100%' borderRadius={12}>
+          <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+            <Heading size='sm'>Workspace</Heading>
           </CardHeader>
           <CardBody as={Flex} flexDir={'column'}>
             <ButtonGroup colorScheme={'iconButton'} variant={'outline'} p={4} mb={2}>
-              <Tooltip label="open glossary" openDelay={1000}>
+              <Tooltip label='open glossary' openDelay={1000}>
                 <IconButton
-                  disabled={!Boolean(content)}
+                  disabled={!content}
                   onClick={setGlossary.on}
                   icon={<BiTable />}
-                  aria-label="glossary button"
+                  aria-label='glossary button'
                 />
               </Tooltip>
-              <Tooltip label="add footnote" openDelay={1000} closeDelay={1000}>
+              <Tooltip label='add footnote' openDelay={1000} closeDelay={1000}>
                 <IconButton
-                  disabled={!Boolean(content)}
+                  disabled={!content}
                   onClick={onOpenFootnote}
                   icon={<BiNote />}
-                  aria-label="footnote button"
+                  aria-label='footnote button'
                 />
               </Tooltip>
-              <Tooltip label="open searchbar" openDelay={1000}>
-                <IconButton onClick={onOpenSearch} icon={<BiSearch />} aria-label="search button" />
+              <Tooltip label='open searchbar' openDelay={1000}>
+                <IconButton onClick={onOpenSearch} icon={<BiSearch />} aria-label='search button' />
               </Tooltip>
             </ButtonGroup>
             <FormModal
-              value="save-footnote"
-              header="Add footnote"
+              value='save-footnote'
+              header='Add footnote'
               body={
                 <Box>
                   <Text>
@@ -290,7 +292,7 @@ function TranlationWorkspace({
                   </Text>
                   <Textarea
                     _focus={{ outline: 'none' }}
-                    placeholder="add your footnotes"
+                    placeholder='add your footnotes'
                     onChange={(e) => {}}
                   />
                 </Box>
@@ -298,22 +300,22 @@ function TranlationWorkspace({
               isOpen={isOpenFootnote}
               onClose={onCloseFootnote}
             />
-            <Modal isOpen={isOpenSearch} onClose={onCloseSearch} size="2xl">
+            <Modal isOpen={isOpenSearch} onClose={onCloseSearch} size='2xl'>
               <ModalOverlay />
               <ModalContent>
                 <HStack>
                   <InputGroup>
                     <InputLeftElement
-                      pointerEvents="none"
-                      children={<SearchIcon color="gray.300" />}
+                      pointerEvents='none'
+                      children={<SearchIcon color='gray.300' />}
                     />
                     <Input
                       _focus={{ outline: 'none' }}
                       variant={'filled'}
-                      boxShadow="none"
-                      size="lg"
+                      boxShadow='none'
+                      size='lg'
                       type={'text'}
-                      placeholder="Search"
+                      placeholder='Search'
                     />
                   </InputGroup>
                 </HStack>
@@ -327,20 +329,20 @@ function TranlationWorkspace({
                 onOpenNote={onOpenNote}
               />
             ) : null}
-            <Form method="post" ref={textAreaFormRef} style={{ height: '100%' }}>
+            <Form method='post' ref={textAreaFormRef} style={{ height: '100%' }}>
               <Textarea
                 flexGrow={1}
-                name="translation"
+                name='translation'
                 ref={textareaRef}
-                height="100%"
-                placeholder="Here is a sample placeholder"
+                height='100%'
+                placeholder='Here is a sample placeholder'
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
               />
-              <Input name="PK" value={origin.PK} hidden readOnly />
-              <Input name="SK" value={origin.SK} hidden readOnly />
-              <Input name="index" value={index} hidden readOnly />
-              <Input name="intent" value={Intent.CREATE_TRANSLATION} hidden readOnly />
+              <Input name='PK' value={origin.PK} hidden readOnly />
+              <Input name='SK' value={origin.SK} hidden readOnly />
+              <Input name='index' value={index} hidden readOnly />
+              <Input name='intent' value={Intent.CREATE_TRANSLATION} hidden readOnly />
             </Form>
           </CardBody>
           <Divider />
@@ -348,7 +350,7 @@ function TranlationWorkspace({
             <Button
               onClick={handleSubmitTranslation}
               colorScheme={'iconButton'}
-              disabled={!Boolean(content)}
+              disabled={!content}
             >
               Submit
             </Button>
@@ -380,57 +382,57 @@ const Glossary = ({ onOpenNote, discardGlossary, isOpenNote, onCloseNote }: Glos
 
   return (
     <HStack mb={4}>
-      <Form method="post" style={{ width: '100%' }}>
+      <Form method='post' style={{ width: '100%' }}>
         <HStack>
           <InputGroup _focus={{ outline: 'none' }}>
             <Input
-              type="text"
-              name="origin"
-              placeholder="origin"
+              type='text'
+              name='origin'
+              placeholder='origin'
               mr={4}
               onChange={(e) => handleChange('origin', e)}
             />
             <Input
-              type="text"
-              name="target"
-              placeholder="target"
+              type='text'
+              name='target'
+              placeholder='target'
               onChange={(e) => handleChange('target', e)}
             />
           </InputGroup>
           <ButtonGroup colorScheme={'iconButton'} variant={'outline'}>
-            <IconButton onClick={onOpenNote} icon={<BiNote />} aria-label="glossary note" />
+            <IconButton onClick={onOpenNote} icon={<BiNote />} aria-label='glossary note' />
             <IconButton
               // onClick={discardGlossary}
-              type="submit"
-              name="intent"
+              type='submit'
+              name='intent'
               value={Intent.CREATE_GLOSSARY}
               icon={<BiCheck />}
-              aria-label="submit glossary"
+              aria-label='submit glossary'
             />
           </ButtonGroup>
         </HStack>
       </Form>
       <FormModal
-        header="Add note to glossary"
+        header='Add note to glossary'
         body={
           <Box>
             <Text>
               Source: <Tag>{origin}</Tag>
             </Text>
-            <Input name="origin" readOnly hidden value={origin} />
+            <Input name='origin' readOnly hidden value={origin} />
             <Text>
               Target: <Tag>{target}</Tag>
             </Text>
-            <Input name="target" readOnly hidden value={target} />
+            <Input name='target' readOnly hidden value={target} />
             <Textarea
-              name="note"
+              name='note'
               _focus={{ outline: 'none' }}
-              placeholder="glossary note"
+              placeholder='glossary note'
               onChange={(e) => {}}
             />
           </Box>
         }
-        value="glossary"
+        value='glossary'
         isOpen={isOpenNote}
         onClose={onCloseNote}
       />

@@ -1,15 +1,14 @@
 import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import {
+import { QueryCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
+import { PutItemCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
+import { utcNow } from '~/utils/datetime';
+import type { Comment } from '~/types/comment';
+import type {
   PutItemCommandInput,
-  QueryCommand,
   QueryCommandInput,
-  UpdateItemCommand,
   UpdateItemCommandInput,
 } from '@aws-sdk/client-dynamodb';
-import { PutItemCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
-import { Comment } from '~/types/comment';
-import { utcNow } from '~/utils/datetime';
 
 export const createNewComment = async (comment: Comment) => {
   const params: PutItemCommandInput = {

@@ -1,7 +1,7 @@
-import { ActionArgs, json, LoaderArgs } from '@remix-run/node';
+import { json } from '@remix-run/node';
 import { useLoaderData, useLocation, useNavigate } from '@remix-run/react';
 import { IconButton, Flex, Box } from '@chakra-ui/react';
-import { MutableRefObject, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
 import { getOriginParagraphsByRollId, getTargetParagraphsByRollId } from '~/models/paragraph';
@@ -10,10 +10,12 @@ import {
   handleNewComment,
   handleResolveComment,
 } from '~/services/__app/tripitaka/$sutraId/$rollId';
-import { Comment } from '~/types/comment';
+import type { Comment } from '~/types/comment';
 import { assertAuthUser } from '~/auth.server';
-import { useEventSource } from 'remix-utils';
+// import { useEventSource } from 'remix-utils';
 import { Intent } from '~/types/common';
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { MutableRefObject } from 'react';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId } = params;
@@ -96,6 +98,8 @@ export default function RollRoute() {
 
   const location = useLocation();
   const refs = targets?.reduce((acc, cur) => {
+    // TODO: (low) should have a better way to do this
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     acc[`#${cur.SK}`] = useRef<HTMLDivElement>(null);
     return acc;
   }, {} as Record<string, MutableRefObject<HTMLDivElement | null>>);
@@ -106,7 +110,7 @@ export default function RollRoute() {
         behavior: 'smooth',
       });
     }
-  }, [location?.hash]);
+  }, [location.hash, refs]);
 
   const paragraphsComp = origins?.map((origin, index) => {
     // TODO: handle out of order selection
@@ -114,7 +118,7 @@ export default function RollRoute() {
     const ref = refs[`#${target?.SK}`];
     if (target) {
       return (
-        <Box key={origin.SK} w="85%" ref={ref}>
+        <Box key={origin.SK} w='85%' ref={ref}>
           <ParagraphPair origin={origin} target={target} footnotes={footnotes} />
         </Box>
       );
@@ -132,10 +136,10 @@ export default function RollRoute() {
   if (origins?.length) {
     return (
       <Flex
-        w="100%"
-        flexDir="column"
-        justifyContent="flex-start"
-        alignItems="center"
+        w='100%'
+        flexDir='column'
+        justifyContent='flex-start'
+        alignItems='center'
         gap={4}
         mt={10}
       >
@@ -148,7 +152,7 @@ export default function RollRoute() {
           bottom={8}
           right={8}
           icon={<FiEdit />}
-          aria-label="edit roll"
+          aria-label='edit roll'
           colorScheme={'iconButton'}
           onClick={() => {
             navigate(`staging`, {

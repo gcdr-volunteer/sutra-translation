@@ -14,15 +14,13 @@ import {
   QueryCommand,
 } from '@aws-sdk/client-dynamodb';
 import { composeSKForUser } from './utils';
-import { User } from '~/types/user';
 import bcrypt from 'bcryptjs';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import { Team } from '~/types/team';
-import { Lang, LangCode } from '~/types/lang';
-import { Role, RoleType } from '~/types/role';
+import { LangCode } from '~/types/lang';
+import * as role from '~/types/role';
 import { Kind } from '~/types/common';
-dayjs.extend(utc);
+import type { User } from '~/types/user';
+import type { Team } from '~/types/team';
+import type { Lang } from '~/types/lang';
 interface DBUser extends User {
   password: string;
 }
@@ -44,7 +42,7 @@ const _createAdminUser = async () => {
     team: 'Team1',
     origin_lang: LangCode.ZH,
     target_lang: LangCode.EN,
-    roles: [RoleType.Admin],
+    roles: [role.RoleType.Admin],
     email: 'pttdev123@gmail.com',
     first_login: true,
     kind: Kind.USER,

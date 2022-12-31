@@ -1,9 +1,7 @@
 import * as yup from 'yup';
 import { utcNow } from './datetime';
 import type { ValidationError, AnyObjectSchema } from 'yup';
-import { Kind } from '~/types/common';
-import { z } from 'zod';
-import { logger } from './logger';
+import type { Kind } from '~/types/common';
 
 export const schemaValidator = async <S extends AnyObjectSchema, T>({
   schema,
