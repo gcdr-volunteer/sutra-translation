@@ -1,9 +1,10 @@
-import { QueryCommand, QueryCommandInput } from '@aws-sdk/client-dynamodb';
+import { QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { dbClient } from '~/models/external_services/dynamodb';
-import { LangCode } from '~/types';
-import { Sutra } from '~/types/sutra';
 import { composeSKForSutra } from './utils';
+import type { LangCode } from '~/types';
+import type { Sutra } from '~/types/sutra';
+import type { QueryCommandInput } from '@aws-sdk/client-dynamodb';
 
 export const getSutrasByLangAndVersion = async (
   lang: LangCode,

@@ -1,15 +1,16 @@
 import { Flex } from '@chakra-ui/react';
-import { json, LoaderArgs } from '@remix-run/node';
+import { json } from '@remix-run/node';
 import { Outlet, useLoaderData } from '@remix-run/react';
 import { assertAuthUser } from '~/auth.server';
 import { Sidebar } from '~/components/common/sidebar';
 import { createContext } from 'react';
-import { User } from '~/types/user';
 import { defineAbilityFor } from '~/authorisation';
 import { AbilityContext } from '~/authorisation';
 import { LangCode, RoleType } from '~/types';
 import { getAllUsers } from '~/models/user';
 import { Kind } from '~/types/common';
+import type { LoaderArgs } from '@remix-run/node';
+import type { User } from '~/types/user';
 export const loader = async ({ request }: LoaderArgs) => {
   const user = await assertAuthUser(request);
   const users = await getAllUsers(user?.email!);

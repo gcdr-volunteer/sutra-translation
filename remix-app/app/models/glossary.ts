@@ -1,13 +1,9 @@
-import {
-  PutItemCommand,
-  PutItemCommandInput,
-  QueryCommand,
-  QueryCommandInput,
-} from '@aws-sdk/client-dynamodb';
+import { PutItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { Glossary } from '~/types/glossary';
 import { utcNow } from '~/utils';
 import { dbClient } from './external_services/dynamodb';
+import type { PutItemCommandInput, QueryCommandInput } from '@aws-sdk/client-dynamodb';
+import type { Glossary } from '~/types/glossary';
 
 export const createNewGlossary = async (glossary: Glossary) => {
   const params: PutItemCommandInput = {

@@ -2,12 +2,8 @@ import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import type { PutItemCommandInput } from '@aws-sdk/client-dynamodb';
 import { PutItemCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
-import { composeSKForLang, composeSKForRole } from './utils';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import { Lang } from '~/types/lang';
-import { Role } from '~/types/role';
-dayjs.extend(utc);
+import { composeSKForRole } from './utils';
+import type { Role } from '~/types';
 
 export const createNewRole = async (role: Role) => {
   const { name } = role;
