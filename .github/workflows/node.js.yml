@@ -30,3 +30,23 @@ jobs:
       uses: bahmutov/npm-install@v1.6.0
     - run: npm run validate
     - run: npm test
+  
+  deploy_sirius:
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment:
+      name: sirius
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+      - name: Deploy to Sirius Env
+        run: npm run deploy
+        env:
+          ENV: sirius
+          REGION: ap-southeast-2
+          DEEPL_URL: api-free.deepl.com
+          DEEPL_AUTHKEY: ${{ secrets.DEEPL_AUTHKEY }}
+          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+
