@@ -6,6 +6,8 @@ name: Deploy To Sirius Env
 on:
   pull_request:
     branches: ['feature/**']
+  push:
+    branches: ['feature/**']
 env:
   REGION: ap-southeast-2
   DEEPL_URL: api-free.deepl.com
