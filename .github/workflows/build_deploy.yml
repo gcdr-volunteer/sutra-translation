@@ -9,6 +9,14 @@ on:
   push:
     branches: ['main', 'feature/**']
 
+env:
+  REGION: ap-southeast-2
+  DEEPL_URL: api-free.deepl.com
+  DEEPL_AUTHKEY: ${{ secrets.DEEPL_AUTHKEY }}
+  SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -50,11 +58,6 @@ jobs:
         run: npm run deploy
         env:
           ENV: sirius
-          REGION: ap-southeast-2
-          DEEPL_URL: api-free.deepl.com
-          DEEPL_AUTHKEY: ${{ secrets.DEEPL_AUTHKEY }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
 
   deploy_uat:
     needs: [build]
@@ -79,8 +82,3 @@ jobs:
         run: npm run deploy
         env:
           ENV: uat
-          REGION: ap-southeast-2
-          DEEPL_URL: api-free.deepl.com
-          DEEPL_AUTHKEY: ${{ secrets.DEEPL_AUTHKEY }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
