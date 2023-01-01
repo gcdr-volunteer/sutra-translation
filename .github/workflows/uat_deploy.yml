@@ -1,0 +1,57 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Deploy To UAT Env
+
+on:
+  push:
+    branches: ['main']
+env:
+  REGION: ap-southeast-2
+  DEEPL_URL: api-free.deepl.com
+  DEEPL_AUTHKEY: ${{ secrets.DEEPL_AUTHKEY }}
+  SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: NPM install with caching
+        uses: bahmutov/npm-install@v1.6.0
+      - run: npm run validate
+      - run: npm test
+
+  deploy_uat:
+    needs: [build]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+    environment:
+      name: uat
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: NPM install with caching
+        uses: bahmutov/npm-install@v1.6.0
+      - name: Deploy to Sirius Env
+        run: npm run deploy
+        env:
+          ENV: uat
