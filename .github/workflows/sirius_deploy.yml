@@ -30,7 +30,6 @@ jobs:
     environment:
       name: sirius
       url: https://d2avpikjr8pzy5.cloudfront.net
-    if: ${{ github.event.pull_request.merged != true  }}
     steps:
       - name: Checkout feature branch
         uses: actions/checkout@v3
