@@ -5,8 +5,6 @@ name: CI Build
 
 on:
   workflow_call:
-  push:
-    branches: ['main', 'feature/**']
 
 env:
   REGION: ap-southeast-2
