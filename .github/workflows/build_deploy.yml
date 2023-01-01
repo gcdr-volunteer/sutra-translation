@@ -35,11 +35,6 @@ jobs:
         uses: bahmutov/npm-install@v1.6.0
         with:
           useRollingCache: true
-      - name: Cache node_modules
-        uses: actions/cache@v2
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
       - run: npm run validate
       - run: npm test
 
@@ -60,11 +55,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      - name: Restore cache
-        uses: actions/cache@v2
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+      - name: NPM install with caching
+        uses: bahmutov/npm-install@v1.6.0
       - name: Deploy to Sirius Env
         run: npm run deploy
         env:
