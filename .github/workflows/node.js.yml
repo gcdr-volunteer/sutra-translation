@@ -3,16 +3,14 @@
 
 name: Node.js CI
 
-on:
-  push:
-    branches: ['main']
-  pull_request:
-    branches: ['main']
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    on:
+      pull_request:
+        branches: ['main']
+      push:
+        branches: ['main']
     strategy:
       matrix:
         node-version: [16.x]
@@ -32,6 +30,9 @@ jobs:
   deploy_sirius:
     needs: [build]
     runs-on: ubuntu-latest
+    on:
+      pull_request:
+        branches: ['main']
     environment:
       name: sirius
     strategy:
@@ -54,5 +55,36 @@ jobs:
           REGION: ap-southeast-2
           DEEPL_URL: api-free.deepl.com
           DEEPL_AUTHKEY: ${{ secrets.DEEPL_AUTHKEY }}
-          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+
+  deploy_uat:
+    needs: [build]
+    runs-on: ubuntu-latest
+    on:
+      push:
+        branches: ['main']
+    environment:
+      name: uat
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: NPM or Yarn install with caching
+        uses: bahmutov/npm-install@v1.6.0
+      - name: Deploy to Sirius Env
+        run: npm run deploy
+        env:
+          ENV: uat
+          REGION: ap-southeast-2
+          DEEPL_URL: api-free.deepl.com
+          DEEPL_AUTHKEY: ${{ secrets.DEEPL_AUTHKEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
