@@ -20,6 +20,3 @@ remix-app/build
 remix-app/preferences.arc
 remix-app/sam.json
 remix-app/sam.yaml
-
-# ci file
-.github

@@ -9,7 +9,7 @@
     "deploy": "sst deploy --stage $ENV",
     "remove": "sst remove --stage $ENV",
     "console": "sst console --stage $ENV",
-    "test": "sst bind -- vitest run",
+    "test": "sst bind --stage $ENV -- vitest run",
     "prepare": "husky install",
     "format": "prettier --check . --ignore-path .gitignore",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location  ./node_modules/.cache/eslint .",

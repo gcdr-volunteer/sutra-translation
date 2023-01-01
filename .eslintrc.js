@@ -4,5 +4,5 @@ module.exports = {
     node: true,
     browser: true,
   },
-  ignorePatterns: ['node_modules'],
+  ignorePatterns: ['node_modules', '.github'],
 };
