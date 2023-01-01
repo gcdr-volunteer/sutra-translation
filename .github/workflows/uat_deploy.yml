@@ -41,6 +41,7 @@ jobs:
         node-version: [16.x]
     environment:
       name: uat
+      url: https://d1ubt1qrpwbagh.cloudfront.net
     steps:
       - name: Checkout feature branch
         uses: actions/checkout@v3
@@ -51,7 +52,7 @@ jobs:
           cache: 'npm'
       - name: NPM install with caching
         uses: bahmutov/npm-install@v1.6.0
-      - name: Deploy to Sirius Env
+      - name: Deploy to UAT Env
         run: npm run deploy
         env:
           ENV: uat
