@@ -5,33 +5,30 @@ name: Node.js CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ['main']
   pull_request:
-    branches: [ "main" ]
+    branches: ['main']
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         node-version: [16.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
     steps:
-    - name: Checkout feature branch
-      uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - name: NPM or Yarn install with caching
-      uses: bahmutov/npm-install@v1.6.0
-    - run: npm run validate
-    - run: npm test
-  
+      - name: Checkout feature branch
+        uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: NPM or Yarn install with caching
+        uses: bahmutov/npm-install@v1.6.0
+      - run: npm run validate
+      - run: npm test
+
   deploy_sirius:
     needs: [build]
     runs-on: ubuntu-latest
@@ -59,4 +56,3 @@ jobs:
           DEEPL_AUTHKEY: ${{ secrets.DEEPL_AUTHKEY }}
           AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
-
