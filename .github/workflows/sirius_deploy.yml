@@ -4,10 +4,7 @@
 name: Deploy To Sirius Env
 
 on:
-  workflow_dispatch:
   pull_request:
-    branches: ['feature/**']
-  push:
     branches: ['feature/**']
 env:
   REGION: ap-southeast-2
@@ -19,7 +16,22 @@ env:
 
 jobs:
   build:
-    uses: ./.github/workflows/build.yml
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: NPM install with caching
+        uses: bahmutov/npm-install@v1.6.0
+      - run: npm run validate
+      - run: npm test
 
   deploy_sirius:
     needs: [build]
