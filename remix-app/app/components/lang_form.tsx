@@ -14,8 +14,9 @@ import {
   Tr,
 } from '@chakra-ui/react';
 import { useActionData } from '@remix-run/react';
-import { ChangeEvent, useState } from 'react';
-import { Lang, LangCode } from '~/types';
+import { useState } from 'react';
+import type { Lang, LangCode } from '~/types';
+import type { ChangeEvent } from 'react';
 
 interface LangFormProps {
   langs: Lang[];
@@ -23,7 +24,7 @@ interface LangFormProps {
 }
 export const LangForm = (props: LangFormProps) => {
   const { errors } = useActionData<{ errors: { name: string; alias: string } }>() || {};
-  const [formState, setFormState] = useState<Lang>({
+  const [formState, setFormState] = useState<Omit<Lang, 'kind'>>({
     name: '' as LangCode,
     alias: '',
   });
@@ -39,7 +40,7 @@ export const LangForm = (props: LangFormProps) => {
     <Box>
       {langs.length ? (
         <TableContainer mb={8}>
-          <Table variant="simple">
+          <Table variant='simple'>
             <Thead>
               <Tr>
                 <Th>Language</Th>
@@ -61,20 +62,20 @@ export const LangForm = (props: LangFormProps) => {
         <FormControl isInvalid={Boolean(errors?.name)}>
           <FormLabel>Language name:</FormLabel>
           <Input
-            type="text"
+            type='text'
             value={formState.name}
             onChange={(e) => handleFormStateUpdate('name', e)}
-            name="lang_name"
+            name='lang_name'
           />
           {errors?.name ? <FormErrorMessage>{errors?.name}</FormErrorMessage> : null}
         </FormControl>
         <FormControl isInvalid={Boolean(errors?.alias)}>
           <FormLabel>Language alias:</FormLabel>
           <Input
-            type="text"
+            type='text'
             value={formState.alias}
             onChange={(e) => handleFormStateUpdate('alias', e)}
-            name="lang_alias"
+            name='lang_alias'
           />
           {errors?.alias ? <FormErrorMessage>{errors?.alias}</FormErrorMessage> : null}
         </FormControl>

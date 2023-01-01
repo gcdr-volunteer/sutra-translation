@@ -1,18 +1,14 @@
 import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import {
-  GetItemCommand,
-  GetItemCommandInput,
-  PutItemCommandInput,
-  QueryCommand,
-  QueryCommandInput,
-} from '@aws-sdk/client-dynamodb';
+import { GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { PutItemCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
 import { composeSKForLang } from './utils';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import { Lang } from '~/types/lang';
-dayjs.extend(utc);
+import type { Lang } from '~/types/lang';
+import type {
+  GetItemCommandInput,
+  PutItemCommandInput,
+  QueryCommandInput,
+} from '@aws-sdk/client-dynamodb';
 
 export const createNewLang = async (lang: Lang) => {
   const { name } = lang;

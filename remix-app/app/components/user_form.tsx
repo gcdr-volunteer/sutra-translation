@@ -1,6 +1,9 @@
-import { ChangeEvent, useEffect, useState } from 'react';
-import { Lang, LangCode } from '~/types/lang';
-import { Role, RoleType, Team, User } from '~/types';
+import { useState } from 'react';
+import { LangCode } from '~/types/lang';
+import { RoleType } from '~/types';
+import type { ChangeEvent } from 'react';
+import type { Role, Team, User } from '~/types';
+import type { Lang } from '~/types/lang';
 import {
   FormControl,
   FormErrorMessage,
@@ -20,10 +23,10 @@ interface UserFormProps {
 export const UserForm = (props: UserFormProps) => {
   const { user } = props || {};
   const { errors } = useActionData<{ errors: User }>() || {};
-  const [formState, setFormState] = useState<User>({
+  const [formState, setFormState] = useState<Omit<User, 'kind'>>({
     username: user?.username ?? '',
     email: user?.email ?? '',
-    roles: user?.roles ?? [RoleType.Viewer],
+    roles: user?.roles ?? [RoleType.Reader],
     team: user?.team ?? '',
     origin_lang: LangCode.ZH,
     target_lang: LangCode.EN,
@@ -35,7 +38,7 @@ export const UserForm = (props: UserFormProps) => {
     type: string,
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    let newFormState: User;
+    let newFormState: Omit<User, 'kind'>;
     if (type === 'roles') {
       const role = e.target.value as Role['name'];
       newFormState = { ...formState, roles: [role] };
@@ -50,10 +53,10 @@ export const UserForm = (props: UserFormProps) => {
       <FormControl isInvalid={Boolean(errors?.username)}>
         <FormLabel>User name:</FormLabel>
         <Input
-          type="text"
+          type='text'
           value={formState.username}
           onChange={(e) => handleFormStateUpdate('username', e)}
-          name="username"
+          name='username'
         />
         {errors?.username ? <FormErrorMessage>{errors?.username}</FormErrorMessage> : null}
       </FormControl>
@@ -61,10 +64,10 @@ export const UserForm = (props: UserFormProps) => {
         <FormControl isInvalid={Boolean(errors?.password)}>
           <FormLabel>Password: </FormLabel>
           <Input
-            type="text"
+            type='text'
             value={formState.password}
             onChange={(e) => handleFormStateUpdate('password', e)}
-            name="password"
+            name='password'
           />
           {errors?.password ? <FormErrorMessage>{errors?.password}</FormErrorMessage> : null}
         </FormControl>
@@ -72,20 +75,20 @@ export const UserForm = (props: UserFormProps) => {
       <FormControl isInvalid={Boolean(errors?.email)}>
         <FormLabel>Email:</FormLabel>
         <Input
-          type="email"
+          type='email'
           value={formState.email}
           onChange={(e) => handleFormStateUpdate('email', e)}
-          name="email"
+          name='email'
         />
         {errors?.email ? <FormErrorMessage>{errors?.email}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.team)}>
         <FormLabel>Team:</FormLabel>
         <Select
-          placeholder="Select your team"
+          placeholder='Select your team'
           value={formState.team}
           onChange={(e) => handleFormStateUpdate('team', e)}
-          name="team"
+          name='team'
           multiple={false}
         >
           {teams?.map((team) => (
@@ -99,10 +102,10 @@ export const UserForm = (props: UserFormProps) => {
       <FormControl isInvalid={Boolean(errors?.origin_lang)}>
         <FormLabel>Source Language:</FormLabel>
         <Select
-          placeholder="Select your lang"
+          placeholder='Select your lang'
           value={formState.origin_lang}
           onChange={(e) => handleFormStateUpdate('origin_lang', e)}
-          name="origin_lang"
+          name='origin_lang'
           multiple={false}
         >
           {langs?.map((lang) => (
@@ -118,7 +121,7 @@ export const UserForm = (props: UserFormProps) => {
         <Select
           value={formState.target_lang}
           onChange={(e) => handleFormStateUpdate('target_lang', e)}
-          name="target_lang"
+          name='target_lang'
           multiple={false}
         >
           {langs?.map((lang) => (
@@ -134,7 +137,7 @@ export const UserForm = (props: UserFormProps) => {
         <Select
           value={formState.roles[0]}
           onChange={(e) => handleFormStateUpdate('roles', e)}
-          name="roles"
+          name='roles'
           multiple={false}
         >
           {Object.values(RoleType)?.map((role) => (

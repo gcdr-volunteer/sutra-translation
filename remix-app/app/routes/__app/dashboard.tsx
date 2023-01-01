@@ -6,14 +6,13 @@ import {
   Box,
   Flex,
   Heading,
-  Text,
   VStack,
 } from '@chakra-ui/react';
-import type { AlertStatus } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
 import { useLoaderData, Link } from '@remix-run/react';
 import { getAllNotResolvedCommentsForMe } from '~/models/comment';
-import { Comment } from '~/types';
+import type { Comment } from '~/types';
+import type { AlertStatus } from '@chakra-ui/react';
 
 export const loader = async () => {
   const myComments = await getAllNotResolvedCommentsForMe();
@@ -22,22 +21,23 @@ export const loader = async () => {
 
 export default function TripitakaRoute() {
   const loadData = useLoaderData<{ data: Comment[] }>();
+  loadData?.data?.sort((a, b) => b.priority - a.priority);
   const commentsComp = loadData?.data.map((ccomment) => {
     const { path, content, comment, priority, paragraphId } = ccomment;
-    const statusMapper = {
-      Low: 'info',
-      Medium: 'warning',
-      High: 'error',
-    };
-    const status = statusMapper[priority] as AlertStatus;
+    const priorityLevel = priority as number;
+    const statusValue = {
+      1: 'info',
+      2: 'warning',
+      3: 'error',
+    }[priorityLevel] as AlertStatus;
     return (
       <Link key={comment} to={`${path}#${paragraphId}`} style={{ width: '100%' }}>
-        <Alert status={status}>
+        <Alert status={statusValue}>
           <AlertIcon />
-          <AlertTitle textOverflow={'ellipsis'} whiteSpace="nowrap" overflow={'hidden'} maxW="50%">
+          <AlertTitle textOverflow={'ellipsis'} whiteSpace='nowrap' overflow={'hidden'} maxW='50%'>
             {content}
           </AlertTitle>
-          <AlertDescription textOverflow={'ellipsis'} whiteSpace="nowrap" overflow={'hidden'}>
+          <AlertDescription textOverflow={'ellipsis'} whiteSpace='nowrap' overflow={'hidden'}>
             {comment}
           </AlertDescription>
         </Alert>
@@ -46,10 +46,10 @@ export default function TripitakaRoute() {
   });
 
   return (
-    <Flex p={10} background="secondary.800" w="100%" flexDir="row">
+    <Flex p={10} background='secondary.800' w='100%' flexDir='row'>
       <Box flex={1}>Home</Box>
       <VStack spacing={4} flex={1} alignItems={'start'}>
-        <Heading as={'h5'} size="lg">
+        <Heading as={'h5'} size='lg'>
           Comments to be resolved
         </Heading>
         {commentsComp}

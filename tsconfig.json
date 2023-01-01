@@ -1,4 +1,7 @@
 {
   "extends": "@tsconfig/node16/tsconfig.json",
-  "include": ["stacks", "remix-app/types/**/*.ts"]
+  "include": ["stacks", "remix-app/types/**/*.ts"],
+  "compilerOptions": {
+    "skipLibCheck": true
+  }
 }

@@ -1,4 +1,4 @@
-import { CommonMeta } from './user';
+import type { CommonMeta } from './common';
 
 export enum RoleType {
   /**
@@ -29,6 +29,7 @@ export enum RoleType {
    */
   Debug = 'Debug',
 }
+
 export interface Role extends CommonMeta {
   /**
    * The name of the role

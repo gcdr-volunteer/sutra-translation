@@ -1,15 +1,17 @@
 import {
   GetItemCommand,
-  GetItemCommandInput,
   PutItemCommand,
-  PutItemCommandInput,
   QueryCommand,
-  QueryCommandInput,
   ReturnValue,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { dbClient } from '~/models/external_services/dynamodb';
 import type { Paragraph } from '~/types/paragraph';
+import type {
+  GetItemCommandInput,
+  PutItemCommandInput,
+  QueryCommandInput,
+} from '@aws-sdk/client-dynamodb';
 
 const getParagraphsByRollId = async (PK: string): Promise<Paragraph[]> => {
   const params: QueryCommandInput = {

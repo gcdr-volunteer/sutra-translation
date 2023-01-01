@@ -1,4 +1,4 @@
-import { CommonMeta } from './user';
+import type { CommonMeta } from './common';
 
 export interface Paragraph extends CommonMeta {
   /**

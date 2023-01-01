@@ -10,6 +10,7 @@ declare global {
       COMMENT_TABLE: string;
       TRANSLATION_TABLE: string;
       DEEPL_AUTHKEY: string;
+      DEEPL_URL: string;
     }
   }
 }

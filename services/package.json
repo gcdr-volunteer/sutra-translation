@@ -2,7 +2,9 @@
   "name": "@sutra-translation/services",
   "version": "0.0.0",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "aws-sdk": "^2.1271.0"
   },

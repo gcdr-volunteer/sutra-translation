@@ -14,14 +14,13 @@ import {
   QueryCommand,
 } from '@aws-sdk/client-dynamodb';
 import { composeSKForUser } from './utils';
-import { User } from '~/types/user';
 import bcrypt from 'bcryptjs';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import { Team } from '~/types/team';
-import { Lang, LangCode } from '~/types/lang';
-import { Role, RoleType } from '~/types/role';
-dayjs.extend(utc);
+import { LangCode } from '~/types/lang';
+import * as role from '~/types/role';
+import { Kind } from '~/types/common';
+import type { User } from '~/types/user';
+import type { Team } from '~/types/team';
+import type { Lang } from '~/types/lang';
 interface DBUser extends User {
   password: string;
 }
@@ -43,9 +42,10 @@ const _createAdminUser = async () => {
     team: 'Team1',
     origin_lang: LangCode.ZH,
     target_lang: LangCode.EN,
-    roles: [RoleType.Admin],
+    roles: [role.RoleType.Admin],
     email: 'pttdev123@gmail.com',
     first_login: true,
+    kind: Kind.USER,
   };
   await createNewUser(adminUser);
 };
@@ -126,10 +126,28 @@ export const createNewUser = async (user: User) => {
   return results;
 };
 
-type UserTableResp =
-  | (Team & { kind: 'TEAM' })
-  | (User & { kind: 'USER' })
-  | (Lang & { kind: 'LANG' });
+export const getAllUsers = async (currentUser: string): Promise<User[]> => {
+  const params: QueryCommandInput = {
+    TableName: process.env.USER_TABLE,
+    KeyConditionExpression: 'PK = :team AND begins_with(SK, :user)',
+    FilterExpression: 'email <> :currentUser',
+    ExpressionAttributeValues: marshall({
+      ':team': 'TEAM',
+      ':user': 'USER',
+      ':currentUser': currentUser,
+    }),
+  };
+  const { Items } = await dbClient().send(new QueryCommand(params));
+  if (Items?.length) {
+    return Items.map((Item) => {
+      const { password, ...rest } = unmarshall(Item) as User;
+      return rest as User;
+    });
+  }
+  return [];
+};
+
+type UserTableResp = Team | User | Lang;
 export const getWholeUserTable = async () => {
   const params: QueryCommandInput = {
     TableName: process.env.USER_TABLE,

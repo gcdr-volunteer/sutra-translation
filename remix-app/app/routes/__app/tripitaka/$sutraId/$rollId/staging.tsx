@@ -25,40 +25,62 @@ import {
   ModalContent,
   InputGroup,
   InputLeftElement,
+  Collapse,
 } from '@chakra-ui/react';
 import { RepeatIcon, CopyIcon, SearchIcon } from '@chakra-ui/icons';
-import { useState, useRef, useEffect, MutableRefObject } from 'react';
-import { ActionArgs, json, LoaderArgs } from '@remix-run/node';
+import { useState, useRef, useEffect } from 'react';
+import { json } from '@remix-run/node';
 import { BiTable, BiSearch, BiNote, BiCheck } from 'react-icons/bi';
 import { Warning } from '~/components/common/errors';
 import { FormModal } from '~/components/common';
-import { ParagraphLoadData } from '.';
 import {
+  handleNewGlossary,
   handleNewTranslationParagraph,
   hanldeDeepLFetch,
+  replaceWithGlossary,
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
+import { logger } from '~/utils';
+import { Intent } from '~/types/common';
+import { assertAuthUser } from '~/auth.server';
+import type { ChangeEvent } from 'react';
+import type { ParagraphLoadData } from '.';
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 
 export const loader = async ({ params }: LoaderArgs) => {
   return json({});
 };
 
 export const action = async ({ request }: ActionArgs) => {
+  const user = await assertAuthUser(request);
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
-  if (entryData?.intent === 'deepl') {
+  logger.log('staging', 'entryData', entryData);
+  if (entryData?.intent === Intent.READ_DEEPL) {
     const { intent, ...rest } = entryData;
     // Uncomment the following line when doing debug
-    // return json({ data: {}, intent: 'deepl' });
-    return await hanldeDeepLFetch(Object.values(rest) as string[]);
+    // return json({ data: {}, intent: Intent.READ_DEEPL });
+    if (Object.keys(rest)?.length) {
+      const origins = await replaceWithGlossary(Object.values(rest) as string[]);
+      return await hanldeDeepLFetch(origins);
+    }
   }
-  if (entryData?.intent === 'translation') {
+  if (entryData?.intent === Intent.CREATE_TRANSLATION) {
     // Uncomment the following line when doing debug
-    // return json({ data: { index: entryData?.index }, intent: 'translation' });
+    // return json({ data: { index: entryData?.index }, intent: Intent.CREATE_TRANSLATION });
     return await handleNewTranslationParagraph({
       index: entryData?.index as string,
       PK: entryData?.PK as string,
       SK: entryData?.SK as string,
       translation: entryData?.translation as string,
+    });
+  }
+  if (entryData?.intent === Intent.CREATE_GLOSSARY) {
+    return await handleNewGlossary({
+      origin: entryData?.origin as string,
+      target: entryData?.target as string,
+      note: entryData?.note as string,
+      createdBy: user?.SK,
+      creatorAlias: user?.username,
     });
   }
   return json({});
@@ -70,7 +92,7 @@ interface stateType {
 export default function StagingRoute() {
   const actionData = useActionData<{
     data: { index: number } | string[];
-    intent: 'translation' | 'deepl';
+    intent: Intent;
   }>();
   const [translation, setTranslation] = useState<string[]>([]);
 
@@ -84,42 +106,44 @@ export default function StagingRoute() {
         acc[index] = cur.content;
         return acc;
       },
-      { intent: 'deepl' } as Record<number, string>
+      { intent: Intent.READ_DEEPL } as Record<number, string>
     );
-    if (Object.keys(origins).length) {
+    if (origins && Object.keys(origins).length) {
       submit(origins, { method: 'post', replace: true });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (actionData?.intent === 'deepl') {
+    if (actionData?.intent === Intent.READ_DEEPL) {
       setTranslation(actionData.data as string[]);
     }
-    if (actionData?.intent === 'translation') {
+    if (actionData?.intent === Intent.CREATE_TRANSLATION) {
       const { index } = actionData.data as { index: number };
-      const paragraphs = ref.current;
-      paragraphs.splice(index, 1);
-      translation.splice(index, 1);
-      ref.current = paragraphs;
-      setTranslation(translation);
+      ref.current[index].finish = true;
     }
-  }, [actionData?.intent]);
+  }, [actionData]);
   const paragraphsComp = ref.current?.map((paragraph, index, arr) => (
-    <Box key={index}>
+    <Collapse
+      key={index}
+      in={!paragraph?.finish}
+      unmountOnExit={index !== arr.length - 1}
+      animateOpacity={true}
+    >
       <TranlationWorkspace
         origin={paragraph}
         index={index}
         translation={translation.length ? translation[index] : 'loading....'}
-        reference="Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur."
-        isLastParagraph={ref.current?.length === 1}
+        reference='Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur.'
+        totalParagraphs={ref?.current.length}
       />
       {index !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
-    </Box>
+    </Collapse>
   ));
   if (ref.current?.length) {
-    return <Box p={8}>{paragraphsComp}</Box>;
+    return <Box p={16}>{paragraphsComp}</Box>;
   } else {
-    return <Warning content="Please select at least one paragraph from the roll" />;
+    return <Warning content='Please select at least one paragraph from the roll' />;
   }
 }
 
@@ -128,14 +152,14 @@ interface WorkSpaceProps {
   index: number;
   translation: string;
   reference: string;
-  isLastParagraph?: boolean;
+  totalParagraphs: number;
 }
 function TranlationWorkspace({
   origin,
   translation,
   index,
   reference,
-  isLastParagraph,
+  totalParagraphs,
 }: WorkSpaceProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -144,7 +168,7 @@ function TranlationWorkspace({
   const [glossary, setGlossary] = useBoolean(false);
   const submit = useSubmit();
   const textAreaFormRef = useRef(null);
-  const [note, setNote] = useState('');
+  // const [note, setNote] = useState('');
   const { isOpen: isOpenNote, onOpen: onOpenNote, onClose: onCloseNote } = useDisclosure();
   const { isOpen: isOpenSearch, onOpen: onOpenSearch, onClose: onCloseSearch } = useDisclosure();
   const {
@@ -160,11 +184,14 @@ function TranlationWorkspace({
   };
 
   useEffect(() => {
-    if (isLastParagraph) {
-      const newLocation = location.pathname.replace('/staging', '');
-      navigate(newLocation);
+    if (actionData?.intent === Intent.CREATE_TRANSLATION) {
+      const { index } = actionData.data as { index: number };
+      if (index == totalParagraphs - 1) {
+        const newLocation = location.pathname.replace('/staging', '');
+        navigate(newLocation);
+      }
     }
-  }, [actionData?.data]);
+  }, [actionData, location.pathname, navigate, totalParagraphs]);
 
   const getCurrentCursorText = (): string | undefined => {
     const cursorPos = textareaRef.current?.selectionStart;
@@ -182,24 +209,24 @@ function TranlationWorkspace({
     return 'You forget to put your cursor in text';
   };
   return (
-    <Flex gap={4} flexDir="row" justifyContent="space-between">
+    <Flex gap={4} flexDir='row' justifyContent='space-between'>
       <VStack flex={1} spacing={4}>
-        <Card w="100%" background={'secondary.200'} borderRadius={12}>
+        <Card w='100%' background={'secondary.200'} borderRadius={12}>
           <CardHeader>
-            <Heading size="sm">Origin</Heading>
+            <Heading size='sm'>Origin</Heading>
           </CardHeader>
           <CardBody>
             <Text fontSize={'xl'}>{origin.content}</Text>
           </CardBody>
         </Card>
-        <Card w="100%" background={'secondary.300'} borderRadius={12}>
-          <CardHeader as={Flex} justifyContent="space-between" alignItems="center">
-            <Heading size="sm">DeepL</Heading>
-            <ButtonGroup variant="outline" spacing="6">
-              <IconButton icon={<RepeatIcon />} aria-label="refresh" />
+        <Card w='100%' background={'secondary.300'} borderRadius={12}>
+          <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+            <Heading size='sm'>DeepL</Heading>
+            <ButtonGroup variant='outline' spacing='6'>
+              <IconButton icon={<RepeatIcon />} aria-label='refresh' />
               <IconButton
                 icon={<CopyIcon />}
-                aria-label="copy"
+                aria-label='copy'
                 onClick={() => setContent(translation)}
               />
             </ButtonGroup>
@@ -208,13 +235,13 @@ function TranlationWorkspace({
             <Text fontSize={'xl'}>{translation}</Text>
           </CardBody>
         </Card>
-        <Card w="100%" background={'secondary.400'} borderRadius={12}>
-          <CardHeader as={Flex} justifyContent="space-between" alignItems="center">
-            <Heading size="sm">Reference</Heading>
-            <ButtonGroup variant="outline" spacing="6">
+        <Card w='100%' background={'secondary.400'} borderRadius={12}>
+          <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+            <Heading size='sm'>Reference</Heading>
+            <ButtonGroup variant='outline' spacing='6'>
               <IconButton
                 icon={<CopyIcon />}
-                aria-label="copy"
+                aria-label='copy'
                 onClick={() => setContent(reference)}
               />
             </ButtonGroup>
@@ -224,36 +251,36 @@ function TranlationWorkspace({
           </CardBody>
         </Card>
       </VStack>
-      <Flex flex={1} justifyContent="stretch" alignSelf={'stretch'}>
-        <Card background={'secondary.500'} w="100%" borderRadius={12}>
-          <CardHeader as={Flex} justifyContent="space-between" alignItems="center">
-            <Heading size="sm">Workspace</Heading>
+      <Flex flex={1} justifyContent='stretch' alignSelf={'stretch'}>
+        <Card background={'secondary.500'} w='100%' borderRadius={12}>
+          <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+            <Heading size='sm'>Workspace</Heading>
           </CardHeader>
           <CardBody as={Flex} flexDir={'column'}>
             <ButtonGroup colorScheme={'iconButton'} variant={'outline'} p={4} mb={2}>
-              <Tooltip label="open glossary" openDelay={1000}>
+              <Tooltip label='open glossary' openDelay={1000}>
                 <IconButton
-                  disabled={!Boolean(content)}
+                  disabled={!content}
                   onClick={setGlossary.on}
                   icon={<BiTable />}
-                  aria-label="glossary button"
+                  aria-label='glossary button'
                 />
               </Tooltip>
-              <Tooltip label="add footnote" openDelay={1000} closeDelay={1000}>
+              <Tooltip label='add footnote' openDelay={1000} closeDelay={1000}>
                 <IconButton
-                  disabled={!Boolean(content)}
+                  disabled={!content}
                   onClick={onOpenFootnote}
                   icon={<BiNote />}
-                  aria-label="footnote button"
+                  aria-label='footnote button'
                 />
               </Tooltip>
-              <Tooltip label="open searchbar" openDelay={1000}>
-                <IconButton onClick={onOpenSearch} icon={<BiSearch />} aria-label="search button" />
+              <Tooltip label='open searchbar' openDelay={1000}>
+                <IconButton onClick={onOpenSearch} icon={<BiSearch />} aria-label='search button' />
               </Tooltip>
             </ButtonGroup>
             <FormModal
-              value="save-footnote"
-              header="Add footnote"
+              value='save-footnote'
+              header='Add footnote'
               body={
                 <Box>
                   <Text>
@@ -265,7 +292,7 @@ function TranlationWorkspace({
                   </Text>
                   <Textarea
                     _focus={{ outline: 'none' }}
-                    placeholder="glossary note"
+                    placeholder='add your footnotes'
                     onChange={(e) => {}}
                   />
                 </Box>
@@ -273,22 +300,22 @@ function TranlationWorkspace({
               isOpen={isOpenFootnote}
               onClose={onCloseFootnote}
             />
-            <Modal isOpen={isOpenSearch} onClose={onCloseSearch} size="2xl">
+            <Modal isOpen={isOpenSearch} onClose={onCloseSearch} size='2xl'>
               <ModalOverlay />
               <ModalContent>
                 <HStack>
                   <InputGroup>
                     <InputLeftElement
-                      pointerEvents="none"
-                      children={<SearchIcon color="gray.300" />}
+                      pointerEvents='none'
+                      children={<SearchIcon color='gray.300' />}
                     />
                     <Input
                       _focus={{ outline: 'none' }}
                       variant={'filled'}
-                      boxShadow="none"
-                      size="lg"
+                      boxShadow='none'
+                      size='lg'
                       type={'text'}
-                      placeholder="Search"
+                      placeholder='Search'
                     />
                   </InputGroup>
                 </HStack>
@@ -302,20 +329,20 @@ function TranlationWorkspace({
                 onOpenNote={onOpenNote}
               />
             ) : null}
-            <Form method="post" ref={textAreaFormRef} style={{ height: '90%' }}>
+            <Form method='post' ref={textAreaFormRef} style={{ height: '100%' }}>
               <Textarea
                 flexGrow={1}
-                name="translation"
+                name='translation'
                 ref={textareaRef}
-                height="100%"
-                placeholder="Here is a sample placeholder"
+                height='100%'
+                placeholder='Here is a sample placeholder'
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
               />
-              <Input name="PK" value={origin.PK} hidden readOnly />
-              <Input name="SK" value={origin.SK} hidden readOnly />
-              <Input name="index" value={index} hidden readOnly />
-              <Input name="intent" value={'translation'} hidden readOnly />
+              <Input name='PK' value={origin.PK} hidden readOnly />
+              <Input name='SK' value={origin.SK} hidden readOnly />
+              <Input name='index' value={index} hidden readOnly />
+              <Input name='intent' value={Intent.CREATE_TRANSLATION} hidden readOnly />
             </Form>
           </CardBody>
           <Divider />
@@ -323,7 +350,7 @@ function TranlationWorkspace({
             <Button
               onClick={handleSubmitTranslation}
               colorScheme={'iconButton'}
-              disabled={!Boolean(content)}
+              disabled={!content}
             >
               Submit
             </Button>
@@ -340,22 +367,72 @@ type GlossaryProps = {
   onOpenNote: () => void;
 };
 const Glossary = ({ onOpenNote, discardGlossary, isOpenNote, onCloseNote }: GlossaryProps) => {
+  // const submit = useSubmit();
+  const [origin, setOrigin] = useState('');
+  const [target, setTarget] = useState('');
+
+  const handleChange = (type: string, event: ChangeEvent<HTMLInputElement>) => {
+    if (type === 'origin') {
+      setOrigin(event.target?.value);
+    }
+    if (type === 'target') {
+      setTarget(event.target?.value);
+    }
+  };
+
   return (
     <HStack mb={4}>
-      <InputGroup _focus={{ outline: 'none' }}>
-        <Input type="text" placeholder="origin" mr={4} />
-        <Input type="text" placeholder="target" />
-      </InputGroup>
-      <ButtonGroup colorScheme={'iconButton'} variant={'outline'}>
-        <IconButton onClick={onOpenNote} icon={<BiNote />} aria-label="glossary note" />
-        <IconButton onClick={discardGlossary} icon={<BiCheck />} aria-label="submit glossary" />
-      </ButtonGroup>
+      <Form method='post' style={{ width: '100%' }}>
+        <HStack>
+          <InputGroup _focus={{ outline: 'none' }}>
+            <Input
+              type='text'
+              name='origin'
+              placeholder='origin'
+              mr={4}
+              onChange={(e) => handleChange('origin', e)}
+            />
+            <Input
+              type='text'
+              name='target'
+              placeholder='target'
+              onChange={(e) => handleChange('target', e)}
+            />
+          </InputGroup>
+          <ButtonGroup colorScheme={'iconButton'} variant={'outline'}>
+            <IconButton onClick={onOpenNote} icon={<BiNote />} aria-label='glossary note' />
+            <IconButton
+              // onClick={discardGlossary}
+              type='submit'
+              name='intent'
+              value={Intent.CREATE_GLOSSARY}
+              icon={<BiCheck />}
+              aria-label='submit glossary'
+            />
+          </ButtonGroup>
+        </HStack>
+      </Form>
       <FormModal
-        header="Add note to glossary"
+        header='Add note to glossary'
         body={
-          <Textarea _focus={{ outline: 'none' }} placeholder="glossary note" onChange={(e) => {}} />
+          <Box>
+            <Text>
+              Source: <Tag>{origin}</Tag>
+            </Text>
+            <Input name='origin' readOnly hidden value={origin} />
+            <Text>
+              Target: <Tag>{target}</Tag>
+            </Text>
+            <Input name='target' readOnly hidden value={target} />
+            <Textarea
+              name='note'
+              _focus={{ outline: 'none' }}
+              placeholder='glossary note'
+              onChange={(e) => {}}
+            />
+          </Box>
         }
-        value="save-glossary"
+        value='glossary'
         isOpen={isOpenNote}
         onClose={onCloseNote}
       />

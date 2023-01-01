@@ -1,12 +1,12 @@
 // app/services/auth.server.ts
 import { Authenticator } from 'remix-auth';
 import { sessionStorage } from './session.server';
-import { User } from './types/user';
 import { FormStrategy } from 'remix-auth-form';
 import bcrypt from 'bcryptjs';
-import { LoaderArgs } from '@remix-run/node';
 import { getUserByEmail } from './models/user';
 import { logger } from '~/utils';
+import type { User } from './types/user';
+import type { LoaderArgs } from '@remix-run/node';
 export let authenticator = new Authenticator<User | undefined>(sessionStorage);
 
 authenticator.use(

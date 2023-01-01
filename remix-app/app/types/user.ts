@@ -1,16 +1,8 @@
-import { Lang } from './lang';
-import { Role } from './role';
-import { Team } from './team';
+import type { Lang } from './lang';
+import type { Role } from './role';
+import type { Team } from './team';
+import type { CommonMeta } from './common';
 
-export interface CommonMeta {
-  createdAt?: string;
-  createdBy?: string;
-  updatedAt?: string;
-  updatedBy?: string;
-  PK?: string;
-  SK?: string;
-  kind?: string;
-}
 export interface User extends CommonMeta {
   /**
    * full login name

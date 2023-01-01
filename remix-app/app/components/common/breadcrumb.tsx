@@ -1,12 +1,4 @@
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  Flex,
-  LinkOverlay,
-  LinkBox,
-  Text,
-  Box,
-} from '@chakra-ui/react';
+import { Breadcrumb, BreadcrumbItem, Flex, LinkBox, Text } from '@chakra-ui/react';
 import { ChevronRightIcon } from '@chakra-ui/icons';
 import { useLocation, Link } from '@remix-run/react';
 export const BreadCrumb = () => {
@@ -23,7 +15,7 @@ export const BreadCrumb = () => {
         <BreadcrumbItem key={href}>
           <LinkBox as={'article'}>
             <Link to={href}>
-              <Text as="b">{names[index]}</Text>
+              <Text as='b'>{names[index]}</Text>
             </Link>
           </LinkBox>
         </BreadcrumbItem>
@@ -32,7 +24,7 @@ export const BreadCrumb = () => {
 
   return (
     <Flex>
-      <Breadcrumb spacing={2} separator={<ChevronRightIcon color="gray.500" />}>
+      <Breadcrumb spacing={2} separator={<ChevronRightIcon color='gray.500' />}>
         {breadcrumbComp}
       </Breadcrumb>
     </Flex>

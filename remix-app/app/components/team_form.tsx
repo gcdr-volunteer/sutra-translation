@@ -1,6 +1,5 @@
 import { useActionData } from '@remix-run/react';
-import { ChangeEvent, useState } from 'react';
-import { Team } from '~/types';
+import { useState } from 'react';
 import {
   Box,
   FormControl,
@@ -16,6 +15,8 @@ import {
   Thead,
   Tr,
 } from '@chakra-ui/react';
+import type { ChangeEvent } from 'react';
+import type { Team } from '~/types';
 
 interface TeamFormProps {
   teams: Team[];
@@ -23,7 +24,7 @@ interface TeamFormProps {
 }
 export const TeamForm = (props: TeamFormProps) => {
   const { errors } = useActionData<{ errors: { name: string; alias: string } }>() || {};
-  const [formState, setFormState] = useState<Team>({
+  const [formState, setFormState] = useState<Omit<Team, 'kind'>>({
     name: '',
     alias: '',
   });
@@ -39,7 +40,7 @@ export const TeamForm = (props: TeamFormProps) => {
     <Box>
       {teams.length ? (
         <TableContainer mb={8}>
-          <Table variant="simple">
+          <Table variant='simple'>
             <Thead>
               <Tr>
                 <Th>Team</Th>
@@ -61,20 +62,20 @@ export const TeamForm = (props: TeamFormProps) => {
         <FormControl isInvalid={Boolean(errors?.name)}>
           <FormLabel>Team name:</FormLabel>
           <Input
-            type="text"
+            type='text'
             value={formState.name}
             onChange={(e) => handleFormStateUpdate('name', e)}
-            name="team_name"
+            name='team_name'
           />
           {errors?.name ? <FormErrorMessage>{errors?.name}</FormErrorMessage> : null}
         </FormControl>
         <FormControl isInvalid={Boolean(errors?.alias)}>
           <FormLabel>Team alias:</FormLabel>
           <Input
-            type="text"
+            type='text'
             value={formState.alias}
             onChange={(e) => handleFormStateUpdate('alias', e)}
-            name="team_alias"
+            name='team_alias'
           />
           {errors?.alias ? <FormErrorMessage>{errors?.alias}</FormErrorMessage> : null}
         </FormControl>

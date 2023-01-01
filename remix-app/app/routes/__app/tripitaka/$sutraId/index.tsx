@@ -1,9 +1,10 @@
-import { json, LoaderArgs, Response } from '@remix-run/node';
+import { json } from '@remix-run/node';
 import { useCatch, useLoaderData } from '@remix-run/react';
-import { Box, Flex, Heading, Text } from '@chakra-ui/react';
+import { Box, Flex } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
 import { Warning } from '~/components/common/errors';
 import { getRollsBySutraId } from '~/models/roll';
+import type { LoaderArgs } from '@remix-run/node';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { sutraId } = params;

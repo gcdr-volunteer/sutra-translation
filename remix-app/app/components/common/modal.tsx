@@ -10,7 +10,8 @@ import {
   Spinner,
 } from '@chakra-ui/react';
 import { useSubmit, useTransition, Form, useActionData } from '@remix-run/react';
-import { FormEvent, ReactNode, useEffect } from 'react';
+import { useEffect } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 
 interface CommonModalProps {
   header: string;
@@ -30,7 +31,7 @@ export const CommonModal = (props: CommonModalProps) => {
         <ModalBody pb={6}>{body}</ModalBody>
 
         <ModalFooter>
-          <Button colorScheme="iconButton" mr={3}>
+          <Button colorScheme='iconButton' mr={3}>
             Save
           </Button>
           <Button onClick={onClose}>Cancel</Button>
@@ -59,7 +60,7 @@ export const FormModal = (props: FormModalProps) => {
     if (actionData?.data) {
       onClose();
     }
-  }, [actionData?.data]);
+  }, [actionData?.data, onClose]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     submit(e.currentTarget);
@@ -67,17 +68,17 @@ export const FormModal = (props: FormModalProps) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={modalSize ?? '2xl'}>
       <ModalOverlay />
-      <ModalContent as={Form} method="post" onSubmit={handleSubmit}>
+      <ModalContent as={Form} method='post' onSubmit={handleSubmit}>
         <ModalHeader>{header}</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>{body}</ModalBody>
 
         <ModalFooter>
           <Button
-            colorScheme="iconButton"
+            colorScheme='iconButton'
             mr={3}
-            type="submit"
-            name="intent"
+            type='submit'
+            name='intent'
             value={value}
             disabled={isLoading}
           >

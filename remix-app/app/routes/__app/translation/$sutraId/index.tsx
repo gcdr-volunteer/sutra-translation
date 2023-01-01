@@ -1,7 +1,8 @@
-import { json, LoaderArgs } from '@remix-run/node';
+import { json } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
-import { Box, Flex, VStack } from '@chakra-ui/react';
+import { Box, Flex } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
+import type { LoaderArgs } from '@remix-run/node';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { sutraId } = params;
