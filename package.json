@@ -17,6 +17,8 @@
     "validate": "npm-run-all --parallel typecheck lint format"
   },
   "devDependencies": {
+    "@commitlint/cli": "^17.3.0",
+    "@commitlint/config-conventional": "^17.3.0",
     "@serverless-stack/cli": "^1.18.4",
     "@serverless-stack/resources": "^1.18.4",
     "@tsconfig/node16": "^1.0.3",
