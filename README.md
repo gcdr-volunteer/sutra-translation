@@ -1,3 +1,5 @@
+[![Deploy To UAT Env](https://github.com/gcdr-volunteer/sutra-translation/actions/workflows/uat_deploy.yml/badge.svg)](https://github.com/gcdr-volunteer/sutra-translation/actions/workflows/uat_deploy.yml)
+
 ## Sutra Translation App
 
 ### Editor setup
