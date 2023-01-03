@@ -43,7 +43,7 @@ jobs:
         node-version: [16.x]
     environment:
       name: sirius
-      url: https://d2avpikjr8pzy5.cloudfront.net
+      url: https://djigbp6nemx7r.cloudfront.net
     steps:
       - name: Checkout feature branch
         uses: actions/checkout@v3

@@ -41,7 +41,7 @@ jobs:
         node-version: [16.x]
     environment:
       name: uat
-      url: https://d1ubt1qrpwbagh.cloudfront.net
+      url: https://d2oq65220kk55e.cloudfront.net/
     steps:
       - name: Checkout feature branch
         uses: actions/checkout@v3
