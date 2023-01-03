@@ -105,7 +105,7 @@ export const updateUserPassword = async ({
 
 export const createNewUser = async (user: User) => {
   const { password, email, ...rest } = user;
-  const hashedPassword = await bcrypt.hash(password!, 10);
+  const hashedPassword = await bcrypt.hash(password, 10);
   const sortKey = composeSKForUser({ email: email });
   const params: PutItemCommandInput = {
     TableName: process.env.USER_TABLE,
@@ -126,7 +126,7 @@ export const createNewUser = async (user: User) => {
   return results;
 };
 
-export const getAllUsers = async (currentUser: string): Promise<User[]> => {
+export const getAllUsers = async (currentUser?: string): Promise<User[]> => {
   const params: QueryCommandInput = {
     TableName: process.env.USER_TABLE,
     KeyConditionExpression: 'PK = :team AND begins_with(SK, :user)',

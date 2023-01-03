@@ -44,7 +44,7 @@ export interface User extends CommonMeta {
   /**
    * a hashed password
    */
-  password?: string;
+  password: string;
   /**
    * The base64 encoded user avatar image
    */

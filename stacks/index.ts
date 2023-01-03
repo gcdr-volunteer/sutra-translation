@@ -1,13 +1,17 @@
-import { RemixStack } from './RemixStack';
+import { SNSStack, RemixStack, TableStack } from './RemixStack';
 import { App } from '@serverless-stack/resources';
 
-export default function (app: App) {
+export default async function (app: App) {
   app.setDefaultFunctionProps({
     runtime: 'nodejs16.x',
-    srcPath: 'services',
+    srcPath: 'services/functions',
     bundle: {
       format: 'esm',
     },
+    memorySize: '128 MB',
+    timeout: '10 minutes',
   });
-  app.stack(RemixStack);
+  await app.stack(TableStack);
+  await app.stack(SNSStack);
+  await app.stack(RemixStack);
 }

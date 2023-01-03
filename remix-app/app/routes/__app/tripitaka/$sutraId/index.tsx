@@ -8,7 +8,7 @@ import type { LoaderArgs } from '@remix-run/node';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { sutraId } = params;
-  const rolls = await getRollsBySutraId(sutraId!);
+  const rolls = await getRollsBySutraId(sutraId ?? '');
   const extractedRolls = rolls?.map((roll) => ({
     slug: roll.SK,
     ...roll,

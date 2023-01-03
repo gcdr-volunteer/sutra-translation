@@ -13,7 +13,7 @@ export const Comment = (props: CommentProps) => {
   const { allUsers } = useContext(AppContext);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_, __, sutraId, rollId] = pathname?.split('/');
+  const [_, __, sutraId, rollId] = pathname?.split('/') ?? [];
   const { selectedText, start, end, paragraphId } = props;
   return (
     <VStack spacing={4} justifyContent={'flex-start'}>

@@ -48,7 +48,7 @@ export const CommentDialog = ({ comment }: CommentDialogProps) => {
 
   const handleResolve = (e: ChangeEvent<HTMLInputElement>) => {
     submit(
-      { resolved: '1', SK: comment?.SK!, intent: Intent.CREATE_MESSAGE },
+      { resolved: '1', SK: comment.SK ?? '', intent: Intent.CREATE_MESSAGE },
       { method: 'post', replace: true }
     );
   };

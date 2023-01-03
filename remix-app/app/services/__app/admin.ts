@@ -1,3 +1,6 @@
+import type { Team, User } from '~/types';
+import type { Lang } from '~/types/lang';
+import type { PublishCommandInput } from '@aws-sdk/client-sns';
 import { json } from '@remix-run/node';
 import { badRequest, created } from 'remix-utils';
 import * as yup from 'yup';
@@ -9,8 +12,8 @@ import { LangCode } from '~/types/lang';
 import { RoleType } from '~/types/role';
 import { logger } from '~/utils';
 import { baseSchemaFor, schemaValidator } from '~/utils/schema_validator';
-import type { Team, User } from '~/types';
-import type { Lang } from '~/types/lang';
+import { msgClient } from '~/models/external_services/sns';
+import { PublishCommand } from '@aws-sdk/client-sns';
 
 const langCodeValidator = yup
   .mixed<LangCode>()
@@ -24,8 +27,11 @@ const newLangSchema = () => {
       'is-name-exist',
       'language code already registered',
       async (value) => {
-        const lang = await getLang(value!?.trim());
-        return !!lang;
+        if (value) {
+          const lang = await getLang(value?.trim());
+          return !!lang;
+        }
+        return false;
       }
     ),
     alias: yup.string().trim().required('language alias cannot be empty'),
@@ -41,7 +47,7 @@ const newTeamSchema = () => {
       .trim()
       .required('team name cannot be empty')
       .test('is-name-exist', 'team name already registered', async (value) => {
-        const team = await getTeam(value!);
+        const team = await getTeam(value ?? '');
         return !!team;
       }),
     alias: yup.string().trim().required('team alias cannot be empty'),
@@ -58,7 +64,7 @@ const newUserSchema = () => {
       .string()
       .required('team cannot be empty')
       .test('is-team-exist', 'we dont have this team, please create first', async (value) => {
-        const team = await getTeam(value!);
+        const team = await getTeam(value ?? '');
         return Boolean(team);
       }),
     roles: yup
@@ -86,8 +92,8 @@ export const getLoaderData = async () => {
   for (const ttype of userTable) {
     if (ttype.SK?.startsWith('USER')) {
       // we remove password, since there is no need let frontend knows password
-      const { password, ...rest } = ttype as User;
-      users.push(rest);
+      const newUser = { ...ttype, password: '' } as User;
+      users.push(newUser);
     }
     if (ttype.SK?.startsWith('TEAM')) {
       teams.push(ttype as Team);
@@ -105,6 +111,7 @@ export const getLoaderData = async () => {
 
 export const handleCreateNewUser = async (user: Omit<User, 'kind'>) => {
   try {
+    // TODO: using sns service to send email to newly created user
     logger.log(handleCreateNewUser.name, 'user', user);
     const newUser = { ...user, roles: [user.roles] };
 
@@ -145,4 +152,19 @@ export const handleCreateNewLang = async (lang: Omit<Lang, 'kind'>) => {
   } catch (errors) {
     return json({ errors: errors });
   }
+};
+
+export type SutraFeed = {
+  sutra: string;
+  chapter: string;
+};
+export const feedSutra = async ({ sutra, chapter }: SutraFeed) => {
+  const params: PublishCommandInput = {
+    TopicArn: process.env.TOPIC_ARN,
+    Message: JSON.stringify({
+      sutra,
+      chapter,
+    }),
+  };
+  await msgClient().send(new PublishCommand(params));
 };

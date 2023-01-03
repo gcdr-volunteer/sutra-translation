@@ -4,7 +4,7 @@ import { eventStream } from 'remix-utils';
 
 export async function loader({ request }: LoaderArgs) {
   return eventStream(request.signal, function setup(send) {
-    let timer = setInterval(() => {
+    const timer = setInterval(() => {
       send({ event: 'time', data: new Date().toISOString() });
     }, 1000);
 
