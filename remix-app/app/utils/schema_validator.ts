@@ -16,7 +16,9 @@ export const schemaValidator = async <S extends AnyObjectSchema, T>({
   } catch (error) {
     const errors = {} as Record<string, string>;
     (error as ValidationError).inner.forEach((err) => {
-      errors[err.path!] = err.message;
+      if (err?.path) {
+        errors[err.path] = err.message;
+      }
     });
     throw errors;
   }

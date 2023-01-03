@@ -1,95 +1,81 @@
-import { StackContext } from '@serverless-stack/resources';
-import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
-import { isProd } from '../utils';
+import { StackContext, Table } from '@serverless-stack/resources';
+/**
+ * This table contains all the user related information
+ */
 export const createUserTable = async (stack: StackContext['stack']) => {
-  return new Table(stack, 'UserTable', {
-    tableName: `${process.env.ENV}-USER-TABLE`,
-    readCapacity: isProd() ? 20 : 5,
-    partitionKey: {
-      name: 'PK',
-      type: AttributeType.STRING,
+  return new Table(stack, 'USER', {
+    fields: {
+      PK: 'string',
+      SK: 'string',
     },
-    sortKey: {
-      name: 'SK',
-      type: AttributeType.STRING,
+    primaryIndex: {
+      partitionKey: 'PK',
+      sortKey: 'SK',
     },
   });
 };
 
-export const createCommentTable = async (stack: StackContext['stack']) => {
-  const commentTable = new Table(stack, 'CommentTable', {
-    tableName: `${process.env.ENV}-COMMENT-TABLE`,
-    readCapacity: isProd() ? 20 : 5,
-    partitionKey: {
-      name: 'PK',
-      type: AttributeType.STRING,
+/**
+ * This table contains all the reference information, which includes
+ * - comment
+ * - glossary
+ * - sutra reference
+ */
+export const createReferenceTable = async (stack: StackContext['stack']) => {
+  const referenceTable = new Table(stack, 'REFERENCE', {
+    fields: {
+      PK: 'string',
+      SK: 'string',
+      sutraId: 'string',
+      rollId: 'string',
+      paragraphId: 'string',
+      resolved: 'number',
+      parentId: 'string',
     },
-    sortKey: {
-      name: 'SK',
-      type: AttributeType.STRING,
+    primaryIndex: {
+      partitionKey: 'PK',
+      sortKey: 'SK',
     },
-  });
-
-  commentTable.addLocalSecondaryIndex({
-    indexName: 'sutraId-index',
-    sortKey: {
-      name: 'sutraId',
-      type: AttributeType.STRING,
-    },
-  });
-
-  commentTable.addLocalSecondaryIndex({
-    indexName: 'rollId-index',
-    sortKey: {
-      name: 'rollId',
-      type: AttributeType.STRING,
-    },
-  });
-
-  commentTable.addLocalSecondaryIndex({
-    indexName: 'paragraphId-index',
-    sortKey: {
-      name: 'paragraphId',
-      type: AttributeType.STRING,
-    },
-  });
-
-  commentTable.addLocalSecondaryIndex({
-    indexName: 'resolved-index',
-    sortKey: {
-      name: 'resolved',
-      type: AttributeType.NUMBER,
+    localIndexes: {
+      'sutraId-index': {
+        sortKey: 'sutraId',
+      },
+      'rollId-index': {
+        sortKey: 'rollId',
+      },
+      'paragraphId-index': {
+        sortKey: 'paragraphId',
+      },
+      'resolved-index': {
+        sortKey: 'resolved',
+      },
+      'parentId-index': {
+        sortKey: 'parentId',
+      },
     },
   });
 
-  commentTable.addLocalSecondaryIndex({
-    indexName: 'parentId-index',
-    sortKey: {
-      name: 'parentId',
-      type: AttributeType.STRING,
-    },
-  });
-  return commentTable;
+  return referenceTable;
 };
 
+/**
+ * This table contains all the translation related information
+ */
 export const createTranslationTable = async (stack: StackContext['stack']) => {
-  const translationTable = new Table(stack, 'TranslationTable', {
-    tableName: `${process.env.ENV}-TRANSLATION-TABLE`,
-    readCapacity: isProd() ? 20 : 5,
-    partitionKey: {
-      name: 'PK',
-      type: AttributeType.STRING,
+  const translationTable = new Table(stack, 'TRANSLATION', {
+    fields: {
+      PK: 'string',
+      SK: 'string',
+      kind: 'string',
     },
-    sortKey: {
-      name: 'SK',
-      type: AttributeType.STRING,
+    primaryIndex: {
+      partitionKey: 'PK',
+      sortKey: 'SK',
     },
-  });
-  translationTable.addLocalSecondaryIndex({
-    indexName: 'kind-index',
-    sortKey: {
-      name: 'kind',
-      type: AttributeType.STRING,
+    localIndexes: {
+      'kind-index': {
+        sortKey: 'kind',
+      },
     },
   });
   return translationTable;

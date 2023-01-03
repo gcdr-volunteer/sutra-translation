@@ -7,12 +7,12 @@ import { getUserByEmail } from './models/user';
 import { logger } from '~/utils';
 import type { User } from './types/user';
 import type { LoaderArgs } from '@remix-run/node';
-export let authenticator = new Authenticator<User | undefined>(sessionStorage);
+export const authenticator = new Authenticator<User | undefined>(sessionStorage);
 
 authenticator.use(
   new FormStrategy(async ({ form, context }) => {
-    let username = form.get('username');
-    let password = form.get('password');
+    const username = form.get('username');
+    const password = form.get('password');
 
     logger.info('authenticator', 'before getUserByEmail');
     const user = await getUserByEmail(username as string);
@@ -24,8 +24,9 @@ authenticator.use(
       logger.info('authenticator', 'after bcrypt compare');
       logger.log('authenticator', 'isValid', isValid);
       if (isValid) {
-        const { password, ...rest } = user;
-        return rest;
+        // not need expose hashed password to frontend
+        const newUser = { ...user, password: '' };
+        return newUser;
       }
       return undefined;
     }

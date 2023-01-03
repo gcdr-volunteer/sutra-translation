@@ -16,39 +16,44 @@ import { assertAuthUser } from '~/auth.server';
 import { Intent } from '~/types/common';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { MutableRefObject } from 'react';
+import { badRequest } from 'remix-utils';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId } = params;
-  const originParagraphs = await getOriginParagraphsByRollId(rollId!);
-  const targetParagraphs = await getTargetParagraphsByRollId(rollId!);
-  // TODO: update language to match user's profile
-  const targetComments = await getAllCommentsForRoll(rollId?.replace('ZH', 'EN')!);
-  const origins = originParagraphs?.map(({ PK, SK, category, content, num }) => ({
-    PK,
-    SK,
-    category,
-    content,
-    num,
-  }));
-  const targets = targetParagraphs?.map(({ category, content, num, SK }) => {
-    const comments = targetComments.filter(
-      (comment) => comment?.paragraphId === SK && !comment?.resolved
-    );
-    return {
-      comments,
+  if (rollId) {
+    const originParagraphs = await getOriginParagraphsByRollId(rollId);
+    const targetParagraphs = await getTargetParagraphsByRollId(rollId);
+    // TODO: update language to match user's profile
+    const targetComments = await getAllCommentsForRoll(rollId.replace('ZH', 'EN'));
+    const origins = originParagraphs?.map(({ PK, SK, category, content, num }) => ({
+      PK,
+      SK,
       category,
       content,
       num,
-      SK,
-    };
-  });
-  return json({
-    data: {
-      footnotes: [],
-      origins,
-      targets,
-    },
-  });
+    }));
+    const targets = targetParagraphs?.map(({ category, content, num, SK }) => {
+      const comments = targetComments.filter(
+        (comment) => comment?.paragraphId === SK && !comment?.resolved
+      );
+      return {
+        comments,
+        category,
+        content,
+        num,
+        SK,
+      };
+    });
+    return json({
+      data: {
+        footnotes: [],
+        origins,
+        targets,
+      },
+    });
+  }
+
+  return badRequest({ errors: { error: 'rollId is not provided' } });
 };
 
 export const action = async ({ request }: ActionArgs) => {

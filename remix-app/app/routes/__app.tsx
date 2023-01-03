@@ -1,4 +1,4 @@
-import { Flex } from '@chakra-ui/react';
+import { Box, Flex } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
 import { Outlet, useLoaderData } from '@remix-run/react';
 import { assertAuthUser } from '~/auth.server';
@@ -11,15 +11,19 @@ import { getAllUsers } from '~/models/user';
 import { Kind } from '~/types/common';
 import type { LoaderArgs } from '@remix-run/node';
 import type { User } from '~/types/user';
+import { notFound } from 'remix-utils';
 export const loader = async ({ request }: LoaderArgs) => {
   const user = await assertAuthUser(request);
-  const users = await getAllUsers(user?.email!);
-  return json({
-    data: {
-      currentUser: user,
-      allUsers: users,
-    },
-  });
+  const users = await getAllUsers(user?.email);
+  if (user) {
+    return json({
+      data: {
+        currentUser: user,
+        allUsers: users,
+      },
+    });
+  }
+  return notFound({ data: { currentUser: null, allUsers: [] } });
 };
 
 export const AppContext = createContext<{
@@ -36,6 +40,7 @@ export const AppContext = createContext<{
     team: '',
     first_login: false,
     kind: Kind.USER,
+    password: '',
   },
   allUsers: [],
 });
@@ -44,15 +49,18 @@ export default function AppRoute() {
     data: { currentUser, allUsers },
   } = useLoaderData<typeof loader>();
   // TODO: what if currentUser is undefined
-  const ability = defineAbilityFor(currentUser!);
-  return (
-    <AbilityContext.Provider value={ability}>
-      <AppContext.Provider value={{ currentUser, allUsers }}>
-        <Flex>
-          <Sidebar />
-          <Outlet />
-        </Flex>
-      </AppContext.Provider>
-    </AbilityContext.Provider>
-  );
+  if (currentUser) {
+    const ability = defineAbilityFor(currentUser);
+    return (
+      <AbilityContext.Provider value={ability}>
+        <AppContext.Provider value={{ currentUser, allUsers }}>
+          <Flex>
+            <Sidebar />
+            <Outlet />
+          </Flex>
+        </AppContext.Provider>
+      </AbilityContext.Provider>
+    );
+  }
+  return <Box>user is not defined</Box>;
 }

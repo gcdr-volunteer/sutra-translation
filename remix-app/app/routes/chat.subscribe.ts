@@ -2,7 +2,7 @@ import type { LoaderArgs } from '@remix-run/node';
 import type { Comment } from '~/types';
 import { EventEmitter } from 'node:events';
 import { eventStream } from 'remix-utils';
-export let emitter = new EventEmitter();
+export const emitter = new EventEmitter();
 
 // import { emitter } from "~/services/emitter.server";
 

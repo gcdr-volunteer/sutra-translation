@@ -290,11 +290,7 @@ function TranlationWorkspace({
                   <Text mb={8}>
                     Make sure put your cursor at the correct location where you want to put footnote
                   </Text>
-                  <Textarea
-                    _focus={{ outline: 'none' }}
-                    placeholder='add your footnotes'
-                    onChange={(e) => {}}
-                  />
+                  <Textarea _focus={{ outline: 'none' }} placeholder='add your footnotes' />
                 </Box>
               }
               isOpen={isOpenFootnote}
@@ -424,12 +420,7 @@ const Glossary = ({ onOpenNote, discardGlossary, isOpenNote, onCloseNote }: Glos
               Target: <Tag>{target}</Tag>
             </Text>
             <Input name='target' readOnly hidden value={target} />
-            <Textarea
-              name='note'
-              _focus={{ outline: 'none' }}
-              placeholder='glossary note'
-              onChange={(e) => {}}
-            />
+            <Textarea name='note' _focus={{ outline: 'none' }} placeholder='glossary note' />
           </Box>
         }
         value='glossary'
