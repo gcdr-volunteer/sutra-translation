@@ -75,8 +75,15 @@ export default function LoginRoute() {
   const actionData = useActionData<{ username: string; password: string }>();
 
   return (
-    <Flex minHeight='100vh' width='full' align='center' justifyContent='center'>
+    <Flex
+      bgGradient='linear(to-r, secondary.400, secondary.200, secondary.800)'
+      minHeight='100vh'
+      width='full'
+      align='center'
+      justifyContent='center'
+    >
       <Box
+        bg={'white'}
         borderWidth={1}
         px={4}
         width='full'
