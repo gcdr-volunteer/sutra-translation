@@ -1,3 +1,6 @@
+import type { ChangeEvent } from 'react';
+import type { ParagraphLoadData } from '.';
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import { useActionData, useLocation, useSubmit, Form, useNavigate } from '@remix-run/react';
 import {
   Tag,
@@ -34,6 +37,7 @@ import { BiTable, BiSearch, BiNote, BiCheck } from 'react-icons/bi';
 import { Warning } from '~/components/common/errors';
 import { FormModal } from '~/components/common';
 import {
+  esSearch,
   handleNewGlossary,
   handleNewTranslationParagraph,
   hanldeDeepLFetch,
@@ -42,11 +46,9 @@ import {
 import { logger } from '~/utils';
 import { Intent } from '~/types/common';
 import { assertAuthUser } from '~/auth.server';
-import type { ChangeEvent } from 'react';
-import type { ParagraphLoadData } from '.';
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 
 export const loader = async ({ params }: LoaderArgs) => {
+  await esSearch();
   return json({});
 };
 

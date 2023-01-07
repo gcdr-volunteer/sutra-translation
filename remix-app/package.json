@@ -2,6 +2,7 @@
   "name": "@sutra-translation/remix-app",
   "version": "0.0.0",
   "private": true,
+  "sideEffects": false,
   "scripts": {
     "build": "remix build",
     "dev": "sst-env -- remix dev",
