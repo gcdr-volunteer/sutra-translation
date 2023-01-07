@@ -14,6 +14,7 @@ import { logger } from '~/utils';
 import { baseSchemaFor, schemaValidator } from '~/utils/schema_validator';
 import { msgClient } from '~/models/external_services/sns';
 import { PublishCommand } from '@aws-sdk/client-sns';
+import { esClient } from '~/models/external_services/opensearch';
 
 const langCodeValidator = yup
   .mixed<LangCode>()
@@ -167,4 +168,29 @@ export const feedSutra = async ({ sutra, chapter }: SutraFeed) => {
     }),
   };
   await msgClient().send(new PublishCommand(params));
+};
+
+export const esSearch = async () => {
+  try {
+    // TODO: this is just a stub function, refine it when you picking the
+    // real ticket
+    const client = await esClient();
+    const query = {
+      query: {
+        match: {
+          content: {
+            query: 'Vajrayana',
+          },
+        },
+      },
+    };
+
+    const resp = await client.search({
+      index: 'translation',
+      body: query,
+    });
+    logger.log(esSearch.name, 'response', resp.body?.hits.hits);
+  } catch (error) {
+    console.log('error', error);
+  }
 };

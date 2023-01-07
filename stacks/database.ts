@@ -1,4 +1,6 @@
 import { StackContext, Table } from '@serverless-stack/resources';
+import type { FunctionDefinition } from '@serverless-stack/resources';
+
 /**
  * This table contains all the user related information
  */
@@ -14,14 +16,16 @@ export const createUserTable = async (stack: StackContext['stack']) => {
     },
   });
 };
-
 /**
  * This table contains all the reference information, which includes
  * - comment
  * - glossary
  * - sutra reference
  */
-export const createReferenceTable = async (stack: StackContext['stack']) => {
+export const createReferenceTable = async (
+  stack: StackContext['stack'],
+  esfunc: FunctionDefinition
+) => {
   const referenceTable = new Table(stack, 'REFERENCE', {
     fields: {
       PK: 'string',
@@ -53,6 +57,12 @@ export const createReferenceTable = async (stack: StackContext['stack']) => {
         sortKey: 'parentId',
       },
     },
+    stream: true,
+    consumers: {
+      ddb_to_es: {
+        function: esfunc,
+      },
+    },
   });
 
   return referenceTable;
@@ -61,7 +71,10 @@ export const createReferenceTable = async (stack: StackContext['stack']) => {
 /**
  * This table contains all the translation related information
  */
-export const createTranslationTable = async (stack: StackContext['stack']) => {
+export const createTranslationTable = async (
+  stack: StackContext['stack'],
+  esfunc: FunctionDefinition
+) => {
   const translationTable = new Table(stack, 'TRANSLATION', {
     fields: {
       PK: 'string',
@@ -75,6 +88,12 @@ export const createTranslationTable = async (stack: StackContext['stack']) => {
     localIndexes: {
       'kind-index': {
         sortKey: 'kind',
+      },
+    },
+    stream: true,
+    consumers: {
+      ddb_to_es: {
+        function: esfunc,
       },
     },
   });

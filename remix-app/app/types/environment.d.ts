@@ -12,6 +12,7 @@ declare global {
       DEEPL_AUTHKEY: string;
       DEEPL_URL: string;
       TOPIC_ARN: string;
+      ES_URL: string;
     }
   }
 }
