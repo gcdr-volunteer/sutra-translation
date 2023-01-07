@@ -1,3 +1,5 @@
+import type { ActionArgs } from '@remix-run/node';
+import type { Team, User, Lang, LangCode, Role } from '~/types';
 import {
   Flex,
   Box,
@@ -29,8 +31,6 @@ import {
 import { UserForm, TeamForm } from '~/components';
 import { LangForm } from '~/components/lang_form';
 import { Intent } from '~/types/common';
-import type { ActionArgs } from '@remix-run/node';
-import type { Team, User, Lang, LangCode, Role } from '~/types';
 
 export const loader = async () => {
   const { teams, users, langs } = await getLoaderData();
