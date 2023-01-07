@@ -1,3 +1,4 @@
+import type { Glossary } from '~/types';
 import { baseSchemaFor, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
 import { translateZH2EN } from '~/models/external_services/deepl';
@@ -7,7 +8,7 @@ import { logger } from '~/utils';
 import { createNewGlossary, getAllGlossary } from '~/models/glossary';
 import { Intent, Kind } from '~/types/common';
 import { created, serverError } from 'remix-utils';
-import type { Glossary } from '~/types';
+import { searchByTerm } from '~/models/external_services/opensearch';
 
 const newTranslationSchema = () => {
   const baseSchema = baseSchemaFor(Kind.PARAGRAPH);
@@ -118,4 +119,8 @@ export const handleNewGlossary = async (newGlossary: Omit<Glossary, 'kind'>) => 
     logger.error(handleNewGlossary.name, 'error', errors);
     return json({ errors: { errors } });
   }
+};
+
+export const esSearch = async () => {
+  return await searchByTerm('random-stab term');
 };
