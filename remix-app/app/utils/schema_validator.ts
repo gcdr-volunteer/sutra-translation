@@ -24,12 +24,12 @@ export const schemaValidator = async <S extends AnyObjectSchema, T>({
   }
 };
 
-export const baseSchemaFor = (kind: Kind) => {
+export const baseSchemaFor = (kind: keyof typeof Kind) => {
   return yup.object().shape({
     createdAt: yup.string().default(utcNow()),
     createdBy: yup.string().default('Admin'),
     updatedAt: yup.string().default(utcNow()),
     updatedBy: yup.string().default('Admin'),
-    kind: yup.mixed<Kind>().default(kind),
+    kind: yup.mixed<keyof typeof Kind>().default(kind),
   });
 };

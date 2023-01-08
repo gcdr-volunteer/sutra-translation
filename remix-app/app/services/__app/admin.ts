@@ -21,7 +21,7 @@ const langCodeValidator = yup
   .required('language code cannot be empty');
 
 const newLangSchema = () => {
-  const baseSchema = baseSchemaFor(Kind.LANG);
+  const baseSchema = baseSchemaFor('LANG');
   const langSchema = baseSchema.shape({
     name: langCodeValidator.test(
       'is-name-exist',
@@ -35,12 +35,13 @@ const newLangSchema = () => {
       }
     ),
     alias: yup.string().trim().required('language alias cannot be empty'),
+    kind: yup.mixed<'LANG'>().default('LANG'),
   });
   return langSchema;
 };
 
 const newTeamSchema = () => {
-  const baseSchema = baseSchemaFor(Kind.TEAM);
+  const baseSchema = baseSchemaFor('TEAM');
   const teamSchema = baseSchema.shape({
     name: yup
       .string()
@@ -51,12 +52,13 @@ const newTeamSchema = () => {
         return !!team;
       }),
     alias: yup.string().trim().required('team alias cannot be empty'),
+    kind: yup.mixed<'TEAM'>().default('TEAM'),
   });
   return teamSchema;
 };
 
 const newUserSchema = () => {
-  const baseSchema = baseSchemaFor(Kind.USER);
+  const baseSchema = baseSchemaFor('USER');
   const userSchema = baseSchema.shape({
     username: yup.string().lowercase().trim().required('username canot be empty'),
     password: yup.string().required('password cannot be empty'),
@@ -80,6 +82,7 @@ const newUserSchema = () => {
     target_lang: langCodeValidator,
     first_login: yup.boolean().default(true),
     email: yup.string().email().required(),
+    kind: yup.mixed<'USER'>().default('USER'),
   });
   return userSchema;
 };

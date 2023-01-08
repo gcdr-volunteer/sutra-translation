@@ -63,4 +63,8 @@ export interface Comment extends CommonMeta {
    * This id provide the information that which comment belongs to
    */
   parentId: string;
+  /**
+   * The helper type
+   */
+  kind: 'COMMENT';
 }

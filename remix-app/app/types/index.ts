@@ -7,3 +7,4 @@ export * from './user';
 export * from './sutra';
 export * from './roll';
 export * from './glossary';
+export * from './paragraph';

@@ -1,7 +1,6 @@
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { defaultProvider } from '@aws-sdk/credential-provider-node';
-import { nanoid } from 'nanoid';
 const client = new Client({
   ...AwsSigv4Signer({
     region: process.env.REGION ?? 'ap-southeast-2',
@@ -41,7 +40,7 @@ export const bulkInsert = async (docs: (Record<string, unknown> | null | undefin
     .map(
       (doc) =>
         ({
-          id: nanoid(),
+          id: `${doc?.PK}-${doc?.SK}`,
           index: index_name,
           body: doc,
         } as Record<string, unknown>)
@@ -54,9 +53,24 @@ export const bulkInsert = async (docs: (Record<string, unknown> | null | undefin
 };
 
 export const singleInsert = async (doc: Record<string, unknown>) => {
-  await client.index({
-    id: nanoid(),
+  return await client.index({
+    id: `${doc?.PK}-${doc?.SK}`,
     index: index_name,
     body: doc,
+  });
+};
+
+export const singleUpdate = async (doc: Record<string, unknown>) => {
+  return await client.update({
+    id: `${doc?.PK}-${doc?.SK}`,
+    body: doc,
+    index: index_name,
+  });
+};
+
+export const singleDelete = async (id: string) => {
+  return await client.delete({
+    id,
+    index: index_name,
   });
 };

@@ -41,28 +41,3 @@ export const esClient = async () => {
     node: `https://${process.env.ES_URL}`,
   });
 };
-
-export const searchByTerm = async (term: string) => {
-  try {
-    // TODO: this is just a stub function, refine it when you picking the
-    // real ticket
-    const client = await esClient();
-    const query = {
-      query: {
-        match: {
-          content: {
-            query: 'Vajrayana',
-          },
-        },
-      },
-    };
-
-    const resp = await client.search({
-      index: 'translation',
-      body: query,
-    });
-    logger.log(searchByTerm.name, 'response', resp.body?.hits.hits);
-  } catch (error) {
-    console.log('error', error);
-  }
-};

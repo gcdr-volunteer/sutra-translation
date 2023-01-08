@@ -5,7 +5,6 @@ export interface CommonMeta {
   updatedBy?: string;
   PK?: string;
   SK?: string;
-  kind: Kind;
 }
 
 export enum Kind {
@@ -21,6 +20,7 @@ export enum Kind {
 
 export enum Intent {
   READ_DEEPL = 'read_deepl',
+  READ_OPENSEARCH = 'read_opensearch',
   CREATE_TRANSLATION = 'create_translation',
   CREATE_GLOSSARY = 'create_glossary',
   CREATE_COMMENT = 'create_comment',
