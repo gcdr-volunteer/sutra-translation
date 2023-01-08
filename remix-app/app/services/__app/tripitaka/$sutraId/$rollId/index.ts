@@ -4,12 +4,12 @@ import { json } from '@remix-run/node';
 import { logger } from '~/utils';
 import { createNewComment, resolveComment } from '~/models/comment';
 import { nanoid } from 'nanoid';
-import { Intent, Kind } from '~/types/common';
+import { Intent } from '~/types/common';
 import { created } from 'remix-utils';
 import type { Comment } from '~/types/comment';
 
 const newCommentSchema = () => {
-  const baseSchema = baseSchemaFor(Kind.COMMENT);
+  const baseSchema = baseSchemaFor('COMMENT');
   const id = nanoid();
   const translationSchema = baseSchema.noUnknown().shape({
     targets: yup
@@ -48,6 +48,7 @@ const newCommentSchema = () => {
     parentId: yup.string().default(id),
     createdBy: yup.string(),
     updatedBy: yup.string(),
+    kind: yup.mixed<'COMMENT'>().default('COMMENT'),
   });
   return translationSchema;
 };

@@ -13,4 +13,16 @@ export interface Paragraph extends CommonMeta {
    * this field can be used to distinguish verse and normal paragraph
    */
   category: string;
+  /**
+   * The name of the sutra which this paragraph belongs
+   */
+  sutra: string;
+  /**
+   * The name of the roll which this paragraph belongs to
+   */
+  roll: string;
+  /**
+   * The helper type
+   */
+  kind: 'PARAGRAPH';
 }

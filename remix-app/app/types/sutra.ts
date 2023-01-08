@@ -59,4 +59,8 @@ export interface Sutra extends CommonMeta {
    * From what AC time to what AC time
    */
   time_to: number;
+  /**
+   * The helper type
+   */
+  kind: 'SUTRA';
 }

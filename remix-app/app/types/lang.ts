@@ -13,4 +13,8 @@ export interface Lang extends CommonMeta {
    * The language alias of the code
    */
   alias: string;
+  /**
+   * The helper type
+   */
+  kind: 'LANG';
 }

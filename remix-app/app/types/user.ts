@@ -49,4 +49,8 @@ export interface User extends CommonMeta {
    * The base64 encoded user avatar image
    */
   avatar?: string;
+  /**
+   * The helper type
+   */
+  kind: 'USER';
 }

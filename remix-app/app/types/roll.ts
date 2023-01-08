@@ -26,4 +26,8 @@ export interface Roll extends CommonMeta {
    * type of this roll, it might be preface or a roll
    */
   category: string;
+  /**
+   * The helper type
+   */
+  kind: 'ROLL';
 }

@@ -11,4 +11,8 @@ export interface Team extends CommonMeta {
    * The team leader name like Master Sure, Master Chi
    */
   alias: string;
+  /**
+   * The helper type
+   */
+  kind: 'TEAM';
 }

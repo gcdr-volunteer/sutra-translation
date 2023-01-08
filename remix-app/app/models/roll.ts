@@ -1,4 +1,4 @@
-import { QueryCommand } from '@aws-sdk/client-dynamodb';
+import { GetItemCommand, GetItemCommandInput, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { dbClient } from '~/models/external_services/dynamodb';
 import type { Roll } from '~/types';
@@ -17,4 +17,25 @@ export const getRollsBySutraId = async (PK: string): Promise<Roll[]> => {
     return Items.map((Item) => unmarshall(Item) as Roll);
   }
   return [];
+};
+
+export const getRollByPrimaryKey = async ({
+  PK,
+  SK,
+}: {
+  PK?: string;
+  SK?: string;
+}): Promise<Roll | undefined> => {
+  const params: GetItemCommandInput = {
+    TableName: process.env.TRANSLATION_TABLE,
+    Key: marshall({
+      PK,
+      SK,
+    }),
+  };
+  const { Item } = await dbClient().send(new GetItemCommand(params));
+  if (Item) {
+    return unmarshall(Item) as Roll;
+  }
+  return undefined;
 };

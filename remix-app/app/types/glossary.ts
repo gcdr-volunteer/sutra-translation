@@ -7,4 +7,5 @@ export interface Glossary extends CommonMeta {
   target_lang?: string;
   note?: string;
   creatorAlias?: string;
+  kind: 'GLOSSARY';
 }

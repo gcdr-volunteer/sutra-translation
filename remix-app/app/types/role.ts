@@ -35,4 +35,8 @@ export interface Role extends CommonMeta {
    * The name of the role
    */
   name: RoleType;
+  /**
+   * The helper type
+   */
+  kind: 'ROLE';
 }
