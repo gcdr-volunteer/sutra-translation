@@ -10,6 +10,7 @@ import { createUserTable, createReferenceTable, createTranslationTable } from '.
 import { Domain, EngineVersion } from 'aws-cdk-lib/aws-opensearchservice';
 import { isProd } from '../utils';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import { RemovalPolicy } from 'aws-cdk-lib';
 
 const ddb_to_es = (stack: StackContext['stack'], url: string) => {
   return new Function(stack, 'Function', {
@@ -28,8 +29,10 @@ export async function ESStack({ stack }: StackContext) {
     ? new Domain(stack, 'Domain', {
         version: EngineVersion.ELASTICSEARCH_7_10,
         capacity: {
-          masterNodes: 1,
-          dataNodes: 3,
+          masterNodes: 3,
+          dataNodes: 2,
+          dataNodeInstanceType: 't3.medium.search',
+          masterNodeInstanceType: 't3.small.search',
         },
         enforceHttps: true,
         ebs: {
@@ -47,9 +50,10 @@ export async function ESStack({ stack }: StackContext) {
     : new Domain(stack, `${process.env.ENV}-Domain`, {
         version: EngineVersion.ELASTICSEARCH_7_10,
         capacity: {
-          dataNodeInstanceType: 't3.medium.search',
-          masterNodeInstanceType: 't3.medium.search',
+          dataNodeInstanceType: 't3.small.search',
+          masterNodeInstanceType: 't3.small.search',
         },
+        removalPolicy: isProd() ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
       });
   stack.addOutputs({
     ES_URL: domain.domainEndpoint,

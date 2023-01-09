@@ -15,6 +15,7 @@ import { Comment } from './comment';
 import { CommentDialog } from '~/routes/__app/tripitaka/$sutraId/$rollId/dialog';
 import type { MutableRefObject } from 'react';
 import type { Comment as TComment } from '~/types';
+import { Intent } from '~/types/common';
 type TextSelection = {
   start?: number;
   end?: number;
@@ -99,7 +100,7 @@ export const ParagraphTarget = ({
         {argumentedContent}
       </Text>
       <FormModal
-        value='new_comment'
+        value={Intent.CREATE_COMMENT}
         header='Add comment'
         body={<Comment paragraphId={paragraphId} {...selectedText} />}
         isOpen={isNewCommentOpen}

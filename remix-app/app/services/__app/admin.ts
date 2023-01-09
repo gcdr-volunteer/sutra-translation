@@ -7,7 +7,7 @@ import * as yup from 'yup';
 import { createNewLang, getLang } from '~/models/lang';
 import { createNewTeam, getTeam } from '~/models/team';
 import { createNewUser, getWholeUserTable } from '~/models/user';
-import { Intent, Kind } from '~/types/common';
+import { Intent } from '~/types/common';
 import { LangCode } from '~/types/lang';
 import { RoleType } from '~/types/role';
 import { logger } from '~/utils';

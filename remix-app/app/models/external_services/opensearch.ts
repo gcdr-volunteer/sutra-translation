@@ -3,7 +3,6 @@ import type { Request } from 'aws4';
 import { Client, Connection } from '@opensearch-project/opensearch';
 import AWS from 'aws-sdk';
 import aws4 from 'aws4';
-import { logger } from '~/utils';
 
 export const esClient = async () => {
   const createAwsConnector = (credentials: Credentials) => {

@@ -391,7 +391,7 @@ const GlossaryModal = () => {
             <Textarea name='note' _focus={{ outline: 'none' }} placeholder='glossary note' />
           </Box>
         }
-        value='glossary'
+        value={Intent.CREATE_GLOSSARY}
         isOpen={isOpenNote}
         onClose={onCloseNote}
       />
@@ -435,7 +435,7 @@ const FootnoteModal = (props: FootnoteModalProps) => {
         />
       </Tooltip>
       <FormModal
-        value='save-footnote'
+        value={Intent.CREATE_FOOTNOTE}
         header='Add footnote'
         body={
           <Box>
