@@ -23,6 +23,7 @@ export enum Intent {
   READ_OPENSEARCH = 'read_opensearch',
   CREATE_TRANSLATION = 'create_translation',
   CREATE_GLOSSARY = 'create_glossary',
+  CREATE_FOOTNOTE = 'create_footnote',
   CREATE_COMMENT = 'create_comment',
   CREATE_MESSAGE = 'create_message',
   CREATE_USER = 'create_user',

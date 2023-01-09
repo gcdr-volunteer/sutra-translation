@@ -35,8 +35,8 @@ export const handler = async (event: DynamoDBStreamEvent) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const doc = unmarshall(record.dynamodb.NewImage);
-        console.log('ddb-to-es', 'single insertion', doc);
-        if (doc.PK && doc.SK) {
+        if (doc.PK && doc.SK && doc.kind !== 'COMMENT') {
+          console.log('ddb-to-es', 'single insertion', doc);
           const resp = await singleInsert(doc);
           console.log('ddb-to-es', 'single insertion response', resp);
         }
@@ -45,8 +45,8 @@ export const handler = async (event: DynamoDBStreamEvent) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const doc = unmarshall(record.dynamodb.OldImage);
-        console.log('ddb-to-es', 'single delete', doc);
-        if (doc.PK && doc.SK) {
+        if (doc.PK && doc.SK && doc.kind !== 'COMMENT') {
+          console.log('ddb-to-es', 'single delete', doc);
           const resp = await singleDelete(`${doc.PK}-${doc.SK}`);
           console.log('ddb-to-es', 'single delete response', resp);
         }
