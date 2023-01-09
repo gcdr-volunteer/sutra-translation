@@ -35,7 +35,7 @@
   },
   "lint-staged": {
     "**/*.{js,ts,tsx,css,html}": [
-      "eslint -c ./remix-app/.eslintrc.js",
+      "npm run lint",
       "prettier --write"
     ]
   },
