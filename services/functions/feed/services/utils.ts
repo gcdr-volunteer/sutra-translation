@@ -1,11 +1,7 @@
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-
-const __dirname = path.dirname(__filename);
 type CBeta = {
   results: [string];
   work_info: {
@@ -52,7 +48,7 @@ const readHtml = (filename: string): string => {
 };
 
 export const getCachedHtml = async (): Promise<string> => {
-  const file = `${__dirname}/index.html`;
+  const file = path.join(process.cwd(), 'functions', 'feed', 'services', 'build', 'index.html');
   if (process.env.ENV === 'prod') {
     return await getHtml();
   }

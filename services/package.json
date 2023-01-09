@@ -1,9 +1,10 @@
 {
   "name": "@sutra-translation/services",
   "version": "0.0.0",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "feed": "esbuild functions/feed/services/index.ts --bundle --platform=node --outfile=functions/feed/services/build/index.js && node functions/feed/services/build/index.js"
   },
   "dependencies": {
     "aws-sdk": "^2.1271.0"
