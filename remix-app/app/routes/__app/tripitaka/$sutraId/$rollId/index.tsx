@@ -25,14 +25,15 @@ export const loader = async ({ params }: LoaderArgs) => {
     const targetParagraphs = await getTargetParagraphsByRollId(rollId);
     // TODO: update language to match user's profile
     const targetComments = await getAllCommentsForRoll(rollId.replace('ZH', 'EN'));
-    const origins = originParagraphs?.map(({ PK, SK, category, content, num }) => ({
+    const origins = originParagraphs?.map(({ PK, SK, category, content, num, finish }) => ({
       PK,
       SK,
       category,
       content,
       num,
+      finish,
     }));
-    const targets = targetParagraphs?.map(({ category, content, num, SK }) => {
+    const targets = targetParagraphs?.map(({ category, content, num, SK, finish }) => {
       const comments = targetComments.filter(
         (comment) => comment?.paragraphId === SK && !comment?.resolved
       );
@@ -42,6 +43,7 @@ export const loader = async ({ params }: LoaderArgs) => {
         content,
         num,
         SK,
+        finish,
       };
     });
     return json({
@@ -121,7 +123,7 @@ export default function RollRoute() {
     // TODO: handle out of order selection
     const target = targets[index];
     const ref = refs[`#${target?.SK}`];
-    if (target) {
+    if (target && target?.finish) {
       return (
         <Box key={origin.SK} w='85%' ref={ref}>
           <ParagraphPair origin={origin} target={target} footnotes={footnotes} />
