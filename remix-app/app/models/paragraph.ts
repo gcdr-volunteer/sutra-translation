@@ -1,4 +1,4 @@
-import { UpdateItemCommandInput } from '@aws-sdk/client-dynamodb';
+import type { UpdateItemCommandInput } from '@aws-sdk/client-dynamodb';
 import {
   GetItemCommand,
   PutItemCommand,
