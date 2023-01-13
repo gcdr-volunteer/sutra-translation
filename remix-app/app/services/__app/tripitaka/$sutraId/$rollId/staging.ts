@@ -4,7 +4,7 @@ import { baseSchemaFor, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
 import { translateZH2EN } from '~/models/external_services/deepl';
 import { json } from '@remix-run/node';
-import { createNewParagraph, getParagraphByPrimaryKey } from '~/models/paragraph';
+import { upsertParagraph, getParagraphByPrimaryKey } from '~/models/paragraph';
 import { logger } from '~/utils';
 import { createNewGlossary, getAllGlossary } from '~/models/glossary';
 import { Intent } from '~/types/common';
@@ -20,6 +20,7 @@ const newTranslationSchema = () => {
     translation: yup.string().trim().required('submitted tranlation cannot be empty'),
     PK: yup.string().trim().required('submitted translation partition key cannot be empty'),
     SK: yup.string().trim().required('submitted translation sort key cannot be empty'),
+    kind: yup.mixed<'PARAGRAPH'>().default('PARAGRAPH'),
   });
   return translationSchema;
 };
@@ -38,12 +39,20 @@ const newGlossarySchema = () => {
   return glossarySchema;
 };
 
-export const hanldeDeepLFetch = async (origins: string[]) => {
+export const hanldeDeepLFetch = async ({ origins }: { origins: Record<string, string> }) => {
   try {
     logger.log(hanldeDeepLFetch.name, 'origins', origins);
-    const results = await translateZH2EN(origins);
-    logger.log(hanldeDeepLFetch.name, 'results', results);
-    return json({ data: results, intent: Intent.READ_DEEPL });
+
+    const results = await translateZH2EN(Object.values(origins));
+    const obj = Object.keys(origins).reduce((acc, key, index) => {
+      if (results) {
+        acc[key] = results[index];
+        return acc;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+    logger.log(hanldeDeepLFetch.name, 'results', obj);
+    return json({ data: obj, intent: Intent.READ_DEEPL });
   } catch (error) {
     // TODO: handle error from frontend
     logger.error(hanldeDeepLFetch.name, 'error', error);
@@ -53,14 +62,17 @@ export const hanldeDeepLFetch = async (origins: string[]) => {
 
 export const handleNewTranslationParagraph = async (
   newTranslation: {
-    index: string;
+    paragraphIndex: string;
+    sentenceIndex: string;
     PK: string;
     SK: string;
     translation: string;
+    totalSentences: string;
   },
   { sutraId, rollId }: { sutraId?: string; rollId?: string }
 ) => {
   logger.log(handleNewTranslationParagraph.name, 'newTranslation', newTranslation);
+  const { sentenceIndex, paragraphIndex, totalSentences } = newTranslation;
   try {
     const result = await schemaValidator({
       schema: newTranslationSchema(),
@@ -78,6 +90,10 @@ export const handleNewTranslationParagraph = async (
       }),
     ]);
     if (originParagraph) {
+      const sentenceIndexNum = sentenceIndex ? parseInt(sentenceIndex) : 0;
+      const paragraphIndexNum = paragraphIndex ? parseInt(paragraphIndex) : 0;
+      const totalSentenceIndexNum = totalSentences ? parseInt(totalSentences) : 0;
+
       const translatedParagraph = {
         ...originParagraph,
         content: result.translation,
@@ -86,10 +102,20 @@ export const handleNewTranslationParagraph = async (
         SK: result.SK?.replace('ZH', 'EN'),
         sutra: roll?.title ?? '',
         roll: roll?.subtitle ?? '',
+        finish: sentenceIndexNum === totalSentenceIndexNum,
+        sentenceIndex: sentenceIndexNum,
+        paragraphIndex: paragraphIndexNum,
       };
       logger.log(handleNewTranslationParagraph.name, 'translationParagraph', translatedParagraph);
-      await createNewParagraph(translatedParagraph);
-      return created({ data: { index: newTranslation.index }, intent: Intent.CREATE_TRANSLATION });
+      await upsertParagraph(translatedParagraph);
+      return created({
+        data: {
+          paragraphIndex,
+          sentenceIndex,
+          finish: sentenceIndexNum === totalSentenceIndexNum,
+        },
+        intent: Intent.CREATE_TRANSLATION,
+      });
     }
     return serverError({ message: 'Oops, something wrong on our end' });
   } catch (errors) {
@@ -100,7 +126,9 @@ export const handleNewTranslationParagraph = async (
 
 // TODO: need to rethink the algorithm here, cause glossary can growth quick
 // like thousands of glossaries.
-export const replaceWithGlossary = async (origins: string[]): Promise<string[]> => {
+export const replaceWithGlossary = async (
+  origins: Record<string, string>
+): Promise<Record<string, string>> => {
   const glossaries = await getAllGlossary();
   logger.log(replaceWithGlossary.name, 'glossaries', glossaries);
   const glossaryObj = glossaries?.reduce((acc, cur) => {
@@ -111,9 +139,10 @@ export const replaceWithGlossary = async (origins: string[]): Promise<string[]> 
   const glossarySet = Object.keys(glossaryObj);
   if (glossarySet.length) {
     const regex = new RegExp(glossarySet.join('|'), 'gi');
-    const results = origins?.map((origin) =>
-      origin.replace(regex, (matched) => glossaryObj[matched])
-    );
+    const results = Object.entries(origins)?.reduce((acc, [key, value]) => {
+      acc[key] = value.replace(regex, (matched) => glossaryObj[matched]);
+      return acc;
+    }, {} as Record<string, string>);
     logger.log(replaceWithGlossary.name, 'results', results);
     return results;
   }
@@ -154,10 +183,8 @@ export const searchByTerm = async (term: string) => {
     const client = await esClient();
     const query = {
       query: {
-        match: {
-          content: {
-            query: term.trim(),
-          },
+        match_phrase: {
+          content: term.trim(),
         },
       },
       highlight: {
