@@ -34,21 +34,13 @@ export const createIndexIfNotExist = async () => {
     console.log('ddb-to-es', 'error', error);
   }
 };
-export const bulkInsert = async (docs: (Record<string, unknown> | null | undefined)[]) => {
-  const bulk_payload = docs
-    .filter((doc: unknown) => Boolean(doc))
-    .map(
-      (doc) =>
-        ({
-          id: `${doc?.PK}-${doc?.SK}`,
-          index: index_name,
-          body: doc,
-        } as Record<string, unknown>)
-    );
-  await client.bulk({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const makeBulkActions = async (docs: Record<string, any>[]) => {
+  return await client.bulk({
+    method: 'POST',
     refresh: true,
     index: index_name,
-    body: bulk_payload,
+    body: docs,
   });
 };
 
@@ -63,7 +55,7 @@ export const singleInsert = async (doc: Record<string, unknown>) => {
 export const singleUpdate = async (doc: Record<string, unknown>) => {
   return await client.update({
     id: `${doc?.PK}-${doc?.SK}`,
-    body: doc,
+    body: { doc: doc },
     index: index_name,
   });
 };

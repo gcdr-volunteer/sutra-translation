@@ -2,7 +2,14 @@ import type { ChangeEvent } from 'react';
 import type { ParagraphLoadData } from '.';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { Paragraph, Glossary as TGlossary } from '~/types';
-import { useActionData, useLocation, useSubmit, Form, useNavigate } from '@remix-run/react';
+import {
+  useActionData,
+  useLocation,
+  useSubmit,
+  Form,
+  useNavigate,
+  useLoaderData,
+} from '@remix-run/react';
 import {
   Tag,
   Box,
@@ -32,6 +39,7 @@ import {
   List,
   ListItem,
   useToast,
+  Highlight,
 } from '@chakra-ui/react';
 import { RepeatIcon, CopyIcon } from '@chakra-ui/icons';
 import { useState, useRef, useEffect } from 'react';
@@ -51,15 +59,24 @@ import { assertAuthUser } from '~/auth.server';
 import { useDebounce, useKeyPress } from '~/hooks';
 import { logger } from '~/utils';
 import { BiLinkExternal } from 'react-icons/bi';
+import { getParagraphsByRollId } from '~/models/paragraph';
 
 export const loader = async ({ params }: LoaderArgs) => {
-  // await esSearch();
-  return json({});
+  const { rollId } = params;
+  const paragraphs = await getParagraphsByRollId(rollId?.replace('ZH', 'EN'));
+  const paragraph = paragraphs.find((paragraph) => !paragraph.finish);
+  const data = {
+    sentenceIndex: paragraph?.sentenceIndex ?? -1,
+    paragraphIndex: paragraph?.paragraphIndex ?? -1,
+  };
+  console.log('data', data);
+  return json({
+    data,
+  });
 };
 
 export const action = async ({ request, params }: ActionArgs) => {
   const { sutraId, rollId } = params;
-  console.log(sutraId, rollId);
   const user = await assertAuthUser(request);
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
@@ -68,8 +85,8 @@ export const action = async ({ request, params }: ActionArgs) => {
     // Uncomment the following line when doing debug
     // return json({ data: {}, intent: Intent.READ_DEEPL });
     if (Object.keys(rest)?.length) {
-      const origins = await replaceWithGlossary(Object.values(rest) as string[]);
-      return await hanldeDeepLFetch(origins);
+      const origins = await replaceWithGlossary(rest as Record<string, string>);
+      return await hanldeDeepLFetch({ origins });
     }
   }
   if (entryData?.intent === Intent.CREATE_TRANSLATION) {
@@ -77,7 +94,9 @@ export const action = async ({ request, params }: ActionArgs) => {
     // return json({ data: { index: entryData?.index }, intent: Intent.CREATE_TRANSLATION });
     return await handleNewTranslationParagraph(
       {
-        index: entryData?.index as string,
+        paragraphIndex: entryData?.paragraphIndex as string,
+        sentenceIndex: entryData?.sentenceIndex as string,
+        totalSentences: entryData?.totalSentences as string,
         PK: entryData?.PK as string,
         SK: entryData?.SK as string,
         translation: entryData?.translation as string,
@@ -108,11 +127,17 @@ interface stateType {
   paragraphs: ParagraphLoadData[];
 }
 export default function StagingRoute() {
-  const actionData = useActionData<{
-    data: { index: number } | string[];
-    intent: Intent;
+  const { data } = useLoaderData<{
+    data: { sentenceIndex: number; paragraphIndex: number };
   }>();
-  const [translation, setTranslation] = useState<string[]>([]);
+  const actionData = useActionData<{
+    data: { paragraphIndex: number; sentenceIndex: number } | Record<string, string>;
+    intent: Intent;
+    type: 'paragraph' | 'sentence';
+  }>();
+  const [translation, setTranslation] = useState<Record<string, string>>({});
+  const [sentenceFinish, setSentenceFinish] = useState<Record<string, boolean>>({});
+  const [paragraphFinish, setParagraphFinish] = useState<Record<string, boolean>>({});
 
   const location = useLocation();
   const paragraphs = (location.state as stateType)?.paragraphs;
@@ -120,12 +145,28 @@ export default function StagingRoute() {
   const submit = useSubmit();
   useEffect(() => {
     const origins = paragraphs?.reduce(
-      (acc, cur, index) => {
-        acc[index] = cur.content;
+      (acc, cur, i) => {
+        const sentences = cur.content.split(/(?<=。|！|？)/g);
+        if (sentences.length > 1) {
+          sentences.reduce(
+            (accu, curr, j) => {
+              acc[`${i}.${j}`] = curr;
+              return accu;
+            },
+            { acc }
+          );
+        } else {
+          acc[`${i}`] = cur.content;
+        }
         return acc;
       },
-      { intent: Intent.READ_DEEPL } as Record<number, string>
+      { intent: Intent.READ_DEEPL } as Record<string, string>
     );
+    const paragraphFinish = paragraphs?.reduce((acc, _, index) => {
+      acc[index] = false;
+      return acc;
+    }, {} as Record<string, boolean>);
+    setParagraphFinish(paragraphFinish);
     if (origins && Object.keys(origins).length) {
       submit(origins, { method: 'post', replace: true });
     }
@@ -133,33 +174,106 @@ export default function StagingRoute() {
   }, []);
 
   useEffect(() => {
+    if (data) {
+      const { sentenceIndex, paragraphIndex } = data;
+      const sentenceFinish: Record<string, boolean> = {};
+      for (let i = 0; i <= paragraphIndex; i++) {
+        for (let j = 0; j <= sentenceIndex; j++) {
+          sentenceFinish[`${i}.${j}`] = true;
+        }
+      }
+      setSentenceFinish((prev) => ({ ...prev, ...sentenceFinish }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  console.log('sentenceFinish', sentenceFinish);
+  useEffect(() => {
     if (actionData?.intent === Intent.READ_DEEPL) {
-      setTranslation(actionData.data as string[]);
+      setTranslation(actionData.data as Record<string, string>);
     }
     if (actionData?.intent === Intent.CREATE_TRANSLATION) {
-      const { index } = actionData.data as { index: number };
-      ref.current[index].finish = true;
+      const { paragraphIndex = 0, finish } = actionData.data as {
+        paragraphIndex: number;
+        sentenceIndex: number;
+        finish: boolean;
+      };
+      if (actionData) {
+        setParagraphFinish((prev) => ({ ...prev, [paragraphIndex]: finish }));
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData]);
-  const paragraphsComp = ref.current?.map((paragraph, index, arr) => (
-    <Collapse
-      key={index}
-      in={!paragraph?.finish}
-      unmountOnExit={index !== arr.length - 1}
-      animateOpacity={true}
-    >
-      <TranlationWorkspace
-        origin={paragraph}
-        index={index}
-        translation={translation.length ? translation[index] : 'loading....'}
-        reference='Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur.'
-        totalParagraphs={ref?.current.length}
-      />
-      {index !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
-    </Collapse>
-  ));
+
+  const paragraphsComp = ref.current?.map((paragraph, i, arr) => {
+    const sentences = paragraph.content.split(/(?<=。|！|？)/g);
+    // const paragraphIndex = actionData?.data?.paragraphIndex ?? 0;
+    if (sentences.length > 1) {
+      return (
+        // collapse only when paragraph finish and all sentences finish
+        <Box key={i}>
+          <Collapse in={!paragraphFinish[i]} unmountOnExit={true}>
+            <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
+              <Text size={'lg'} fontSize='1.5rem' lineHeight={1.5}>
+                <Highlight
+                  query={sentences[data.paragraphIndex >= i ? data.sentenceIndex + 1 : 0]}
+                  styles={{ px: '1', py: '1', bg: 'orange.100', whiteSpace: 'wrap' }}
+                >
+                  {paragraph.content}
+                </Highlight>
+              </Text>
+            </Box>
+          </Collapse>
+          {sentences.map((sentence, j, arr) => {
+            if (j >= data.sentenceIndex) {
+              const para = { ...paragraph, content: sentence };
+              return (
+                <Collapse
+                  key={j}
+                  in={paragraphFinish[i] === true ? false : !sentenceFinish[`${i}.${j}`]}
+                  animateOpacity={true}
+                  unmountOnExit={true}
+                >
+                  <TranlationWorkspace
+                    origin={para}
+                    paragraphIndex={i}
+                    sentenceIndex={j}
+                    totalSentences={sentences.length - 1}
+                    translation={
+                      Object.keys(translation).length ? translation[`${i}.${j}`] : 'loading....'
+                    }
+                    reference='Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur.'
+                    totalParagraphs={ref?.current.length - 1}
+                  />
+                  {j !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
+                </Collapse>
+              );
+            }
+            return null;
+          })}
+        </Box>
+      );
+    }
+    return (
+      <Collapse
+        key={i}
+        in={!paragraphFinish[i]}
+        unmountOnExit={i !== arr.length - 1}
+        animateOpacity={true}
+      >
+        <TranlationWorkspace
+          origin={paragraph}
+          paragraphIndex={i}
+          translation={Object.keys(translation).length ? translation[`${i}`] : 'loading....'}
+          reference='Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur.'
+          totalParagraphs={ref?.current.length - 1}
+        />
+        {i !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
+      </Collapse>
+    );
+  });
   if (ref.current?.length) {
-    return <Box p={16}>{paragraphsComp}</Box>;
+    return <Box px={16}>{paragraphsComp}</Box>;
   } else {
     return <Warning content='Please select at least one paragraph from the roll' />;
   }
@@ -167,17 +281,21 @@ export default function StagingRoute() {
 
 interface WorkSpaceProps {
   origin: ParagraphLoadData;
-  index: number;
+  paragraphIndex: number;
   translation: string;
   reference: string;
   totalParagraphs: number;
+  sentenceIndex?: number;
+  totalSentences?: number;
 }
 function TranlationWorkspace({
   origin,
   translation,
-  index,
+  paragraphIndex,
   reference,
   totalParagraphs,
+  sentenceIndex,
+  totalSentences,
 }: WorkSpaceProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -195,10 +313,19 @@ function TranlationWorkspace({
 
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_TRANSLATION) {
-      const { index } = actionData.data as { index: number };
-      if (index == totalParagraphs - 1) {
+      const { finish, paragraphIndex } = actionData.data as {
+        finish: boolean;
+        paragraphIndex: number;
+      };
+      if (finish && totalParagraphs == paragraphIndex) {
         const newLocation = location.pathname.replace('/staging', '');
         navigate(newLocation);
+      }
+      if (!finish) {
+        window.scrollTo({
+          top: 0,
+          left: 0,
+        });
       }
     }
   }, [actionData, location.pathname, navigate, totalParagraphs]);
@@ -277,7 +404,9 @@ function TranlationWorkspace({
               />
               <Input name='PK' value={origin.PK} hidden readOnly />
               <Input name='SK' value={origin.SK} hidden readOnly />
-              <Input name='index' value={index} hidden readOnly />
+              <Input name='paragraphIndex' value={paragraphIndex} hidden readOnly />
+              <Input name='sentenceIndex' value={sentenceIndex} hidden readOnly />
+              <Input name='totalSentences' value={totalSentences} hidden readOnly />
               <Input name='intent' value={Intent.CREATE_TRANSLATION} hidden readOnly />
             </Form>
           </CardBody>
@@ -354,11 +483,13 @@ const GlossaryModal = () => {
               name='origin'
               placeholder='origin'
               mr={4}
+              value={origin}
               onChange={(e) => handleChange('origin', e)}
             />
             <Input
               type='text'
               name='target'
+              value={target}
               placeholder='target'
               onChange={(e) => handleChange('target', e)}
             />
@@ -497,17 +628,14 @@ const SearchModal = () => {
   }, [arrowDownPressed]);
 
   useEffect(() => {
+    if (actionData?.intent === Intent.READ_OPENSEARCH) {
+      setSearchResults(actionData.data);
+    }
     if (!isOpenSearch) {
       setSearchTerm('');
       setSearchResults([]);
     }
-  }, [isOpenSearch]);
-
-  useEffect(() => {
-    if (actionData?.intent === Intent.READ_OPENSEARCH) {
-      setSearchResults(actionData.data);
-    }
-  }, [actionData]);
+  }, [actionData, isOpenSearch]);
 
   const getContent = (index: number) => {
     const result = searchResults[index];
