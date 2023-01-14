@@ -1,6 +1,6 @@
 import type { Glossary } from '~/types';
 import type { Paragraph } from '~/types/paragraph';
-import { baseSchemaFor, schemaValidator } from '~/utils/schema_validator';
+import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
 import { translateZH2EN } from '~/models/external_services/deepl';
 import { json } from '@remix-run/node';
@@ -14,7 +14,7 @@ import { getRollByPrimaryKey } from '~/models/roll';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 
 const newTranslationSchema = () => {
-  const baseSchema = baseSchemaFor('PARAGRAPH');
+  const baseSchema = initialSchema();
   // TODO: using strict().noUnknown() to stop unknown params
   const translationSchema = baseSchema.shape({
     translation: yup.string().trim().required('submitted tranlation cannot be empty'),
@@ -26,7 +26,7 @@ const newTranslationSchema = () => {
 };
 
 const newGlossarySchema = () => {
-  const baseSchema = baseSchemaFor('GLOSSARY');
+  const baseSchema = initialSchema();
   const glossarySchema = baseSchema.shape({
     note: yup.string().trim(),
     origin: yup.string().trim().required(),

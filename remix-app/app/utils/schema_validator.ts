@@ -1,7 +1,6 @@
 import * as yup from 'yup';
 import { utcNow } from './datetime';
 import type { ValidationError, AnyObjectSchema } from 'yup';
-import type { Kind } from '~/types/common';
 
 export const schemaValidator = async <S extends AnyObjectSchema, T>({
   schema,
@@ -24,12 +23,11 @@ export const schemaValidator = async <S extends AnyObjectSchema, T>({
   }
 };
 
-export const baseSchemaFor = (kind: keyof typeof Kind) => {
+export const initialSchema = () => {
   return yup.object().shape({
     createdAt: yup.string().default(utcNow()),
     createdBy: yup.string().default('Admin'),
     updatedAt: yup.string().default(utcNow()),
     updatedBy: yup.string().default('Admin'),
-    kind: yup.mixed<keyof typeof Kind>().default(kind),
   });
 };

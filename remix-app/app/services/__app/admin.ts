@@ -11,7 +11,7 @@ import { Intent } from '~/types/common';
 import { LangCode } from '~/types/lang';
 import { RoleType } from '~/types/role';
 import { logger } from '~/utils';
-import { baseSchemaFor, schemaValidator } from '~/utils/schema_validator';
+import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import { msgClient } from '~/models/external_services/sns';
 import { PublishCommand } from '@aws-sdk/client-sns';
 
@@ -21,7 +21,7 @@ const langCodeValidator = yup
   .required('language code cannot be empty');
 
 const newLangSchema = () => {
-  const baseSchema = baseSchemaFor('LANG');
+  const baseSchema = initialSchema();
   const langSchema = baseSchema.shape({
     name: langCodeValidator.test(
       'is-name-exist',
@@ -29,7 +29,7 @@ const newLangSchema = () => {
       async (value) => {
         if (value) {
           const lang = await getLang(value?.trim());
-          return !!lang;
+          return !lang;
         }
         return false;
       }
@@ -41,7 +41,7 @@ const newLangSchema = () => {
 };
 
 const newTeamSchema = () => {
-  const baseSchema = baseSchemaFor('TEAM');
+  const baseSchema = initialSchema();
   const teamSchema = baseSchema.shape({
     name: yup
       .string()
@@ -49,7 +49,7 @@ const newTeamSchema = () => {
       .required('team name cannot be empty')
       .test('is-name-exist', 'team name already registered', async (value) => {
         const team = await getTeam(value ?? '');
-        return !!team;
+        return !team;
       }),
     alias: yup.string().trim().required('team alias cannot be empty'),
     kind: yup.mixed<'TEAM'>().default('TEAM'),
@@ -58,7 +58,7 @@ const newTeamSchema = () => {
 };
 
 const newUserSchema = () => {
-  const baseSchema = baseSchemaFor('USER');
+  const baseSchema = initialSchema();
   const userSchema = baseSchema.shape({
     username: yup.string().lowercase().trim().required('username canot be empty'),
     password: yup.string().required('password cannot be empty'),
