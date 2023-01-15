@@ -15,6 +15,7 @@ import type {
   PutItemCommandInput,
   QueryCommandInput,
 } from '@aws-sdk/client-dynamodb';
+import { logger } from '~/utils';
 
 export const createNewTeam = async (team: Team) => {
   const { name } = team;
@@ -38,6 +39,7 @@ export const createNewTeam = async (team: Team) => {
 
 export const getTeam = async (name: string) => {
   const SK = composeSKForTeam({ name });
+  logger.log(getTeam.name, 'team name', name);
   const params: GetItemCommandInput = {
     TableName: process.env.USER_TABLE,
     Key: marshall({
@@ -46,6 +48,7 @@ export const getTeam = async (name: string) => {
     }),
   };
   const { Item } = await dbClient().send(new GetItemCommand(params));
+  logger.log(getTeam.name, 'team found', Item);
   if (Item) {
     return unmarshall(Item) as Team;
   }
@@ -54,6 +57,7 @@ export const getTeam = async (name: string) => {
 
 export const deleteTeam = async (name: string) => {
   const SK = composeSKForTeam({ name });
+  logger.log(deleteTeam.name, 'team name', name);
   const params: DeleteItemCommandInput = {
     TableName: process.env.USER_TABLE,
     Key: marshall({
@@ -73,6 +77,7 @@ export const getAllTeams = async (): Promise<Team[]> => {
     }),
   };
   const { Items } = await dbClient().send(new QueryCommand(params));
+  logger.log(getAllTeams.name, 'all teams', Items);
   if (Items?.length) {
     return Items.map((Item) => unmarshall(Item) as Team);
   }

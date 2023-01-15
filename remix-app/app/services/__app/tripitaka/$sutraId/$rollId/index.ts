@@ -1,4 +1,4 @@
-import { baseSchemaFor, schemaValidator } from '~/utils/schema_validator';
+import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
 import { json } from '@remix-run/node';
 import { logger } from '~/utils';
@@ -9,7 +9,7 @@ import { created } from 'remix-utils';
 import type { Comment } from '~/types/comment';
 
 const newCommentSchema = () => {
-  const baseSchema = baseSchemaFor('COMMENT');
+  const baseSchema = initialSchema();
   const id = nanoid();
   const translationSchema = baseSchema.noUnknown().shape({
     targets: yup
