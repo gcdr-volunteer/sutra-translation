@@ -9,8 +9,8 @@
       "@types/*": ["remix-app/app/types/*"],
       "@models/*": ["remix-app/app/models/*"],
       "@services/*": ["services/*"],
-      "~/*": ["remix-app/app/*"],
+      "~/*": ["remix-app/app/*"]
     },
     "moduleResolution": "node"
-  },
+  }
 }
