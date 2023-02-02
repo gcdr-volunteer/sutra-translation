@@ -2,8 +2,12 @@ import { VStack } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 import { Sutra } from '~/components/common/sutra';
+import { LangCode } from '~/types';
 
 export const loader = async () => {
+  const kind = 'SUTRA' as const;
+  const origin_lang = LangCode.ZH;
+  const lang = LangCode.EN;
   return json({
     sutras: [
       {
@@ -16,6 +20,13 @@ export const loader = async () => {
         dynasty: 'Tang',
         time_from: 695,
         time_to: 699,
+        firstTime: true,
+        kind,
+        roll_start: 1,
+        origin_lang,
+        lang,
+        origin_sutraId: 'xxx',
+        team: 'abc',
       },
       {
         slug: 'EN-SUTRA-V1-0002',
@@ -27,6 +38,13 @@ export const loader = async () => {
         dynasty: 'Tang',
         time_from: 695,
         time_to: 699,
+        firstTime: true,
+        kind,
+        roll_start: 1,
+        origin_lang,
+        lang,
+        origin_sutraId: 'xxx',
+        team: 'abc',
       },
       {
         slug: 'EN-SUTRA-V1-0003',
@@ -38,6 +56,13 @@ export const loader = async () => {
         dynasty: 'Tang',
         time_from: 695,
         time_to: 699,
+        firstTime: true,
+        kind,
+        roll_start: 1,
+        origin_lang,
+        lang,
+        origin_sutraId: 'xxx',
+        team: 'abc',
       },
     ],
   });

@@ -28,11 +28,11 @@ export interface Paragraph extends CommonMeta {
   /**
    * current working sentence index
    */
-  sentenceIndex: number;
+  sentenceIndex?: number;
   /**
    * current working sentence index
    */
-  paragraphIndex: number;
+  paragraphIndex?: number;
   /**
    * The helper type
    */

@@ -6,6 +6,7 @@ import type { LoaderArgs } from '@remix-run/node';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { sutraId } = params;
+  const kind = 'ROLL' as const;
   switch (sutraId) {
     case 'EN-SUTRA-V1-0001':
       return json({
@@ -16,6 +17,11 @@ export const loader = async ({ params }: LoaderArgs) => {
             slug: 'EN-ROLL-V1-0001',
             roll_num: 'Roll one',
             finish: true,
+            firstTime: false,
+            num: 1,
+            category: 'xxxx',
+            origin_rollId: 'xxx',
+            kind,
           },
           {
             title: 'Chapter One: Wondrous Adornments of World-Rulers',
@@ -23,6 +29,11 @@ export const loader = async ({ params }: LoaderArgs) => {
             slug: 'EN-ROLL-V1-0002',
             roll_num: 'Roll two',
             finish: true,
+            firstTime: false,
+            num: 1,
+            category: 'xxxx',
+            origin_rollId: 'xxx',
+            kind,
           },
         ],
       });
@@ -35,6 +46,11 @@ export const loader = async ({ params }: LoaderArgs) => {
             slug: 'EN-ROLL-V1-0001',
             roll_num: 'Roll one',
             finish: true,
+            firstTime: false,
+            num: 1,
+            category: 'xxxx',
+            origin_rollId: 'xxx',
+            kind,
           },
           {
             title: 'Chapter One: Wondrous Adornments of World-Rulers',
@@ -42,6 +58,11 @@ export const loader = async ({ params }: LoaderArgs) => {
             slug: 'EN-ROLL-V1-0002',
             roll_num: 'Roll two',
             finish: true,
+            firstTime: false,
+            num: 1,
+            category: 'xxxx',
+            origin_rollId: 'xxx',
+            kind,
           },
         ],
       });
@@ -54,6 +75,11 @@ export const loader = async ({ params }: LoaderArgs) => {
             slug: 'EN-ROLL-V1-0001',
             roll_num: 'Roll one',
             finish: true,
+            firstTime: false,
+            num: 1,
+            category: 'xxxx',
+            origin_rollId: 'xxx',
+            kind,
           },
           {
             title: 'Chapter One: Wondrous Adornments of World-Rulers',
@@ -61,6 +87,11 @@ export const loader = async ({ params }: LoaderArgs) => {
             slug: 'EN-ROLL-V1-0002',
             roll_num: 'Roll two',
             finish: true,
+            firstTime: false,
+            num: 1,
+            category: 'xxxx',
+            origin_rollId: 'xxx',
+            kind,
           },
         ],
       });

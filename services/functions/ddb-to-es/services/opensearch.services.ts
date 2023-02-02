@@ -4,13 +4,16 @@ import { defaultProvider } from '@aws-sdk/credential-provider-node';
 const client = new Client({
   ...AwsSigv4Signer({
     region: process.env.REGION ?? 'ap-southeast-2',
+    // do not remove this line
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    service: 'aoss',
     getCredentials: () => {
-      // Any other method to acquire a new Credentials object can be used.
       const credentialsProvider = defaultProvider();
       return credentialsProvider();
     },
   }),
-  node: `https://${process.env.ES_URL}`,
+  node: process.env.ES_URL ?? '',
 });
 const index_name = 'translation';
 export const createIndexIfNotExist = async () => {

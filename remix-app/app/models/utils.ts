@@ -1,10 +1,11 @@
-import { dbClient } from '~/models/external_services/dynamodb';
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import type {
   UpdateItemCommandInput,
   GetItemCommandInput,
   PutItemCommandInput,
 } from '@aws-sdk/client-dynamodb';
+import type { LangCode } from '~/types';
+import { dbClient } from '~/models/external_services/dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import {
   UpdateItemCommand,
   ReturnValue,
@@ -12,7 +13,7 @@ import {
   PutItemCommand,
 } from '@aws-sdk/client-dynamodb';
 
-type CounterType = 'USER' | 'TEAM' | 'ROLE' | 'LANG';
+type CounterType = 'USER' | 'TEAM' | 'ROLE' | 'LANG' | 'FOOTNOTE';
 
 const _createCounterFor = async (type: CounterType): Promise<{ counter: number }> => {
   const params: PutItemCommandInput = {
@@ -84,8 +85,27 @@ export const getCounterFor = async (type: CounterType): Promise<{ counter: numbe
  * @param param0
  * @returns
  */
-export const composeIdFor = ({ type, id }: { type: CounterType; id: number }) => {
-  return `${type}-${id.toString().padStart(4, '0')}`;
+export const composeIdForReference = ({ kind, id }: { kind: CounterType; id: number }) => {
+  return `${kind}-${id.toString().padStart(4, '0')}`;
+};
+
+/**
+ * By given a type and id, this helper function is going to create a padding id, like 0001, 0002
+ * @param param0
+ * @returns
+ */
+export const composeIdForTranslation = ({
+  lang,
+  kind,
+  version,
+  id,
+}: {
+  lang: LangCode;
+  kind: string;
+  version: string;
+  id: number | string;
+}) => {
+  return `${lang}-${kind}-${version}-${id.toString().padStart(4, '0')}`;
 };
 
 /**

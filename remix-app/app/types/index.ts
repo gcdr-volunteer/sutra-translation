@@ -1,3 +1,14 @@
+import type { Lang } from './lang';
+import type { Paragraph } from './paragraph';
+import type { Roll } from './roll';
+import type { Sutra } from './sutra';
+import type { Comment } from './comment';
+import type { Glossary } from './glossary';
+import type { Team } from './team';
+import type { Role } from './role';
+import type { User } from './user';
+import type { Footnote } from './footnote';
+
 export * from './comment';
 export * from './error';
 export * from './lang';
@@ -8,3 +19,16 @@ export * from './sutra';
 export * from './roll';
 export * from './glossary';
 export * from './paragraph';
+export * from './footnote';
+
+export type Doc =
+  | Omit<Sutra, 'kind'>
+  | Omit<Roll, 'kind'>
+  | Omit<Paragraph, 'kind'>
+  | Omit<Comment, 'kind'>
+  | Omit<Glossary, 'kind'>
+  | Omit<Lang, 'kind'>
+  | Omit<Team, 'kind'>
+  | Omit<User, 'kind'>
+  | Omit<Role, 'kind'>
+  | Omit<Footnote, 'kind'>;

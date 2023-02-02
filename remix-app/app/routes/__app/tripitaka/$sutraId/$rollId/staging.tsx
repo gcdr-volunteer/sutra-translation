@@ -1,7 +1,7 @@
 import type { ChangeEvent } from 'react';
 import type { ParagraphLoadData } from '.';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
-import type { Paragraph, Glossary as TGlossary } from '~/types';
+import type { Paragraph, Glossary as TGlossary, Footnote } from '~/types';
 import {
   useActionData,
   useLocation,
@@ -60,6 +60,7 @@ import { useDebounce, useKeyPress } from '~/hooks';
 import { logger } from '~/utils';
 import { BiLinkExternal } from 'react-icons/bi';
 import { getParagraphsByRollId } from '~/models/paragraph';
+import { upsertFootnote } from '~/models/footnote';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId } = params;
@@ -119,6 +120,18 @@ export const action = async ({ request, params }: ActionArgs) => {
     if (entryData?.value) {
       return await searchByTerm(entryData.value as string);
     }
+  }
+  if (entryData?.intent === Intent.CREATE_FOOTNOTE) {
+    // TODO: refactor the code here, this is just a stub
+    const doc: Footnote = {
+      PK: 'ddd',
+      SK: 'xxx',
+      paragraphId: 'xxxx',
+      offset: 12,
+      content: 'abc',
+      kind: 'FOOTNOTE',
+    };
+    await upsertFootnote(doc);
   }
   return json({});
 };
