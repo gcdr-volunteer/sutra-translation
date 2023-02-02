@@ -82,7 +82,10 @@ const getCachedJson = async (params: FeedParams): Promise<CBeta | undefined> => 
   } else {
     const json = await getJson(params);
     if (json) {
-      saveFile(file, JSON.stringify(json));
+      if (process.env.NODE_ENV === 'test') {
+        // Notice this is only for local dev convenience
+        saveFile(file, json.results[0]);
+      }
       return json;
     }
     return undefined;
