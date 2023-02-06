@@ -31,28 +31,28 @@ jobs:
       - name: NPM install with caching
         uses: bahmutov/npm-install@v1.6.0
       - run: npm run validate
-      - run: npm test
+      - run: npm run test:unit --ws
 
-  deploy_uat:
-    needs: [build]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [16.x]
-    environment:
-      name: uat
-      url: https://d2oq65220kk55e.cloudfront.net/
-    steps:
-      - name: Checkout feature branch
-        uses: actions/checkout@v3
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-      - name: NPM install with caching
-        uses: bahmutov/npm-install@v1.6.0
-      - name: Deploy to UAT Env
-        run: npm run deploy
-        env:
-          ENV: uat
+  # deploy_uat:
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       node-version: [16.x]
+  #   environment:
+  #     name: uat
+  #     url: https://d2oq65220kk55e.cloudfront.net/
+  #   steps:
+  #     - name: Checkout feature branch
+  #       uses: actions/checkout@v3
+  #     - name: Use Node.js ${{ matrix.node-version }}
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #         cache: 'npm'
+  #     - name: NPM install with caching
+  #       uses: bahmutov/npm-install@v1.6.0
+  #     - name: Deploy to UAT Env
+  #       run: npm run deploy
+  #       env:
+  #         ENV: uat

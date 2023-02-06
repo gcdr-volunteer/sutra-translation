@@ -199,6 +199,7 @@ export const searchByTerm = async (term: string) => {
       index: 'translation',
       body: query,
     });
+    console.log(resp);
     if (resp.body.hits?.hits?.length) {
       logger.log(searchByTerm.name, 'response', resp.body?.hits.hits);
       // TODO: utiliza highlight result

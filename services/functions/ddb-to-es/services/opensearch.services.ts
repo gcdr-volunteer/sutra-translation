@@ -1,16 +1,16 @@
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { defaultProvider } from '@aws-sdk/credential-provider-node';
+console.log(process.env.ES_URL);
 const client = new Client({
   ...AwsSigv4Signer({
     region: process.env.REGION ?? 'ap-southeast-2',
     getCredentials: () => {
-      // Any other method to acquire a new Credentials object can be used.
       const credentialsProvider = defaultProvider();
       return credentialsProvider();
     },
   }),
-  node: `https://${process.env.ES_URL}`,
+  node: `https://${process.env.ES_URL}` ?? '',
 });
 const index_name = 'translation';
 export const createIndexIfNotExist = async () => {

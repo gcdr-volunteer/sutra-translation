@@ -159,14 +159,14 @@ export const handleCreateNewLang = async (lang: Omit<Lang, 'kind'>) => {
 
 export type SutraFeed = {
   sutra: string;
-  chapter: string;
+  roll: string;
 };
-export const feedSutra = async ({ sutra, chapter }: SutraFeed) => {
+export const feedSutra = async ({ sutra, roll }: SutraFeed) => {
   const params: PublishCommandInput = {
     TopicArn: process.env.TOPIC_ARN,
     Message: JSON.stringify({
       sutra,
-      chapter,
+      roll,
     }),
   };
   await msgClient().send(new PublishCommand(params));

@@ -83,7 +83,7 @@ export async function TableStack({ stack }: StackContext) {
 
 export async function SNSStack({ stack }: StackContext) {
   dependsOn(TableStack);
-  const { translationTable } = use(TableStack);
+  const { translationTable, commentTable } = use(TableStack);
   const topic = new Topic(stack, 'SUTRA', {
     subscribers: {
       subscriber: {
@@ -92,8 +92,9 @@ export async function SNSStack({ stack }: StackContext) {
           handler: 'index.handler',
           environment: {
             TRANSLATION_TABLE: translationTable.tableName,
+            REFERENCE_TABLE: commentTable.tableName,
           },
-          permissions: [translationTable],
+          permissions: [translationTable, commentTable],
         },
       },
     },

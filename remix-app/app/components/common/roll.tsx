@@ -1,12 +1,35 @@
-import { LinkBox, Card, CardHeader, CardBody, Heading, LinkOverlay, Text } from '@chakra-ui/react';
-import { Link } from '@remix-run/react';
-interface RollProps {
-  slug: string;
-  subtitle: string;
-  title: string;
-}
+import type { RollProps } from '~/routes/__app/tripitaka/$sutraId';
+import {
+  LinkBox,
+  Card,
+  CardHeader,
+  CardBody,
+  Heading,
+  LinkOverlay,
+  Text,
+  useDisclosure,
+  Box,
+  FormControl,
+  FormLabel,
+  Input,
+} from '@chakra-ui/react';
+import { Link, useActionData } from '@remix-run/react';
+import { FormModal } from './modal';
+import { Intent } from '~/types/common';
+import { useEffect } from 'react';
 export function Roll(props: RollProps) {
-  const { slug, subtitle, title } = props;
+  const actionData = useActionData<{ intent: Intent; data: string }>();
+  const { slug, subtitle, title, firstTime } = props;
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  useEffect(() => {
+    if (actionData?.intent === Intent.CREATE_SUTRA_META && actionData?.data) {
+      onClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionData]);
+  const handleClick = () => {
+    onOpen();
+  };
   return (
     <LinkBox as='article' key={slug}>
       <Card
@@ -14,16 +37,42 @@ export function Roll(props: RollProps) {
         w={400}
         borderRadius={12}
         boxShadow='0 12px 12px 0 rgba(0, 0, 0, 0.05)'
+        onClick={firstTime ? handleClick : undefined}
       >
         <CardHeader>
           <Heading size='lg'>{title}</Heading>
         </CardHeader>
         <CardBody>
-          <LinkOverlay as={Link} to={slug}>
+          <LinkOverlay as={firstTime ? Box : Link} to={slug}>
             <Text>{subtitle}</Text>
           </LinkOverlay>
         </CardBody>
       </Card>
+      <FormModal
+        value={Intent.CREATE_ROLL_META}
+        isOpen={isOpen}
+        onClose={onClose}
+        header='Please translate following metaData first'
+        body={
+          <Box>
+            <FormControl>
+              <FormLabel>{props.title}</FormLabel>
+              <Input type='text' name='title' />
+            </FormControl>
+            <FormControl>
+              <FormLabel>{props.subtitle}</FormLabel>
+              <Input type='text' name='subtitle' />
+            </FormControl>
+            <FormControl>
+              <FormLabel>{props.category}</FormLabel>
+              <Input type='text' name='category' />
+            </FormControl>
+            <Input name='SK' value={props.SK} readOnly hidden />
+            <Input name='PK' value={props.PK} readOnly hidden />
+            <Input name='origin_rollId' value={props.SK} readOnly hidden />
+          </Box>
+        }
+      />
     </LinkBox>
   );
 }

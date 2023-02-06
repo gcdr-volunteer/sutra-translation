@@ -27,6 +27,11 @@ export interface Roll extends CommonMeta {
    */
   category: string;
   /**
+   * The original roll Id where this roll tranlate from, this field will
+   * help to distinguish which version of the original roll used to translate
+   */
+  origin_rollId: string;
+  /**
    * The helper type
    */
   kind: 'ROLL';

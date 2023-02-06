@@ -20,14 +20,17 @@ export const handler = async (event: DynamoDBStreamEvent) => {
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-ignore
               const doc = unmarshall(Record.dynamodb.NewImage);
-              const newDoc = {
-                index: {
-                  index: 'translation',
-                  id: `${doc.PK}-${doc.SK}`,
-                  ...doc,
-                },
-              };
-              bulkActions.push(newDoc);
+              if (doc.PK && doc.SK && doc.kind !== 'COMMENT' && !doc.PK.startsWith('ZH')) {
+                const newDoc = {
+                  index: {
+                    index: 'translation',
+                    id: `${doc.PK}-${doc.SK}`,
+                    ...doc,
+                  },
+                };
+                bulkActions.push(newDoc);
+              }
+              return null;
             } catch (error) {
               console.log('ddb-to-es', 'cannot unmarshall', error);
               return null;
@@ -40,12 +43,15 @@ export const handler = async (event: DynamoDBStreamEvent) => {
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-ignore
               const doc = unmarshall(Record.dynamodb.OldImage);
-              const newDoc = {
-                delete: {
-                  _id: `${doc.PK}-${doc.SK}`,
-                },
-              };
-              bulkActions.push(newDoc);
+              if (doc.PK && doc.SK && doc.kind !== 'COMMENT' && !doc.PK.startsWith('ZH')) {
+                const newDoc = {
+                  delete: {
+                    _id: `${doc.PK}-${doc.SK}`,
+                  },
+                };
+                bulkActions.push(newDoc);
+              }
+              return null;
             } catch (error) {
               console.log('ddb-to-es', 'cannot unmarshall', error);
               return null;
@@ -56,7 +62,9 @@ export const handler = async (event: DynamoDBStreamEvent) => {
       if (bulkActions.length) {
         console.log('ddb-to-es', 'bulk deletion', bulkActions);
         const resp = await makeBulkActions(bulkActions);
-        console.log('ddb-to-es', 'bulk deletion response', resp);
+        if (resp.statusCode !== 200) {
+          console.log('ddb-to-es', 'bulk deletion response', resp);
+        }
       }
     }
     if (event.Records.length === 1) {
@@ -66,10 +74,17 @@ export const handler = async (event: DynamoDBStreamEvent) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const doc = unmarshall(record.dynamodb.NewImage);
-        if (doc.PK && doc.SK && doc.kind !== 'COMMENT') {
+        if (
+          doc.PK &&
+          doc.SK &&
+          ['PARAGRAPH', 'GLOSSARY'].includes(doc.kind) &&
+          !doc.PK.startsWith('ZH')
+        ) {
           console.info('ddb-to-es', 'single insertion', doc);
           const resp = await singleInsert(doc);
-          console.log('ddb-to-es', 'single insertion response', resp);
+          if (resp.statusCode !== 201) {
+            console.log('ddb-to-es', 'single insertion response', resp);
+          }
         }
       }
       if (record.eventName === 'REMOVE' && record.dynamodb?.OldImage) {
@@ -77,17 +92,24 @@ export const handler = async (event: DynamoDBStreamEvent) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const doc = unmarshall(record.dynamodb.OldImage);
-        if (doc.PK && doc.SK && doc.kind !== 'COMMENT') {
+        if (doc.PK && doc.SK) {
           console.log('ddb-to-es', 'single delete', doc);
           const resp = await singleDelete(`${doc.PK}-${doc.SK}`);
-          console.log('ddb-to-es', 'single delete response', resp);
+          if (resp.statusCode !== 200) {
+            console.log('ddb-to-es', 'single delete response', resp);
+          }
         }
       }
       if (record.eventName === 'MODIFY' && record.dynamodb?.NewImage) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const doc = unmarshall(record.dynamodb.NewImage);
-        if (doc.PK && doc.SK && doc.kind !== 'COMMENT') {
+        if (
+          doc.PK &&
+          doc.SK &&
+          ['PARAGRAPH', 'GLOSSARY'].includes(doc.kind) &&
+          !doc.PK.startsWith('ZH')
+        ) {
           console.log('ddb-to-es', 'single update', doc);
           const resp = await singleUpdate(doc);
           console.log('ddb-to-es', 'single update result', resp);

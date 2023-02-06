@@ -20,3 +20,5 @@ remix-app/build
 remix-app/preferences.arc
 remix-app/sam.json
 remix-app/sam.yaml
+
+services/functions/feed/services/build/**

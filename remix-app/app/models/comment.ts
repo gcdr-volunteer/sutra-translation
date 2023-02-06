@@ -11,6 +11,7 @@ import type {
 } from '@aws-sdk/client-dynamodb';
 
 export const createNewComment = async (comment: Comment) => {
+  // return await dbInsert({ tableName: process.env.COMMENT_TABLE, doc: comment });
   const params: PutItemCommandInput = {
     TableName: process.env.COMMENT_TABLE,
     Item: marshall({

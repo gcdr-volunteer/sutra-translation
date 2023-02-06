@@ -2,6 +2,7 @@ import type { CommonMeta } from './common';
 export enum LangCode {
   ZH = 'ZH',
   EN = 'EN',
+  SS = 'sanskrit',
 }
 export interface Lang extends CommonMeta {
   /**

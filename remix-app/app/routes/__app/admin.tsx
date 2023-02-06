@@ -14,9 +14,13 @@ import {
   Fade,
   VStack,
   Tooltip,
+  Heading,
+  Select,
+  Button,
+  HStack,
 } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { Form, useLoaderData } from '@remix-run/react';
 import { EditIcon } from '@chakra-ui/icons';
 import { RiUser2Line, RiTeamLine } from 'react-icons/ri';
 import { FaLanguage } from 'react-icons/fa';
@@ -27,6 +31,7 @@ import {
   handleCreateNewTeam,
   handleCreateNewUser,
   getLoaderData,
+  feedSutra,
 } from '~/services/__app/admin';
 import { UserForm, TeamForm } from '~/components';
 import { LangForm } from '~/components/lang_form';
@@ -95,6 +100,10 @@ export const action = async ({ request }: ActionArgs) => {
       alias: lang_alias,
     });
   }
+  if (intent && intent === Intent.CREATE_SUTRA) {
+    const { sutra, roll } = entryData as { sutra: string; roll: string };
+    await feedSutra({ sutra, roll });
+  }
   return json({});
 };
 
@@ -124,24 +133,64 @@ interface UserConfigProps {
 const UserConfig = (props: UserConfigProps) => {
   const { user, userform } = props;
   return (
-    <Accordion allowToggle>
-      <AccordionItem>
-        <h2>
-          <AccordionButton _expanded={{ bg: 'primary.800', color: 'white' }}>
-            <Box flex='1' textAlign='left'>
-              {user.username}
-              {user.roles?.map((role) => (
-                <Tag key={role} ml={4} background={role === RoleType.Admin ? 'pink' : 'lightgreen'}>
-                  {role}
-                </Tag>
-              ))}
-            </Box>
-            <AccordionIcon />
-          </AccordionButton>
-        </h2>
-        <AccordionPanel background={'secondary.500'}>{userform}</AccordionPanel>
-      </AccordionItem>
-    </Accordion>
+    <Box>
+      <Accordion allowToggle>
+        <AccordionItem>
+          <h2>
+            <AccordionButton _expanded={{ bg: 'primary.800', color: 'white' }}>
+              <Box flex='1' textAlign='left'>
+                {user.username}
+                {user.roles?.map((role) => (
+                  <Tag
+                    key={role}
+                    ml={4}
+                    background={role === RoleType.Admin ? 'pink' : 'lightgreen'}
+                  >
+                    {role}
+                  </Tag>
+                ))}
+              </Box>
+              <AccordionIcon />
+            </AccordionButton>
+          </h2>
+          <AccordionPanel background={'secondary.500'}>{userform}</AccordionPanel>
+        </AccordionItem>
+      </Accordion>
+      <Heading as='h5' size={'lg'}>
+        Sutra management
+      </Heading>
+      <Form method='post'>
+        <HStack spacing={8}>
+          <Select flex={3} placeholder='Select a sutra' name='sutra' colorScheme={'primary'}>
+            <option value='T0279'>Avatamsaka Sutra</option>
+          </Select>
+          <Select flex={3} placeholder='Select a roll' name='roll' colorScheme={'primary'}>
+            <option value='1'>Chapter 1</option>
+            <option value='2'>Chapter 2</option>
+            <option value='3'>Chapter 3</option>
+          </Select>
+          {/* TODO: make button not selectable when no value selected, plus add spinner when submit */}
+          <Button
+            flex={1}
+            type='submit'
+            name='intent'
+            value={Intent.CREATE_SUTRA}
+            colorScheme={'blue'}
+          >
+            Sutra Feed
+          </Button>
+          <Button
+            flex={1}
+            type='submit'
+            name='intent'
+            value={Intent.CREATE_SUTRA}
+            colorScheme={'blue'}
+          >
+            complete
+          </Button>
+        </HStack>
+      </Form>
+    </Box>
   );
 };
 

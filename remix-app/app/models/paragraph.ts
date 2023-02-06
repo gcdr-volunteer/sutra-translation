@@ -1,19 +1,8 @@
-import type { UpdateItemCommandInput } from '@aws-sdk/client-dynamodb';
-import {
-  GetItemCommand,
-  PutItemCommand,
-  QueryCommand,
-  ReturnValue,
-  UpdateItemCommand,
-} from '@aws-sdk/client-dynamodb';
+import { GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { dbClient } from '~/models/external_services/dynamodb';
+import { dbClient, dbInsert, dbUpdate } from '~/models/external_services/dynamodb';
 import type { Paragraph } from '~/types/paragraph';
-import type {
-  GetItemCommandInput,
-  PutItemCommandInput,
-  QueryCommandInput,
-} from '@aws-sdk/client-dynamodb';
+import type { GetItemCommandInput, QueryCommandInput } from '@aws-sdk/client-dynamodb';
 import { logger } from '~/utils';
 
 export const getParagraphsByRollId = async (PK?: string): Promise<Paragraph[]> => {
@@ -61,53 +50,21 @@ export const getParagraphByPrimaryKey = async ({
   return undefined;
 };
 
-export const createParagraph = async (paragraph: Paragraph) => {
-  const params: PutItemCommandInput = {
-    TableName: process.env.TRANSLATION_TABLE,
-    Item: marshall({
-      ...paragraph,
-    }),
-    ConditionExpression: 'attribute_not_exists(#PK)',
-    ExpressionAttributeNames: {
-      '#PK': 'PK',
-    },
-    ReturnValues: ReturnValue.ALL_OLD,
-  };
-  return await dbClient().send(new PutItemCommand(params));
+const createParagraph = async (paragraph: Paragraph) => {
+  return await dbInsert({ tableName: process.env.TRANSLATION_TABLE, doc: paragraph });
 };
 
-export const updateParagraph = async (paragraph: Paragraph) => {
-  const params: UpdateItemCommandInput = {
-    TableName: process.env.TRANSLATION_TABLE,
-    Key: marshall({
-      PK: paragraph.PK,
-      SK: paragraph.SK,
-    }),
-    UpdateExpression:
-      'set #content = :content, #sentenceIndex = :sentenceIndex, #finish = :finish, #paragraphIndex = :paragraphIndex',
-    ExpressionAttributeNames: {
-      '#content': 'content',
-      '#sentenceIndex': 'sentenceIndex',
-      '#paragraphIndex': 'paragraphIndex',
-      '#finish': 'finish',
-    },
-    ExpressionAttributeValues: marshall({
-      ':content': paragraph.content,
-      ':sentenceIndex': paragraph.sentenceIndex,
-      ':paragraphIndex': paragraph.paragraphIndex,
-      ':finish': paragraph.finish,
-    }),
-    ReturnValues: ReturnValue.ALL_NEW,
-  };
-  return await dbClient().send(new UpdateItemCommand(params));
+const updateParagraph = async (paragraph: Paragraph) => {
+  return await dbUpdate({ tableName: process.env.TRANSLATION_TABLE, doc: paragraph });
 };
 
 export const upsertParagraph = async (paragraph: Paragraph) => {
   const prevParagraph = await getParagraphByPrimaryKey({ PK: paragraph.PK, SK: paragraph.SK });
   if (prevParagraph) {
     const newParagraph = {
+      ...prevParagraph,
       ...paragraph,
-      content: `${prevParagraph.content}${paragraph.content}`,
+      content: `${prevParagraph.content} ${paragraph.content}`,
     };
     logger.log(upsertParagraph.name, 'updateParagraph', newParagraph);
     return await updateParagraph(newParagraph);

@@ -1,23 +1,66 @@
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { Roll as TRoll } from '~/types';
 import { json } from '@remix-run/node';
 import { useCatch, useLoaderData } from '@remix-run/react';
 import { Box, Flex } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
 import { Warning } from '~/components/common/errors';
-import { getRollsBySutraId } from '~/models/roll';
-import type { LoaderArgs } from '@remix-run/node';
+import { getRollByPrimaryKey, getRollsBySutraId, upsertRoll } from '~/models/roll';
+import { Intent } from '~/types/common';
+import { created } from 'remix-utils';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { sutraId } = params;
   const rolls = await getRollsBySutraId(sutraId ?? '');
+  const targetRolls = await getRollsBySutraId(sutraId?.replace('ZH', 'EN') ?? '');
+  const mapper = targetRolls?.reduce((acc, cur) => {
+    if (cur?.origin_rollId) {
+      acc[cur.origin_rollId] = false;
+      return acc;
+    }
+    return acc;
+  }, {} as Record<string, boolean>);
   const extractedRolls = rolls?.map((roll) => ({
+    firstTime: mapper[roll.SK ?? ''] ?? true,
     slug: roll.SK,
     ...roll,
   }));
   return json({ data: extractedRolls });
 };
-export default function SutraSlug() {
+
+export const action = async ({ request }: ActionArgs) => {
+  const formData = await request.formData();
+  const entryData = Object.fromEntries(formData.entries()) as Pick<
+    TRoll,
+    'PK' | 'SK' | 'subtitle' | 'category' | 'title' | 'origin_rollId'
+  > & { intent: string };
+  if (entryData.intent === Intent.CREATE_ROLL_META) {
+    const originRollMeta = await getRollByPrimaryKey({ PK: entryData.PK, SK: entryData.SK });
+    if (originRollMeta) {
+      const newRollMeta: TRoll = {
+        ...originRollMeta,
+        PK: entryData.PK?.replace('ZH', 'EN'),
+        SK: entryData.SK?.replace('ZH', 'EN'),
+        title: entryData.title,
+        subtitle: entryData.subtitle,
+        origin_rollId: entryData.origin_rollId,
+        category: entryData.category,
+        finish: false,
+      };
+      await upsertRoll(newRollMeta);
+      return created({ data: {}, intent: Intent.CREATE_ROLL_META });
+    }
+    // TODO: handle failed case
+  }
+  return json({});
+};
+export interface RollProps extends TRoll {
+  slug: string;
+  firstTime: boolean;
+}
+export default function SutraRoute() {
   const { data } = useLoaderData<{
-    data: { title: string; subtitle: string; finish: boolean; slug: string }[];
+    data: RollProps[];
   }>();
   const rollsComp = data?.map((roll) => <Roll key={roll.slug} {...roll} />);
   if (data?.length) {
