@@ -86,6 +86,31 @@ const parseRoll = ({ root, startIndex = 0 }: { root: HTMLElement; startIndex: nu
   return [...texts, ...rawTexts];
 };
 
+const parseRollx = ({ root }: { root: HTMLElement; startIndex: number }) => {
+  const paragraphs = root.querySelectorAll('.div-pin p, div .lg-row');
+  const kind = 'PARAGRAPH' as const;
+
+  const rawTexts = paragraphs.map((element, index) => {
+    const rawText = element.rawText;
+    const footnotes = element.querySelectorAll('.noteAnchor').map((footnote) => {
+      const href = footnote.getAttribute('href');
+      const position = rawText.indexOf(footnote.nextSibling.rawText);
+      const result = { parentIndex: index, href, position };
+      return result;
+    });
+
+    return {
+      num: index,
+      footnotes,
+      category: element.getAttribute('class') === 'lg-row' ? 'VERSE' : 'NORMAL',
+      content: rawText,
+      kind,
+    };
+  });
+
+  return [...rawTexts];
+};
+
 const parseFootnotes = ({ root }: { root: HTMLElement }) => {
   const footnotes = root.querySelectorAll('.footnote');
   const result = footnotes.reduce((acc, cur) => {
@@ -200,7 +225,7 @@ export const getMetaData = async (feed: FeedParams) => {
   }
 };
 
-export const getFeed = async (feed: FeedParams) => {
+export const getFeed1 = async (feed: FeedParams) => {
   const html = await getCachedHtml(feed);
   if (html) {
     const root = parse(html);
@@ -212,7 +237,13 @@ export const getFeed = async (feed: FeedParams) => {
     });
     const notes = parseFootnotes({ root: cleanedRoot });
 
-    const paragraphs = paragraphComposer({ rolls, preface, startId: feed.roll });
+    const paragraphs = paragraphComposer({
+      rolls,
+      preface,
+      startId: feed.roll,
+      sutra: rolls[0].content,
+      roll: rolls[2].content,
+    });
     const footnotes = footnotesComposer({
       preface,
       rolls,
@@ -231,10 +262,47 @@ export const getFeed = async (feed: FeedParams) => {
   }
 };
 
-export const addAvatamsakaSutraFeed = async (params: FeedParams) => {
-  // Only run metadata for first chapter, because it contains all the
-  // metadata for rest of the chapters
-  if (params.roll == '1') {
+export const getFeedx = async (feed: FeedParams) => {
+  const html = await getCachedHtml(feed);
+  if (html) {
+    const root = parse(html);
+    const cleanedRoot = cleanHtml(root);
+    const preface = parsePreface({ root: cleanedRoot, startIndex: 0 });
+    const rolls = parseRollx({
+      root: cleanedRoot,
+      startIndex: preface.length ? preface[preface.length - 1].num + 1 : 0,
+    });
+    const notes = parseFootnotes({ root: cleanedRoot });
+
+    const paragraphs = paragraphComposer({
+      rolls,
+      preface,
+      startId: feed.roll,
+      sutra: rolls[0].content,
+      roll: rolls[2].content,
+    });
+    const footnotes = footnotesComposer({
+      preface,
+      rolls,
+      footnotes: notes,
+      rollId: composeIdForTranslation({
+        lang: LangCode.ZH,
+        version: 'V1',
+        kind: 'ROLL',
+        id: feed.roll,
+      }),
+    });
+    return {
+      paragraphs,
+      footnotes,
+    };
+  }
+};
+
+const getFeedByChapter = async (params: FeedParams) => {
+  if (params.roll === '1') {
+    // Only run metadata for first chapter, because it contains all the
+    // metadata for the rest of the chapters
     const metaData = await getMetaData(params);
     if (metaData) {
       const { sutra, rolls } = metaData;
@@ -248,8 +316,17 @@ export const addAvatamsakaSutraFeed = async (params: FeedParams) => {
         })
       );
     }
+    return await getFeed1(params);
   }
-  const feed = await getFeed(params);
+  console.log(params);
+  if (['2', '3'].includes(params.roll)) {
+    return await getFeedx(params);
+  }
+  return undefined;
+};
+
+export const addAvatamsakaSutraFeed = async (params: FeedParams) => {
+  const feed = await getFeedByChapter(params);
   if (feed) {
     const { paragraphs, footnotes } = feed;
     await Promise.all(

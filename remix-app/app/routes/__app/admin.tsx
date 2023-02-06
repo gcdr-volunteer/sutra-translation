@@ -166,6 +166,8 @@ const UserConfig = (props: UserConfigProps) => {
           </Select>
           <Select flex={3} placeholder='Select a roll' name='roll' colorScheme={'primary'}>
             <option value='1'>Chapter 1</option>
+            <option value='2'>Chapter 2</option>
+            <option value='3'>Chapter 3</option>
           </Select>
           {/* TODO: make button not selectable when no value selected, plus add spinner when submit */}
           <Button

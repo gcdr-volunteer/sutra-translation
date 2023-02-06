@@ -69,8 +69,8 @@ export const loader = async ({ params }: LoaderArgs) => {
   const data = {
     sentenceIndex: paragraph?.sentenceIndex ?? -1,
     paragraphIndex: paragraph?.paragraphIndex ?? -1,
+    paragraph,
   };
-  console.log('data', data);
   return json({
     data,
   });
@@ -141,7 +141,7 @@ interface stateType {
 }
 export default function StagingRoute() {
   const { data } = useLoaderData<{
-    data: { sentenceIndex: number; paragraphIndex: number };
+    data: { sentenceIndex: number; paragraphIndex: number; paragraph: Paragraph };
   }>();
   const actionData = useActionData<{
     data: { paragraphIndex: number; sentenceIndex: number } | Record<string, string>;
@@ -200,7 +200,6 @@ export default function StagingRoute() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  console.log('sentenceFinish', sentenceFinish);
   useEffect(() => {
     if (actionData?.intent === Intent.READ_DEEPL) {
       setTranslation(actionData.data as Record<string, string>);
@@ -221,7 +220,7 @@ export default function StagingRoute() {
   const paragraphsComp = ref.current?.map((paragraph, i, arr) => {
     const sentences = paragraph.content.split(/(?<=。|！|？)/g);
     // const paragraphIndex = actionData?.data?.paragraphIndex ?? 0;
-    if (sentences.length > 1) {
+    if (sentences.length > 2) {
       return (
         // collapse only when paragraph finish and all sentences finish
         <Box key={i}>
@@ -236,6 +235,13 @@ export default function StagingRoute() {
                 </Highlight>
               </Text>
             </Box>
+            {data?.paragraph?.content ? (
+              <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
+                <Text size={'lg'} fontSize='1.5rem' lineHeight={1.5}>
+                  {data?.paragraph?.content}
+                </Text>
+              </Box>
+            ) : null}
           </Collapse>
           {sentences.map((sentence, j, arr) => {
             if (j >= data.sentenceIndex) {

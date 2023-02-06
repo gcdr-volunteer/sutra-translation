@@ -84,7 +84,7 @@ const getCachedJson = async (params: FeedParams): Promise<CBeta | undefined> => 
     if (json) {
       if (process.env.NODE_ENV === 'test') {
         // Notice this is only for local dev convenience
-        saveFile(file, json.results[0]);
+        saveFile(file, JSON.stringify(json));
       }
       return json;
     }
@@ -146,10 +146,14 @@ export const paragraphComposer = ({
   preface,
   rolls,
   startId,
+  sutra,
+  roll,
 }: {
   preface: Doc[];
   rolls: Doc[];
   startId: string;
+  sutra: string;
+  roll: string;
 }): Paragraph[] => {
   return [...preface, ...rolls]
     .map((doc) => {
@@ -174,8 +178,8 @@ export const paragraphComposer = ({
           id: doc.num,
           kind: 'PARAGRAPH',
         }),
-        sutra: 'Avatamsaka Sutra Volume 1',
-        roll: 'The First One of the Myriam of the Lord',
+        sutra,
+        roll,
         finish: true,
         ...doc,
       };

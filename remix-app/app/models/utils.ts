@@ -105,7 +105,7 @@ export const composeIdForTranslation = ({
   version: string;
   id: number | string;
 }) => {
-  return `${lang}-${kind}-${version}-${id.toString().padStart(4, '0')}`;
+  return `${lang}-${kind}-${version.toUpperCase()}-${id.toString().padStart(4, '0')}`;
 };
 
 /**

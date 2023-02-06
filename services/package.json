@@ -5,7 +5,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "feed": "esbuild functions/feed/services/index.ts --bundle --platform=node --outfile=functions/feed/services/build/index.js && NODE_ENV=test node functions/feed/services/build/index.js",
-    "test:unit": "vitest"
+    "test": "vitest"
   },
   "dependencies": {
     "aws-sdk": "^2.1271.0",

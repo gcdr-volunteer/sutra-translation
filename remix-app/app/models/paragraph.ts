@@ -64,7 +64,7 @@ export const upsertParagraph = async (paragraph: Paragraph) => {
     const newParagraph = {
       ...prevParagraph,
       ...paragraph,
-      content: `${prevParagraph.content}${paragraph.content}`,
+      content: `${prevParagraph.content} ${paragraph.content}`,
     };
     logger.log(upsertParagraph.name, 'updateParagraph', newParagraph);
     return await updateParagraph(newParagraph);

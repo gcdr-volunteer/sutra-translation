@@ -1,19 +1,16 @@
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { defaultProvider } from '@aws-sdk/credential-provider-node';
+console.log(process.env.ES_URL);
 const client = new Client({
   ...AwsSigv4Signer({
     region: process.env.REGION ?? 'ap-southeast-2',
-    // do not remove this line
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    service: 'aoss',
     getCredentials: () => {
       const credentialsProvider = defaultProvider();
       return credentialsProvider();
     },
   }),
-  node: process.env.ES_URL ?? '',
+  node: `https://${process.env.ES_URL}` ?? '',
 });
 const index_name = 'translation';
 export const createIndexIfNotExist = async () => {

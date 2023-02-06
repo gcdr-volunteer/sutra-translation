@@ -88,7 +88,7 @@ export const Sidebar = () => {
                 >
                   <HStack justifyContent={'flex-start'}>
                     <Icon as={AiOutlineBook} />
-                    <Text as='b'>Sutra</Text>
+                    <Text as='b'>Translation</Text>
                   </HStack>
                 </NavLink>
               </Box>
@@ -107,7 +107,7 @@ export const Sidebar = () => {
                 >
                   <HStack justifyContent={'flex-start'}>
                     <Icon as={AiOutlineTranslation} />
-                    <Text as='b'>Translation</Text>
+                    <Text as='b'>Sutra</Text>
                   </HStack>
                 </NavLink>
               </Box>
