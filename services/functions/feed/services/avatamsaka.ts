@@ -319,7 +319,7 @@ const getFeedByChapter = async (params: FeedParams) => {
     return await getFeed1(params);
   }
   console.log(params);
-  if (['2', '3'].includes(params.roll)) {
+  if (['2', '3', '4', '5'].includes(params.roll)) {
     return await getFeedx(params);
   }
   return undefined;
