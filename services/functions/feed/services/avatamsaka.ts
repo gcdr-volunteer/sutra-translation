@@ -91,7 +91,7 @@ const parseRollx = ({ root }: { root: HTMLElement; startIndex: number }) => {
   const kind = 'PARAGRAPH' as const;
 
   const rawTexts = paragraphs.map((element, index) => {
-    const rawText = element.rawText;
+    const rawText = element.rawText as string;
     const footnotes = element.querySelectorAll('.noteAnchor').map((footnote) => {
       const href = footnote.getAttribute('href');
       const position = rawText.indexOf(footnote.nextSibling.rawText);
@@ -103,7 +103,7 @@ const parseRollx = ({ root }: { root: HTMLElement; startIndex: number }) => {
       num: index,
       footnotes,
       category: element.getAttribute('class') === 'lg-row' ? 'VERSE' : 'NORMAL',
-      content: rawText,
+      content: index === 1 ? rawText.replaceAll('[＊]', '') : rawText,
       kind,
     };
   });
