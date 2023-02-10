@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import {
   Text,
   Flex,
@@ -9,13 +9,18 @@ import {
   Heading,
   useHighlight,
   Box,
+  Avatar,
+  AvatarBadge,
 } from '@chakra-ui/react';
 import { FormModal } from '~/components/common';
 import { Comment } from './comment';
-import { CommentDialog } from '~/routes/__app/tripitaka/$sutraId/$rollId/dialog';
 import type { MutableRefObject } from 'react';
 import type { Comment as TComment } from '~/types';
 import { Intent } from '~/types/common';
+import { Link } from '@remix-run/react';
+import { AiFillMessage } from 'react-icons/ai';
+import { AppContext } from '~/routes/__app';
+import { useEventSource } from 'remix-utils';
 type TextSelection = {
   start?: number;
   end?: number;
@@ -37,7 +42,6 @@ export const ParagraphTarget = ({
   toggle?: boolean;
   background?: string;
 }) => {
-  // const { currentUser } = useContext(AppContext);
   const [selectedText, setSelectedText] = useState<TextSelection>({});
   const {
     onOpen: onNewCommentOpen,
@@ -57,7 +61,11 @@ export const ParagraphTarget = ({
         return (
           <Box as={'span'} key={text} px='1' py='1' bg='orange.100'>
             {text}
-            <CommentDialog comment={currentComment} />
+            <CommentBadges
+              paragraphId={paragraphId}
+              currentComment={currentComment}
+              content={content}
+            />
           </Box>
         );
       })}
@@ -224,5 +232,46 @@ export const ParagraphPair = ({
         footnotes={footnotes}
       />
     </Flex>
+  );
+};
+
+type CommentBadgesProps = {
+  currentComment: TComment;
+  paragraphId: string;
+  content: string;
+};
+const CommentBadges = (props: CommentBadgesProps) => {
+  const { paragraphId, content, currentComment } = props;
+  const [notifications, setNotifications] = useState<Record<string, boolean>>({});
+  const { currentUser } = useContext(AppContext);
+  const message = useEventSource('/chat/subscribe', { event: 'new-message' });
+
+  useEffect(() => {
+    if (message) {
+      const msgObj = JSON.parse(message) as { id: string; username: string };
+      if (msgObj.username !== currentUser?.username && msgObj.id === currentComment?.id) {
+        setNotifications((prev) => ({ ...prev, [msgObj.id]: true }));
+      } else {
+        setNotifications((prev) => ({ ...prev, [msgObj.id]: false }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message]);
+
+  return (
+    <Link
+      to={`${paragraphId}/${currentComment.id}`}
+      state={{ comment: currentComment, paragraph: content }}
+    >
+      <Avatar
+        borderRadius={10}
+        bg={'primary.300'}
+        pos={'absolute'}
+        right={'5vw'}
+        icon={<AiFillMessage />}
+      >
+        {notifications[currentComment.id] ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : null}
+      </Avatar>
+    </Link>
   );
 };

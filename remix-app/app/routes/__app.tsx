@@ -17,13 +17,11 @@ export const loader = async ({ request }: LoaderArgs) => {
   const users = await getAllUsers(user?.email);
   if (user) {
     return json({
-      data: {
-        currentUser: user,
-        allUsers: users,
-      },
+      currentUser: user,
+      allUsers: users,
     });
   }
-  return notFound({ data: { currentUser: null, allUsers: [] } });
+  return notFound({ currentUser: null, allUsers: [] });
 };
 
 export const AppContext = createContext<{
@@ -45,9 +43,7 @@ export const AppContext = createContext<{
   allUsers: [],
 });
 export default function AppRoute() {
-  const {
-    data: { currentUser, allUsers },
-  } = useLoaderData<typeof loader>();
+  const { currentUser, allUsers } = useLoaderData<typeof loader>();
   // TODO: what if currentUser is undefined
   if (currentUser) {
     const ability = defineAbilityFor(currentUser);

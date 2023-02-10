@@ -12,15 +12,7 @@ const newCommentSchema = () => {
   const baseSchema = initialSchema();
   const id = nanoid();
   const translationSchema = baseSchema.noUnknown().shape({
-    targets: yup
-      .array()
-      .of(yup.string())
-      .transform((value) => {
-        if (!value[0]) {
-          return ['ALL'];
-        }
-        return value;
-      }),
+    ping: yup.array().of(yup.mixed<string>().required()).required(),
     priority: yup.mixed().oneOf(['1', '2', '3']).required('priority is required'),
     comment: yup.string().trim().required('comment cannot be empty'),
     start: yup.number().required('start index of the selected content is required'),

@@ -1,8 +1,8 @@
-import { GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
+import { QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { dbClient, dbInsert, dbUpdate } from '~/models/external_services/dynamodb';
+import { dbClient, dbGetByKey, dbInsert, dbUpdate } from '~/models/external_services/dynamodb';
 import type { Paragraph } from '~/types/paragraph';
-import type { GetItemCommandInput, QueryCommandInput } from '@aws-sdk/client-dynamodb';
+import type { QueryCommandInput } from '@aws-sdk/client-dynamodb';
 import { logger } from '~/utils';
 
 export const getParagraphsByRollId = async (PK?: string): Promise<Paragraph[]> => {
@@ -36,18 +36,7 @@ export const getParagraphByPrimaryKey = async ({
   PK?: string;
   SK?: string;
 }): Promise<Paragraph | undefined> => {
-  const params: GetItemCommandInput = {
-    TableName: process.env.TRANSLATION_TABLE,
-    Key: marshall({
-      PK,
-      SK,
-    }),
-  };
-  const { Item } = await dbClient().send(new GetItemCommand(params));
-  if (Item) {
-    return unmarshall(Item) as Paragraph;
-  }
-  return undefined;
+  return await dbGetByKey({ key: { PK, SK }, tableName: process.env.TRANSLATION_TABLE });
 };
 
 const createParagraph = async (paragraph: Paragraph) => {
