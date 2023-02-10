@@ -1,37 +1,54 @@
-import { dbClient } from '~/models/external_services/dynamodb';
+import type { Comment } from '~/types/comment';
+import type { QueryCommandInput, UpdateItemCommandInput } from '@aws-sdk/client-dynamodb';
+import type { Key } from '~/models/external_services/dynamodb';
+import type { User } from '~/types';
+import {
+  dbClient,
+  dbGetByIndexAndKey,
+  dbGetByKey,
+  dbInsert,
+} from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { QueryCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
-import { PutItemCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
-import { utcNow } from '~/utils/datetime';
-import type { Comment } from '~/types/comment';
-import type {
-  PutItemCommandInput,
-  QueryCommandInput,
-  UpdateItemCommandInput,
-} from '@aws-sdk/client-dynamodb';
+import { utcNow } from '~/utils';
 
-export const createNewComment = async (comment: Comment) => {
-  // return await dbInsert({ tableName: process.env.COMMENT_TABLE, doc: comment });
-  const params: PutItemCommandInput = {
-    TableName: process.env.COMMENT_TABLE,
-    Item: marshall({
-      PK: 'COMMENT',
-      SK: `${comment.paragraphId}-${utcNow()}`,
-      ...comment,
-    }),
-    ConditionExpression: 'attribute_not_exists(#SK)',
-    ExpressionAttributeNames: {
-      '#SK': 'SK',
-    },
-    ReturnValues: ReturnValue.ALL_OLD,
-  };
-  return await dbClient().send(new PutItemCommand(params));
+export const getAllCommentsByParentId = async (
+  parentId?: string
+): Promise<Comment[] | undefined> => {
+  const comments = await dbGetByIndexAndKey<Comment>({
+    tableName: process.env.COMMENT_TABLE,
+    key: { PK: 'COMMENT', parentId: parentId ?? '' },
+    indexName: 'parentId-index',
+  });
+  comments?.sort((a, b) => {
+    if (a.SK && b.SK) {
+      if (a.SK > b.SK) {
+        return 1;
+      }
+      if (a.SK < b.SK) {
+        return -1;
+      }
+      return 0;
+    }
+    return 0;
+  });
+  return comments;
 };
 
-export const getAllCommentsForRoll = async (rollId: string) => {
+export const getCommentByKey = async (key: Key): Promise<Comment | undefined> => {
+  return await dbGetByKey<Comment>({ tableName: process.env.COMMENT_TABLE, key });
+};
+
+export const createNewComment = async (comment: Comment) => {
+  const newComment = { ...comment, PK: 'COMMENT', SK: `${comment.paragraphId}-${utcNow()}` };
+  return await dbInsert({ tableName: process.env.COMMENT_TABLE, doc: newComment });
+};
+
+export const getAllRootCommentsForRoll = async (rollId: string) => {
   const params: QueryCommandInput = {
     TableName: process.env.COMMENT_TABLE,
     KeyConditionExpression: 'PK = :comment AND rollId = :rollId',
+    FilterExpression: 'parentId = id',
     ExpressionAttributeValues: marshall({
       ':rollId': rollId,
       ':comment': 'COMMENT',
@@ -64,17 +81,18 @@ export const resolveComment = async (SK: string) => {
   await dbClient().send(new UpdateItemCommand(params));
 };
 
-export const getAllNotResolvedCommentsForMe = async (): Promise<Comment[]> => {
+export const getAllNotResolvedCommentsForMe = async (user?: User): Promise<Comment[]> => {
   const params: QueryCommandInput = {
     TableName: process.env.COMMENT_TABLE,
-    FilterExpression: 'contains(#targets, :all)',
+    FilterExpression: 'contains(#ping, :all) or contains(#ping, :me) and parentId = id',
     KeyConditionExpression: 'PK = :comment AND resolved = :resolved',
     ExpressionAttributeNames: {
-      '#targets': 'targets',
+      '#ping': 'ping',
     },
     ExpressionAttributeValues: marshall({
       ':comment': 'COMMENT',
       ':all': 'ALL',
+      ':me': user?.SK,
       ':resolved': 0,
     }),
     IndexName: 'resolved-index',

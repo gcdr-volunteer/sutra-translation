@@ -33,7 +33,7 @@ export interface Comment extends CommonMeta {
   /**
    * The number that indicates if this comment resolved or not
    */
-  resolved: 0 | 1;
+  resolved?: 0 | 1;
   /**
    * The priority level of the comment
    */

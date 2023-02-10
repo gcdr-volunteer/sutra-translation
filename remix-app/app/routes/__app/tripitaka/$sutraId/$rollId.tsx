@@ -1,18 +1,14 @@
 import { json } from '@remix-run/node';
-import { useLoaderData, useLocation, useNavigate } from '@remix-run/react';
+import { Outlet, useLoaderData, useLocation, useNavigate } from '@remix-run/react';
 import { IconButton, Flex, Box } from '@chakra-ui/react';
 import { useEffect, useRef } from 'react';
 import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
 import { getOriginParagraphsByRollId, getTargetParagraphsByRollId } from '~/models/paragraph';
-import { getAllCommentsForRoll } from '~/models/comment';
-import {
-  handleNewComment,
-  handleResolveComment,
-} from '~/services/__app/tripitaka/$sutraId/$rollId';
+import { getAllRootCommentsForRoll } from '~/models/comment';
+import { handleNewComment } from '~/services/__app/tripitaka/$sutraId/$rollId';
 import type { Comment } from '~/types/comment';
 import { assertAuthUser } from '~/auth.server';
-// import { useEventSource } from 'remix-utils';
 import { Intent } from '~/types/common';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { MutableRefObject } from 'react';
@@ -24,7 +20,7 @@ export const loader = async ({ params }: LoaderArgs) => {
     const originParagraphs = await getOriginParagraphsByRollId(rollId);
     const targetParagraphs = await getTargetParagraphsByRollId(rollId);
     // TODO: update language to match user's profile
-    const targetComments = await getAllCommentsForRoll(rollId.replace('ZH', 'EN'));
+    const targetComments = await getAllRootCommentsForRoll(rollId.replace('ZH', 'EN'));
     const origins = originParagraphs?.map(({ PK, SK, category, content, num, finish }) => ({
       PK,
       SK,
@@ -47,11 +43,9 @@ export const loader = async ({ params }: LoaderArgs) => {
       };
     });
     return json({
-      data: {
-        footnotes: [],
-        origins,
-        targets,
-      },
+      footnotes: [],
+      origins,
+      targets,
     });
   }
 
@@ -63,20 +57,16 @@ export const action = async ({ request }: ActionArgs) => {
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
   if (entryData?.intent === Intent.CREATE_COMMENT) {
+    const ping = entryData?.ping ? [entryData?.ping] : ['ALL'];
     const newComment = {
       ...entryData,
-      targets: [entryData?.targets],
+      ping,
       createdBy: user?.SK,
       updatedBy: user?.SK,
-      creatorAlias: user?.username,
+      creatorAlias: user?.username ?? '',
     };
+    console.log('newcomment', newComment);
     return await handleNewComment(newComment as unknown as Comment);
-  }
-  if (entryData?.intent === Intent.CREATE_MESSAGE) {
-    if (entryData?.resolved && entryData?.SK) {
-      return await handleResolveComment(entryData.SK as string);
-    }
-    return json({});
   }
   return json({});
 };
@@ -90,16 +80,12 @@ export type ParagraphLoadData = {
   comments: [];
 };
 export default function RollRoute() {
-  const {
-    data: { origins, targets, footnotes },
-  } = useLoaderData<{
-    data: {
-      origins: ParagraphLoadData[];
-      targets: ParagraphLoadData[];
-      footnotes: [];
-    };
+  const { origins, targets, footnotes } = useLoaderData<{
+    origins: ParagraphLoadData[];
+    targets: ParagraphLoadData[];
+    footnotes: [];
   }>();
-  // const time = useEventSource('/sse/time', { event: 'time' });
+
   const navigate = useNavigate();
   const checkedParagraphs = useRef(new Set<number>());
 
@@ -150,6 +136,7 @@ export default function RollRoute() {
         gap={4}
         mt={10}
       >
+        <Outlet context={{ modal: true }} />
         {paragraphsComp}
         <IconButton
           borderRadius={'50%'}

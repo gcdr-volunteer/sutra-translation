@@ -9,20 +9,22 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
+import type { LoaderArgs } from '@remix-run/node';
 import { useLoaderData, Link } from '@remix-run/react';
 import { getAllNotResolvedCommentsForMe } from '~/models/comment';
-import type { Comment } from '~/types';
 import type { AlertStatus } from '@chakra-ui/react';
+import { assertAuthUser } from '~/auth.server';
 
-export const loader = async () => {
-  const myComments = await getAllNotResolvedCommentsForMe();
-  return json({ data: myComments });
+export const loader = async ({ request }: LoaderArgs) => {
+  const user = await assertAuthUser(request);
+  const comments = await getAllNotResolvedCommentsForMe(user);
+  return json({ comments });
 };
 
 export default function TripitakaRoute() {
-  const loadData = useLoaderData<{ data: Comment[] }>();
-  loadData?.data?.sort((a, b) => b.priority - a.priority);
-  const commentsComp = loadData?.data.map((ccomment) => {
+  const loadData = useLoaderData<typeof loader>();
+  loadData?.comments?.sort((a, b) => b.priority - a.priority);
+  const commentsComp = loadData?.comments.map((ccomment) => {
     const { path, content, comment, priority, paragraphId } = ccomment;
     const priorityLevel = priority as number;
     const statusValue = {

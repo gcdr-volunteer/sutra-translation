@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react';
-import type { ParagraphLoadData } from '.';
+import type { ParagraphLoadData } from '../$rollId';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { Paragraph, Glossary as TGlossary, Footnote } from '~/types';
 import {
@@ -66,13 +66,10 @@ export const loader = async ({ params }: LoaderArgs) => {
   const { rollId } = params;
   const paragraphs = await getParagraphsByRollId(rollId?.replace('ZH', 'EN'));
   const paragraph = paragraphs.find((paragraph) => !paragraph.finish);
-  const data = {
+  return json({
     sentenceIndex: paragraph?.sentenceIndex ?? -1,
     paragraphIndex: paragraph?.paragraphIndex ?? -1,
     paragraph,
-  };
-  return json({
-    data,
   });
 };
 
@@ -140,11 +137,9 @@ interface stateType {
   paragraphs: ParagraphLoadData[];
 }
 export default function StagingRoute() {
-  const { data } = useLoaderData<{
-    data: { sentenceIndex: number; paragraphIndex: number; paragraph: Paragraph };
-  }>();
+  const data = useLoaderData<typeof loader>();
   const actionData = useActionData<{
-    data: { paragraphIndex: number; sentenceIndex: number } | Record<string, string>;
+    payload: { paragraphIndex: number; sentenceIndex: number } | Record<string, string>;
     intent: Intent;
     type: 'paragraph' | 'sentence';
   }>();
@@ -202,10 +197,10 @@ export default function StagingRoute() {
 
   useEffect(() => {
     if (actionData?.intent === Intent.READ_DEEPL) {
-      setTranslation(actionData.data as Record<string, string>);
+      setTranslation(actionData.payload as Record<string, string>);
     }
     if (actionData?.intent === Intent.CREATE_TRANSLATION) {
-      const { paragraphIndex = 0, finish } = actionData.data as {
+      const { paragraphIndex = 0, finish } = actionData.payload as {
         paragraphIndex: number;
         sentenceIndex: number;
         finish: boolean;
@@ -448,7 +443,7 @@ const GlossaryModal = () => {
   const { isOpen: isOpenNote, onOpen: onOpenNote, onClose: onCloseNote } = useDisclosure();
   const actionData = useActionData<{
     intent: Intent;
-    data: { origin: string; target: string };
+    payload: { origin: string; target: string };
     errors: { error: string };
   }>();
   const toast = useToast();
@@ -456,8 +451,8 @@ const GlossaryModal = () => {
   const [target, setTarget] = useState('');
 
   useEffect(() => {
-    if (actionData?.intent === Intent.CREATE_GLOSSARY && actionData.data) {
-      const { origin, target } = actionData.data;
+    if (actionData?.intent === Intent.CREATE_GLOSSARY && actionData.payload) {
+      const { origin, target } = actionData.payload;
       setOrigin('');
       setTarget('');
       toast({

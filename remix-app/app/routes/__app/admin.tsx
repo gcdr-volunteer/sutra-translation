@@ -121,6 +121,7 @@ export default function AdminRoute() {
   return (
     <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
       {usersComp}
+      <SutraManagement />
       <AdminActionButtons teams={teams} langs={langs} />
     </Flex>
   );
@@ -156,6 +157,13 @@ const UserConfig = (props: UserConfigProps) => {
           <AccordionPanel background={'secondary.500'}>{userform}</AccordionPanel>
         </AccordionItem>
       </Accordion>
+    </Box>
+  );
+};
+
+const SutraManagement = () => {
+  return (
+    <Box>
       <Heading as='h5' size={'lg'}>
         Sutra management
       </Heading>
@@ -193,7 +201,6 @@ const UserConfig = (props: UserConfigProps) => {
     </Box>
   );
 };
-
 interface AdminActionButtonsProps {
   teams: Team[];
   langs: Lang[];

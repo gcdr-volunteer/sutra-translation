@@ -52,7 +52,7 @@ export const hanldeDeepLFetch = async ({ origins }: { origins: Record<string, st
       return acc;
     }, {} as Record<string, string>);
     logger.log(hanldeDeepLFetch.name, 'results', obj);
-    return json({ data: obj, intent: Intent.READ_DEEPL });
+    return json({ payload: obj, intent: Intent.READ_DEEPL });
   } catch (error) {
     // TODO: handle error from frontend
     logger.error(hanldeDeepLFetch.name, 'error', error);
@@ -109,7 +109,7 @@ export const handleNewTranslationParagraph = async (
       logger.log(handleNewTranslationParagraph.name, 'translationParagraph', translatedParagraph);
       await upsertParagraph(translatedParagraph);
       return created({
-        data: {
+        payload: {
           paragraphIndex,
           sentenceIndex,
           finish: sentenceIndexNum === totalSentenceIndexNum,
@@ -161,7 +161,7 @@ export const handleNewGlossary = async (newGlossary: Omit<Glossary, 'kind'>) => 
     await createNewGlossary(result);
 
     return created({
-      data: { origin: result.origin, target: result.target },
+      payload: { origin: result.origin, target: result.target },
       intent: Intent.CREATE_GLOSSARY,
     });
   } catch (errors) {
@@ -207,12 +207,12 @@ export const searchByTerm = async (term: string) => {
       const hits = resp.body.hits.hits;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const results = hits.map((hit: any) => hit._source as Paragraph | Glossary);
-      return json({ data: results as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
+      return json({ payload: results as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
     }
     return [];
   } catch (error) {
     // TODO: handle this error in frontend?
     logger.warn(searchByTerm.name, 'warn', error);
-    return json({ data: [] as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
+    return json({ payload: [] as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
   }
 };

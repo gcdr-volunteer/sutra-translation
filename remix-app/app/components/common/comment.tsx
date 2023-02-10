@@ -20,9 +20,9 @@ export const Comment = (props: CommentProps) => {
       <Text>
         The text you have selected <Tag>{selectedText}</Tag>
       </Text>
-      <Select placeholder='User you want to ping' name='targets' defaultValue={'ALL'}>
+      <Select placeholder='User you want to ping' name='ping' defaultValue={'ALL'}>
         {allUsers?.map((user) => (
-          <option key={user.SK} value={user.username}>
+          <option key={user.SK} value={user.SK}>
             {user.username}
           </option>
         ))}
