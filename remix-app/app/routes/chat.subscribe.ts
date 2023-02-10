@@ -12,10 +12,10 @@ export async function loader({ request }: LoaderArgs) {
       });
     }
 
-    emitter.addListener(EVENTS.MESSAGE, handle);
+    emitter.on(EVENTS.MESSAGE, handle);
 
     return () => {
-      emitter.removeListener(EVENTS.MESSAGE, handle);
+      emitter.off(EVENTS.MESSAGE, handle);
     };
   });
 }
