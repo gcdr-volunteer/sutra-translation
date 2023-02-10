@@ -77,7 +77,7 @@ export const action = async ({ request }: ActionArgs) => {
         resolved: undefined, // there is no need to add resolved for sub-comments
       };
       await createNewComment(comment);
-      emitter.emit(EVENTS.MESSAGE, { id: rootComment.id, creatorAlias: user?.username });
+      await emitter.emit(EVENTS.MESSAGE, { id: rootComment.id, creatorAlias: user?.username });
     }
     return json({ paragraph: entryData.paragraph });
   }
