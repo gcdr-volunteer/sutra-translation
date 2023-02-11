@@ -1,6 +1,4 @@
-import type { CommonMeta } from './common';
-
-export interface Paragraph extends CommonMeta {
+export interface Paragraph {
   /**
    * The sequence number of current paragraph in entire roll
    */

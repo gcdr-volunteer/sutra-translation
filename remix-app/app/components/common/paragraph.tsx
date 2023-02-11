@@ -17,7 +17,7 @@ import { Comment } from './comment';
 import type { MutableRefObject } from 'react';
 import type { Comment as TComment } from '~/types';
 import { Intent } from '~/types/common';
-import { Link } from '@remix-run/react';
+import { Link, useLoaderData } from '@remix-run/react';
 import { AiFillMessage } from 'react-icons/ai';
 import { AppContext } from '~/routes/__app';
 import { useEventSource } from 'remix-utils';
@@ -63,8 +63,8 @@ export const ParagraphTarget = ({
             {text}
             <CommentBadges
               paragraphId={paragraphId}
-              currentComment={currentComment}
               content={content}
+              rootComment={currentComment}
             />
           </Box>
         );
@@ -236,12 +236,14 @@ export const ParagraphPair = ({
 };
 
 type CommentBadgesProps = {
-  currentComment: TComment;
   paragraphId: string;
   content: string;
+  rootComment: TComment;
 };
 const CommentBadges = (props: CommentBadgesProps) => {
-  const { paragraphId, content, currentComment } = props;
+  const { lastMessages } = useLoaderData<{ lastMessages: TComment[] }>();
+  const { paragraphId, content, rootComment } = props;
+  const lastMessage = lastMessages.find((message) => message.parentId === rootComment?.id);
   const [notifications, setNotifications] = useState<Record<string, boolean>>({});
   const { currentUser } = useContext(AppContext);
   const message = useEventSource('/chat/subscribe', { event: 'new-message' });
@@ -249,7 +251,7 @@ const CommentBadges = (props: CommentBadgesProps) => {
   useEffect(() => {
     if (message) {
       const msgObj = JSON.parse(message) as { id: string; username: string };
-      if (msgObj.username !== currentUser?.username && msgObj.id === currentComment?.id) {
+      if (msgObj.username !== currentUser?.username && msgObj.id === rootComment?.id) {
         setNotifications((prev) => ({ ...prev, [msgObj.id]: true }));
       } else {
         setNotifications((prev) => ({ ...prev, [msgObj.id]: false }));
@@ -258,10 +260,19 @@ const CommentBadges = (props: CommentBadgesProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message]);
 
+  useEffect(() => {
+    if (lastMessage?.createdBy !== currentUser?.email) {
+      setNotifications((prev) => ({ ...prev, [rootComment.id]: true }));
+    } else {
+      setNotifications((prev) => ({ ...prev, [rootComment.id]: false }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rootComment]);
+
   return (
     <Link
-      to={`${paragraphId}/${currentComment.id}`}
-      state={{ comment: currentComment, paragraph: content }}
+      to={`${paragraphId}/${rootComment?.id}`}
+      state={{ comment: rootComment, paragraph: content }}
     >
       <Avatar
         borderRadius={10}
@@ -270,7 +281,7 @@ const CommentBadges = (props: CommentBadgesProps) => {
         right={'5vw'}
         icon={<AiFillMessage />}
       >
-        {notifications[currentComment.id] ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : null}
+        {notifications[rootComment?.id] ? <AvatarBadge boxSize='1.25em' bg='green.500' /> : null}
       </Avatar>
     </Link>
   );

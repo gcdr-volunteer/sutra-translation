@@ -85,8 +85,8 @@ export const handleNewTranslationParagraph = async (
         SK: result.SK,
       }),
       getRollByPrimaryKey({
-        PK: sutraId?.replace('ZH', 'EN'),
-        SK: rollId?.replace('ZH', 'EN'),
+        PK: sutraId?.replace('ZH', 'EN') ?? '',
+        SK: rollId?.replace('ZH', 'EN') ?? '',
       }),
     ]);
     if (originParagraph) {

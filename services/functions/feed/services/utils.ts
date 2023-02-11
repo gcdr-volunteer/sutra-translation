@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import { FeedParams } from '../index';
-import { LangCode, Paragraph } from '../../../../remix-app/app/types';
+import { CreateType, LangCode, Paragraph } from '../../../../remix-app/app/types';
 import {
   composeIdForReference,
   composeIdForTranslation,
@@ -154,7 +154,7 @@ export const paragraphComposer = ({
   startId: string;
   sutra: string;
   roll: string;
-}): Paragraph[] => {
+}): CreateType<Paragraph>[] => {
   return [...preface, ...rolls]
     .map((doc) => {
       // we want to remove footnotes

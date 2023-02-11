@@ -64,6 +64,10 @@ export interface Comment extends CommonMeta {
    */
   parentId: string;
   /**
+   * this timestamp is used to compare if there is updated message
+   */
+  latestMessage?: string;
+  /**
    * The helper type
    */
   kind: 'COMMENT';

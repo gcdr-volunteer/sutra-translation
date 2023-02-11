@@ -1,7 +1,7 @@
 import type { HTMLElement } from 'node-html-parser';
 import type { FeedParams } from '../../feed';
 import { parse } from 'node-html-parser';
-import { LangCode, Sutra, Roll } from '@remix-app/app/types';
+import { LangCode, Sutra, Roll, CreateType } from '@remix-app/app/types';
 import { composeIdForTranslation } from '@remix-app/app/models/utils';
 import * as cn from 'chinese-numbering';
 import {
@@ -11,7 +11,7 @@ import {
   getCachedSutraData,
   paragraphComposer,
 } from './utils';
-import { upsertParagraph } from '@remix-app/app/models/paragraph';
+import { createParagraph } from '@remix-app/app/models/paragraph';
 import { upsertSutra } from '@remix-app/app/models/sutra';
 import { upsertRoll } from '@remix-app/app/models/roll';
 import { upsertFootnote } from '@remix-app/app/models/footnote';
@@ -129,7 +129,7 @@ export const getMetaData = async (feed: FeedParams) => {
   const rollsMeta = await getCachedRollsData(feed);
   if (sutraMeta && rollsMeta) {
     const kind = 'SUTRA';
-    const sutra: Sutra = {
+    const sutra: CreateType<Sutra> = {
       PK: 'TRIPITAKA',
       SK: composeIdForTranslation({
         lang: LangCode.ZH,
@@ -159,7 +159,7 @@ export const getMetaData = async (feed: FeedParams) => {
           const kind = 'ROLL';
           const title = pcur.title.replace(/\d+\s+/u, '');
           const category = cur.type ?? '品';
-          const roll: Roll = {
+          const roll: CreateType<Roll> = {
             PK: composeIdForTranslation({
               lang: LangCode.ZH,
               version: 'V1',
@@ -182,7 +182,7 @@ export const getMetaData = async (feed: FeedParams) => {
           };
           acc.push(roll);
           return acc;
-        }, [] as Roll[]);
+        }, [] as CreateType<Roll>[]);
         pacc = [...pacc, ...children];
         return pacc;
       }
@@ -192,7 +192,7 @@ export const getMetaData = async (feed: FeedParams) => {
         const kind = 'ROLL';
         const subtitle = pcur.title.replace(/\d+\s+/u, '');
         const number = `第${cn.numberToChinese(pcur.juan)}`;
-        const roll: Roll = {
+        const roll: CreateType<Roll> = {
           PK: composeIdForTranslation({
             lang: LangCode.ZH,
             version: 'V1',
@@ -217,7 +217,7 @@ export const getMetaData = async (feed: FeedParams) => {
         return pacc;
       }
       return pacc;
-    }, [] as Roll[]);
+    }, [] as CreateType<Roll>[]);
     return {
       sutra,
       rolls,
@@ -333,7 +333,7 @@ export const addAvatamsakaSutraFeed = async (params: FeedParams) => {
       paragraphs.map((paragraph, index) => {
         const timer = 500 * index;
         return setTimeout(() => {
-          return upsertParagraph(paragraph);
+          return createParagraph(paragraph);
         }, timer);
       })
     );

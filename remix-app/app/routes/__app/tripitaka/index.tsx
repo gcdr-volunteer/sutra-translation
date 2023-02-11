@@ -1,5 +1,5 @@
 import type { SutraProps } from '~/components/common/sutra';
-import type { Sutra as TSutra } from '~/types';
+import type { CreateType, Sutra as TSutra } from '~/types';
 import type { ActionArgs } from '@remix-run/node';
 import { VStack } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
@@ -38,11 +38,15 @@ export const action = async ({ request }: ActionArgs) => {
     'PK' | 'SK' | 'dynasty' | 'category' | 'translator' | 'title' | 'origin_sutraId'
   > & { intent: string };
   if (entryData.intent === Intent.CREATE_SUTRA_META) {
-    const originSutraMeta = await getSutraByPrimaryKey({ PK: entryData.PK, SK: entryData.SK });
+    const originSutraMeta = await getSutraByPrimaryKey({
+      PK: entryData.PK ?? '',
+      SK: entryData.SK ?? '',
+    });
     if (originSutraMeta) {
-      const newSutraMeta: TSutra = {
+      const newSutraMeta: CreateType<TSutra> = {
         ...originSutraMeta,
         // TODO: using user profile
+        PK: originSutraMeta.PK ?? '',
         origin_lang: LangCode.ZH,
         lang: LangCode.EN,
         title: entryData.title,
@@ -50,7 +54,7 @@ export const action = async ({ request }: ActionArgs) => {
         category: entryData.category,
         dynasty: entryData.dynasty,
         origin_sutraId: entryData.origin_sutraId,
-        SK: entryData.SK?.replace('ZH', 'EN'),
+        SK: entryData.SK?.replace('ZH', 'EN') ?? '',
         team: user?.team ?? '',
       };
       await upsertSutra(newSutraMeta);
