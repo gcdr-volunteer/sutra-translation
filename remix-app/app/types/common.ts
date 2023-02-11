@@ -22,6 +22,7 @@ export enum Intent {
   CREATE_SUTRA = 'create_sutra',
   CREATE_SUTRA_META = 'create_sutra_meta',
   CREATE_ROLL_META = 'create_roll_meta',
+  UPDATE_PARAGRAPH = 'update_paragraph',
   READ_DEEPL = 'read_deepl',
   READ_OPENSEARCH = 'read_opensearch',
   CREATE_TRANSLATION = 'create_translation',

@@ -18,6 +18,7 @@ import {
   VStack,
   Highlight,
   Box,
+  useToast,
 } from '@chakra-ui/react';
 import {
   Form,
@@ -29,19 +30,25 @@ import {
   useSubmit,
   useTransition,
 } from '@remix-run/react';
-import { useCallback, useContext, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import type { Comment } from '~/types';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import { json } from '@remix-run/node';
 import { assertAuthUser } from '~/auth.server';
 import { Intent } from '~/types/common';
-import { createNewComment, getAllCommentsByParentId, getCommentByKey } from '~/models/comment';
+import {
+  createNewComment,
+  getAllCommentsByParentId,
+  getCommentByKey,
+  updateComment,
+} from '~/models/comment';
 import { nanoid } from 'nanoid';
 import { AppContext } from '~/routes/__app';
-import { emitter, EVENTS } from '~/utils';
-import { getParagraphByPrimaryKey } from '~/models/paragraph';
+import { emitter, EVENTS, utcNow } from '~/utils';
+import { getParagraphByPrimaryKey, updateParagraph } from '~/models/paragraph';
 import { useMessage } from '~/hooks/useMessage';
+import { Can } from '~/authorisation';
 
 type CommentPayload = {
   PK: string;
@@ -54,13 +61,13 @@ export const loader = async ({ params }: LoaderArgs) => {
   const { rollId, paragraphId, dialog } = params;
   const comments = (await getAllCommentsByParentId(dialog)) ?? [];
   const paragraph = await getParagraphByPrimaryKey({
-    PK: rollId?.replace('ZH', 'EN'),
-    SK: paragraphId?.replace('ZH', 'EN'),
+    PK: rollId?.replace('ZH', 'EN') ?? '',
+    SK: paragraphId?.replace('ZH', 'EN') ?? '',
   });
   return json({ comments, paragraph });
 };
 
-export const action = async ({ request }: ActionArgs) => {
+export const action = async ({ request, params }: ActionArgs) => {
   const user = await assertAuthUser(request);
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries()) as CommentPayload;
@@ -76,10 +83,30 @@ export const action = async ({ request }: ActionArgs) => {
         id: nanoid(),
         resolved: undefined, // there is no need to add resolved for sub-comments
       };
-      await createNewComment(comment);
-      await emitter.emit(EVENTS.MESSAGE, { id: rootComment.id, creatorAlias: user?.username });
+      if (!rootComment.resolved) {
+        await createNewComment(comment);
+        // Update root comment lastMessageTimeStamp
+        await updateComment({
+          PK: rootComment.PK ?? '',
+          SK: rootComment.SK ?? '',
+          latestMessage: utcNow(),
+        });
+        emitter.emit(EVENTS.MESSAGE, { id: rootComment.id, creatorAlias: user?.username });
+      } else {
+        return json({ paragraph: entryData.paragraph, resolved: true });
+      }
     }
     return json({ paragraph: entryData.paragraph });
+  }
+  if (entryData?.intent === Intent.UPDATE_PARAGRAPH) {
+    const { rollId = '', paragraphId = '' } = params;
+    await updateParagraph({
+      // TODO: user profile
+      PK: rollId.replace('ZH', 'EN'),
+      SK: paragraphId.replace('ZH', 'EN'),
+      content: entryData.paragraph,
+    });
+    await updateComment({ SK: entryData.SK ?? '', PK: 'COMMENT', resolved: 1 });
   }
   return json({});
 };
@@ -87,7 +114,7 @@ export const action = async ({ request }: ActionArgs) => {
 export default function DialogRoute() {
   const loaderData = useLoaderData<typeof loader>();
   const { comments } = loaderData;
-  const actionData = useActionData<{ paragraph: string }>();
+  const actionData = useActionData<{ paragraph: string; resolved: boolean }>();
   const ref = useRef<HTMLButtonElement>(null);
   const submit = useSubmit();
   const transaction = useTransition();
@@ -102,8 +129,25 @@ export default function DialogRoute() {
   const [toggle, setToggle] = useBoolean();
   const [textareaHeight, setTextareaHeight] = useState(0);
   const dialogInputRef = useRef<HTMLTextAreaElement>(null);
+  const paragraphEditFormRef = useRef<HTMLFormElement>(null);
   const { currentUser } = useContext(AppContext);
+  const [updateParagraph, setUpdateParagraph] = useState(paragraph);
   useMessage(currentUser);
+  const toast = useToast();
+
+  useEffect(() => {
+    if (actionData?.resolved) {
+      toast({
+        title: 'Comment has been resolved',
+        description: 'Please close current modal',
+        status: 'warning',
+        duration: 3000,
+        position: 'top',
+      });
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionData]);
 
   const dialogRef = useCallback(
     (node: HTMLDivElement) => {
@@ -140,6 +184,11 @@ export default function DialogRoute() {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     submit(e.currentTarget);
+  };
+
+  const handleUpdateParagraph = () => {
+    submit(paragraphEditFormRef.current, { replace: true });
+    navigate(-1);
   };
 
   return (
@@ -194,35 +243,43 @@ export default function DialogRoute() {
             <Input readOnly hidden name='paragraph' value={paragraph} />
             <Button hidden type='submit' name='intent' value={Intent.CREATE_MESSAGE} ref={ref} />
             {/* <Input type='submit' readOnly hidden name="intent" value={'new_message'} /> */}
-            <FormControl display='flex' alignItems='center'>
-              <FormLabel htmlFor='edit-paragraph' mb='0'>
-                Edit paragraph
-              </FormLabel>
-              <Switch id='edit-paragraph' onChange={setToggle.toggle} disabled={isSubmitting} />
-            </FormControl>
+            <Can I='Update' this='Paragraph'>
+              <FormControl display='flex' alignItems='center'>
+                <FormLabel htmlFor='edit-paragraph' mb='0'>
+                  Edit paragraph
+                </FormLabel>
+                <Switch id='edit-paragraph' onChange={setToggle.toggle} disabled={isSubmitting} />
+              </FormControl>
+            </Can>
           </Form>
-          {!toggle ? (
-            <Text ref={paragraphRef}>
-              <Highlight
-                query={comments?.[0]?.content}
-                styles={{ px: '1', py: '1', bg: 'orange.100' }}
-              >
-                {paragraph}
-              </Highlight>
-            </Text>
-          ) : (
-            // <Text ref={paragraphRef}>{paragraph}</Text>
-            <Textarea
-              value={paragraph}
-              onChange={() => {
-                console.log();
-              }}
-              height={textareaHeight}
-            />
-          )}
+          <Form method='post' ref={paragraphEditFormRef}>
+            {!toggle ? (
+              <Text ref={paragraphRef}>
+                <Highlight
+                  query={comments?.[0]?.content}
+                  styles={{ px: '1', py: '1', bg: 'orange.100' }}
+                >
+                  {paragraph}
+                </Highlight>
+              </Text>
+            ) : (
+              <Box>
+                <Textarea
+                  name='paragraph'
+                  value={updateParagraph}
+                  onChange={(e) => {
+                    setUpdateParagraph(e.target.value);
+                  }}
+                  height={textareaHeight}
+                />
+                <Input readOnly hidden name='SK' value={comments?.[0].SK} />
+                <Input readOnly hidden name='intent' value={Intent.UPDATE_PARAGRAPH} />
+              </Box>
+            )}
+          </Form>
         </ModalBody>
         <ModalFooter>
-          <Button disabled={!toggle} colorScheme='blue' mr={3}>
+          <Button disabled={!toggle} onClick={handleUpdateParagraph} colorScheme='blue' mr={3}>
             Save
           </Button>
           <Button onClick={handleClose}>Cancel</Button>

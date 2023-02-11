@@ -16,6 +16,7 @@ export const handler = async (event: SNSEvent) => {
     const feedParams = JSON.parse(resultStr) as FeedParams;
     // T0279 is avatamsaka sutra
     if (feedParams.sutra === 'T0279') {
+      console.log('Start feeding', { ...feedParams });
       await addAvatamsakaSutraFeed(feedParams);
     }
   } catch (error) {

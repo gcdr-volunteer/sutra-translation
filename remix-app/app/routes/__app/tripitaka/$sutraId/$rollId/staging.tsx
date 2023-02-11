@@ -1,7 +1,7 @@
 import type { ChangeEvent } from 'react';
 import type { ParagraphLoadData } from '../$rollId';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
-import type { Paragraph, Glossary as TGlossary, Footnote } from '~/types';
+import type { Paragraph, Glossary as TGlossary, Footnote, CreateType } from '~/types';
 import {
   useActionData,
   useLocation,
@@ -89,7 +89,7 @@ export const action = async ({ request, params }: ActionArgs) => {
   }
   if (entryData?.intent === Intent.CREATE_TRANSLATION) {
     // Uncomment the following line when doing debug
-    // return json({ data: { index: entryData?.index }, intent: Intent.CREATE_TRANSLATION });
+    // return json({ payload: { index: entryData?.index }, intent: Intent.CREATE_TRANSLATION });
     return await handleNewTranslationParagraph(
       {
         paragraphIndex: entryData?.paragraphIndex as string,
@@ -120,7 +120,7 @@ export const action = async ({ request, params }: ActionArgs) => {
   }
   if (entryData?.intent === Intent.CREATE_FOOTNOTE) {
     // TODO: refactor the code here, this is just a stub
-    const doc: Footnote = {
+    const doc: CreateType<Footnote> = {
       PK: 'ddd',
       SK: 'xxx',
       paragraphId: 'xxxx',
@@ -137,7 +137,7 @@ interface stateType {
   paragraphs: ParagraphLoadData[];
 }
 export default function StagingRoute() {
-  const data = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
   const actionData = useActionData<{
     payload: { paragraphIndex: number; sentenceIndex: number } | Record<string, string>;
     intent: Intent;
@@ -182,8 +182,8 @@ export default function StagingRoute() {
   }, []);
 
   useEffect(() => {
-    if (data) {
-      const { sentenceIndex, paragraphIndex } = data;
+    if (loaderData) {
+      const { sentenceIndex, paragraphIndex } = loaderData;
       const sentenceFinish: Record<string, boolean> = {};
       for (let i = 0; i <= paragraphIndex; i++) {
         for (let j = 0; j <= sentenceIndex; j++) {
@@ -193,7 +193,7 @@ export default function StagingRoute() {
       setSentenceFinish((prev) => ({ ...prev, ...sentenceFinish }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  }, [loaderData]);
 
   useEffect(() => {
     if (actionData?.intent === Intent.READ_DEEPL) {
@@ -223,23 +223,25 @@ export default function StagingRoute() {
             <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
               <Text size={'lg'} fontSize='1.5rem' lineHeight={1.5}>
                 <Highlight
-                  query={sentences[data.paragraphIndex >= i ? data.sentenceIndex + 1 : 0]}
+                  query={
+                    sentences[loaderData.paragraphIndex >= i ? loaderData.sentenceIndex + 1 : 0]
+                  }
                   styles={{ px: '1', py: '1', bg: 'orange.100', whiteSpace: 'wrap' }}
                 >
                   {paragraph.content}
                 </Highlight>
               </Text>
             </Box>
-            {data?.paragraph?.content ? (
+            {loaderData?.paragraph?.content ? (
               <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
                 <Text size={'lg'} fontSize='1.5rem' lineHeight={1.5}>
-                  {data?.paragraph?.content}
+                  {loaderData?.paragraph?.content}
                 </Text>
               </Box>
             ) : null}
           </Collapse>
           {sentences.map((sentence, j, arr) => {
-            if (j >= data.sentenceIndex) {
+            if (j >= loaderData.sentenceIndex) {
               const para = { ...paragraph, content: sentence };
               return (
                 <Collapse
@@ -313,6 +315,7 @@ function TranlationWorkspace({
 }: WorkSpaceProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const loaderData = useLoaderData<typeof loader>();
   const actionData = useActionData();
   const [content, setContent] = useState('');
   const submit = useSubmit();
@@ -321,13 +324,16 @@ function TranlationWorkspace({
   const [glossary, setGlossary] = useBoolean(false);
 
   const handleSubmitTranslation = () => {
+    if (textareaRef?.current) {
+      textareaRef.current.value = `${loaderData?.paragraph?.content ?? ''} ${content}`;
+    }
     submit(textareaFormRef.current, { replace: true });
     setContent('');
   };
 
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_TRANSLATION) {
-      const { finish, paragraphIndex } = actionData.data as {
+      const { finish, paragraphIndex } = actionData.payload as {
         finish: boolean;
         paragraphIndex: number;
       };
@@ -412,7 +418,7 @@ function TranlationWorkspace({
                 name='translation'
                 ref={textareaRef}
                 height='100%'
-                placeholder='Here is a sample placeholder'
+                placeholder='Edit your paragraph'
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
               />
@@ -643,7 +649,7 @@ const SearchModal = () => {
 
   useEffect(() => {
     if (actionData?.intent === Intent.READ_OPENSEARCH) {
-      setSearchResults(actionData.data);
+      setSearchResults(actionData.payload);
     }
     if (!isOpenSearch) {
       setSearchTerm('');

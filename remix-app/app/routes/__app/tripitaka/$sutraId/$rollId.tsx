@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
 import { getOriginParagraphsByRollId, getTargetParagraphsByRollId } from '~/models/paragraph';
-import { getAllRootCommentsForRoll } from '~/models/comment';
+import { getAllCommentsByParentId, getAllRootCommentsForRoll } from '~/models/comment';
 import { handleNewComment } from '~/services/__app/tripitaka/$sutraId/$rollId';
 import type { Comment } from '~/types/comment';
 import { assertAuthUser } from '~/auth.server';
@@ -13,6 +13,7 @@ import { Intent } from '~/types/common';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { MutableRefObject } from 'react';
 import { badRequest } from 'remix-utils';
+import { utcNow } from '~/utils';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId } = params;
@@ -20,7 +21,15 @@ export const loader = async ({ params }: LoaderArgs) => {
     const originParagraphs = await getOriginParagraphsByRollId(rollId);
     const targetParagraphs = await getTargetParagraphsByRollId(rollId);
     // TODO: update language to match user's profile
-    const targetComments = await getAllRootCommentsForRoll(rollId.replace('ZH', 'EN'));
+    const rootComments = await getAllRootCommentsForRoll(rollId.replace('ZH', 'EN'));
+
+    const lastMessages = await Promise.all(
+      rootComments.map(async (comment) => {
+        const comments = await getAllCommentsByParentId(comment.id);
+        return comments.at(-1);
+      })
+    );
+
     const origins = originParagraphs?.map(({ PK, SK, category, content, num, finish }) => ({
       PK,
       SK,
@@ -30,7 +39,7 @@ export const loader = async ({ params }: LoaderArgs) => {
       finish,
     }));
     const targets = targetParagraphs?.map(({ category, content, num, SK, finish }) => {
-      const comments = targetComments.filter(
+      const comments = rootComments.filter(
         (comment) => comment?.paragraphId === SK && !comment?.resolved
       );
       return {
@@ -46,6 +55,7 @@ export const loader = async ({ params }: LoaderArgs) => {
       footnotes: [],
       origins,
       targets,
+      lastMessages,
     });
   }
 
@@ -64,8 +74,8 @@ export const action = async ({ request }: ActionArgs) => {
       createdBy: user?.SK,
       updatedBy: user?.SK,
       creatorAlias: user?.username ?? '',
+      lastMessage: utcNow(),
     };
-    console.log('newcomment', newComment);
     return await handleNewComment(newComment as unknown as Comment);
   }
   return json({});
@@ -150,6 +160,7 @@ export default function RollRoute() {
           colorScheme={'iconButton'}
           onClick={() => {
             navigate(`staging`, {
+              replace: true,
               state: {
                 paragraphs: Array.from(checkedParagraphs.current)
                   .sort()

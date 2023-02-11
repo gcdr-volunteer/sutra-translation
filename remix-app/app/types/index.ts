@@ -21,6 +21,22 @@ export * from './glossary';
 export * from './paragraph';
 export * from './footnote';
 
+export type Key = {
+  SK: string;
+  PK: string;
+};
+
+export type MetaData = {
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+};
+
+export type UpdateType<T> = Partial<T> & Required<Key> & MetaData;
+export type UpdatedType<T> = T & Key & MetaData;
+export type CreateType<T> = T & MetaData & Key;
+export type CreatedType<T> = CreateType<T>;
 export type Doc =
   | Omit<Sutra, 'kind'>
   | Omit<Roll, 'kind'>

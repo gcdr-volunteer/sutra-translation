@@ -1,7 +1,7 @@
 import type { Comment } from '~/types/comment';
 import type { QueryCommandInput, UpdateItemCommandInput } from '@aws-sdk/client-dynamodb';
-import type { Key } from '~/models/external_services/dynamodb';
-import type { User } from '~/types';
+import { dbUpdate } from '~/models/external_services/dynamodb';
+import type { Key, UpdateType, User } from '~/types';
 import {
   dbClient,
   dbGetByIndexAndKey,
@@ -12,9 +12,7 @@ import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { QueryCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { utcNow } from '~/utils';
 
-export const getAllCommentsByParentId = async (
-  parentId?: string
-): Promise<Comment[] | undefined> => {
+export const getAllCommentsByParentId = async (parentId?: string): Promise<Comment[]> => {
   const comments = await dbGetByIndexAndKey<Comment>({
     tableName: process.env.COMMENT_TABLE,
     key: { PK: 'COMMENT', parentId: parentId ?? '' },
@@ -32,7 +30,7 @@ export const getAllCommentsByParentId = async (
     }
     return 0;
   });
-  return comments;
+  return comments || [];
 };
 
 export const getCommentByKey = async (key: Key): Promise<Comment | undefined> => {
@@ -44,6 +42,9 @@ export const createNewComment = async (comment: Comment) => {
   return await dbInsert({ tableName: process.env.COMMENT_TABLE, doc: newComment });
 };
 
+export const updateComment = async (comment: UpdateType<Comment>) => {
+  return await dbUpdate({ tableName: process.env.COMMENT_TABLE, doc: comment });
+};
 export const getAllRootCommentsForRoll = async (rollId: string) => {
   const params: QueryCommandInput = {
     TableName: process.env.COMMENT_TABLE,
@@ -79,6 +80,14 @@ export const resolveComment = async (SK: string) => {
   };
 
   await dbClient().send(new UpdateItemCommand(params));
+};
+
+export const getAllCommentsByRollId = async (rollId: string) => {
+  return await dbGetByIndexAndKey({
+    tableName: process.env.COMMENT_TABLE,
+    key: { PK: 'COMMENT', rollId },
+    indexName: 'rollId-index',
+  });
 };
 
 export const getAllNotResolvedCommentsForMe = async (user?: User): Promise<Comment[]> => {

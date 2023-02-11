@@ -1,5 +1,5 @@
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
-import type { Roll as TRoll } from '~/types';
+import type { CreateType, Roll as TRoll } from '~/types';
 import { json } from '@remix-run/node';
 import { useCatch, useLoaderData } from '@remix-run/react';
 import { Box, Flex } from '@chakra-ui/react';
@@ -35,12 +35,15 @@ export const action = async ({ request }: ActionArgs) => {
     'PK' | 'SK' | 'subtitle' | 'category' | 'title' | 'origin_rollId'
   > & { intent: string };
   if (entryData.intent === Intent.CREATE_ROLL_META) {
-    const originRollMeta = await getRollByPrimaryKey({ PK: entryData.PK, SK: entryData.SK });
+    const originRollMeta = await getRollByPrimaryKey({
+      PK: entryData.PK ?? '',
+      SK: entryData.SK ?? '',
+    });
     if (originRollMeta) {
-      const newRollMeta: TRoll = {
+      const newRollMeta: CreateType<TRoll> = {
         ...originRollMeta,
-        PK: entryData.PK?.replace('ZH', 'EN'),
-        SK: entryData.SK?.replace('ZH', 'EN'),
+        PK: entryData.PK?.replace('ZH', 'EN') ?? '',
+        SK: entryData.SK?.replace('ZH', 'EN') ?? '',
         title: entryData.title,
         subtitle: entryData.subtitle,
         origin_rollId: entryData.origin_rollId,

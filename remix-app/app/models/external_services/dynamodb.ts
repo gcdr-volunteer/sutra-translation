@@ -1,4 +1,4 @@
-import type { Doc } from '~/types';
+import type { CreateType, Doc, Key, UpdateType } from '~/types';
 import type {
   GetItemCommandInput,
   UpdateItemCommandInput,
@@ -17,11 +17,6 @@ import type { PutItemCommandInput } from '@aws-sdk/client-dynamodb';
 import { utcNow } from '~/utils';
 // Can be removed after refactor
 export const dbClient = () => new DynamoDBClient({ region: process.env.REGION });
-
-export type Key = {
-  PK?: string;
-  SK?: string;
-};
 
 export const dbGetByKey = async <T>({
   tableName,
@@ -78,7 +73,7 @@ export const dbGetByIndexAndKey = async <T>({
   return undefined;
 };
 
-export const dbInsert = async ({ tableName, doc }: { doc: Doc; tableName: string }) => {
+export const dbInsert = async ({ tableName, doc }: { doc: CreateType<Doc>; tableName: string }) => {
   const newDoc = {
     ...doc,
     createdAt: utcNow(),
@@ -103,7 +98,7 @@ export const dbInsert = async ({ tableName, doc }: { doc: Doc; tableName: string
   return await dbClient().send(new PutItemCommand(params));
 };
 
-export const dbUpdate = async ({ tableName, doc }: { doc: Doc; tableName: string }) => {
+export const dbUpdate = async ({ tableName, doc }: { doc: UpdateType<Doc>; tableName: string }) => {
   // We cannot update PK and SK
   const { SK, PK, ...rest } = { ...doc, updatedAt: utcNow() };
 

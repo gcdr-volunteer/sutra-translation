@@ -1,5 +1,4 @@
-import type { Key } from '~/models/external_services/dynamodb';
-import type { Roll } from '~/types';
+import type { CreateType, Key, Roll, UpdateType } from '~/types';
 import type { QueryCommandInput } from '@aws-sdk/client-dynamodb';
 import { QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
@@ -24,15 +23,15 @@ export const getRollByPrimaryKey = async (key: Key): Promise<Roll | undefined> =
   return await dbGetByKey({ tableName: process.env.TRANSLATION_TABLE, key });
 };
 
-const createRoll = async (roll: Roll) => {
+const createRoll = async (roll: CreateType<Roll>) => {
   return await dbInsert({ tableName: process.env.TRANSLATION_TABLE, doc: roll });
 };
 
-const updateRoll = async (roll: Roll) => {
+const updateRoll = async (roll: UpdateType<Roll>) => {
   return await dbUpdate({ tableName: process.env.TRANSLATION_TABLE, doc: roll });
 };
 
-export const upsertRoll = async (roll: Roll) => {
+export const upsertRoll = async (roll: CreateType<Roll> | UpdateType<Roll>) => {
   const prevRoll = await getRollByPrimaryKey({ PK: roll.PK, SK: roll.SK });
   if (prevRoll) {
     const newRoll = {
@@ -41,5 +40,5 @@ export const upsertRoll = async (roll: Roll) => {
     };
     return await updateRoll(newRoll);
   }
-  return await createRoll(roll);
+  return await createRoll(roll as CreateType<Roll>);
 };

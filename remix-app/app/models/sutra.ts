@@ -1,7 +1,6 @@
-import type { LangCode } from '~/types';
+import type { CreateType, Key, LangCode, UpdateType } from '~/types';
 import type { Sutra } from '~/types/sutra';
 import type { QueryCommandInput } from '@aws-sdk/client-dynamodb';
-import type { Key } from '~/models/external_services/dynamodb';
 import { QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { dbClient, dbGetByKey, dbInsert, dbUpdate } from '~/models/external_services/dynamodb';
@@ -31,15 +30,15 @@ export const getSutraByPrimaryKey = async (key: Key): Promise<Sutra | undefined>
   return await dbGetByKey({ tableName: process.env.TRANSLATION_TABLE, key });
 };
 
-const createSutra = async (sutra: Sutra) => {
+const createSutra = async (sutra: CreateType<Sutra>) => {
   return await dbInsert({ tableName: process.env.TRANSLATION_TABLE, doc: sutra });
 };
 
-const updateSutra = async (sutra: Sutra) => {
+const updateSutra = async (sutra: UpdateType<Sutra>) => {
   return await dbUpdate({ tableName: process.env.TRANSLATION_TABLE, doc: sutra });
 };
 
-export const upsertSutra = async (sutra: Sutra) => {
+export const upsertSutra = async (sutra: CreateType<Sutra> | UpdateType<Sutra>) => {
   const prevSutra = await getSutraByPrimaryKey({ PK: sutra.PK, SK: sutra.SK });
   if (prevSutra) {
     const newSutra = {
@@ -48,5 +47,5 @@ export const upsertSutra = async (sutra: Sutra) => {
     };
     return await updateSutra(newSutra);
   }
-  return await createSutra(sutra);
+  return await createSutra(sutra as CreateType<Sutra>);
 };

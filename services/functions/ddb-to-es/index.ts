@@ -117,7 +117,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
       }
     }
   } catch (error) {
-    console.error('ddb-to-es', 'error', error);
+    // console.error('ddb-to-es', 'error', error);
   }
   return {
     statusCode: 200,
