@@ -18,6 +18,7 @@ import {
   VStack,
   Highlight,
   Box,
+  useToast,
 } from '@chakra-ui/react';
 import {
   Form,
@@ -29,7 +30,7 @@ import {
   useSubmit,
   useTransition,
 } from '@remix-run/react';
-import { useCallback, useContext, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import type { Comment } from '~/types';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
@@ -82,14 +83,18 @@ export const action = async ({ request, params }: ActionArgs) => {
         id: nanoid(),
         resolved: undefined, // there is no need to add resolved for sub-comments
       };
-      await createNewComment(comment);
-      // Update root comment lastMessageTimeStamp
-      await updateComment({
-        PK: rootComment.PK ?? '',
-        SK: rootComment.SK ?? '',
-        latestMessage: utcNow(),
-      });
-      emitter.emit(EVENTS.MESSAGE, { id: rootComment.id, creatorAlias: user?.username });
+      if (!rootComment.resolved) {
+        await createNewComment(comment);
+        // Update root comment lastMessageTimeStamp
+        await updateComment({
+          PK: rootComment.PK ?? '',
+          SK: rootComment.SK ?? '',
+          latestMessage: utcNow(),
+        });
+        emitter.emit(EVENTS.MESSAGE, { id: rootComment.id, creatorAlias: user?.username });
+      } else {
+        return json({ paragraph: entryData.paragraph, resolved: true });
+      }
     }
     return json({ paragraph: entryData.paragraph });
   }
@@ -109,7 +114,7 @@ export const action = async ({ request, params }: ActionArgs) => {
 export default function DialogRoute() {
   const loaderData = useLoaderData<typeof loader>();
   const { comments } = loaderData;
-  const actionData = useActionData<{ paragraph: string }>();
+  const actionData = useActionData<{ paragraph: string; resolved: boolean }>();
   const ref = useRef<HTMLButtonElement>(null);
   const submit = useSubmit();
   const transaction = useTransition();
@@ -128,6 +133,21 @@ export default function DialogRoute() {
   const { currentUser } = useContext(AppContext);
   const [updateParagraph, setUpdateParagraph] = useState(paragraph);
   useMessage(currentUser);
+  const toast = useToast();
+
+  useEffect(() => {
+    if (actionData?.resolved) {
+      toast({
+        title: 'Comment has been resolved',
+        description: 'Please close current modal',
+        status: 'warning',
+        duration: 3000,
+        position: 'top',
+      });
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionData]);
 
   const dialogRef = useCallback(
     (node: HTMLDivElement) => {
