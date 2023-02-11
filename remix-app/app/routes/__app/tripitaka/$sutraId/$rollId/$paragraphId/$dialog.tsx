@@ -40,7 +40,6 @@ import {
   createNewComment,
   getAllCommentsByParentId,
   getCommentByKey,
-  resolveComment,
   updateComment,
 } from '~/models/comment';
 import { nanoid } from 'nanoid';
@@ -102,7 +101,7 @@ export const action = async ({ request, params }: ActionArgs) => {
       SK: paragraphId.replace('ZH', 'EN'),
       content: entryData.paragraph,
     });
-    await resolveComment(entryData.SK);
+    await updateComment({ SK: entryData.SK ?? '', PK: 'COMMENT', resolved: 1 });
   }
   return json({});
 };
