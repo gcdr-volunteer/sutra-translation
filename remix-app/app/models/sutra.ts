@@ -1,15 +1,21 @@
-import type { CreateType, Key, LangCode, UpdateType } from '~/types';
+import type { CreatedType, CreateType, Key, LangCode, UpdateType } from '~/types';
 import type { Sutra } from '~/types/sutra';
 import type { QueryCommandInput } from '@aws-sdk/client-dynamodb';
 import { QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { dbClient, dbGetByKey, dbInsert, dbUpdate } from '~/models/external_services/dynamodb';
+import {
+  dbClient,
+  dbGetByKey,
+  dbGetByPartitionKey,
+  dbInsert,
+  dbUpdate,
+} from '~/models/external_services/dynamodb';
 import { composeSKForSutra } from './utils';
 
 export const getSutrasByLangAndVersion = async (
   lang: LangCode,
   version: string
-): Promise<Sutra[]> => {
+): Promise<CreatedType<Sutra>[]> => {
   const SK = composeSKForSutra({ lang, version });
   const params: QueryCommandInput = {
     TableName: process.env.TRANSLATION_TABLE,
@@ -21,12 +27,16 @@ export const getSutrasByLangAndVersion = async (
   };
   const { Items } = await dbClient().send(new QueryCommand(params));
   if (Items?.length) {
-    return Items.map((Item) => unmarshall(Item) as Sutra);
+    return Items.map((Item) => unmarshall(Item) as CreatedType<Sutra>);
   }
   return [];
 };
 
-export const getSutraByPrimaryKey = async (key: Key): Promise<Sutra | undefined> => {
+export const getAllSutras = async (): Promise<CreatedType<Sutra>[]> => {
+  return await dbGetByPartitionKey<CreatedType<Sutra>>('TRIPITAKA');
+};
+
+export const getSutraByPrimaryKey = async (key: Key): Promise<CreatedType<Sutra> | undefined> => {
   return await dbGetByKey({ tableName: process.env.TRANSLATION_TABLE, key });
 };
 

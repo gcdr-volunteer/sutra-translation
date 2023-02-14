@@ -39,6 +39,21 @@ export const dbGetByKey = async <T>({
   return undefined;
 };
 
+export const dbGetByPartitionKey = async <T>(PK: string) => {
+  const params: QueryCommandInput = {
+    TableName: process.env.TRANSLATION_TABLE,
+    KeyConditionExpression: 'PK = :PK',
+    ExpressionAttributeValues: marshall({
+      ':PK': PK,
+    }),
+  };
+  const { Items } = await dbClient().send(new QueryCommand(params));
+  if (Items?.length) {
+    return Items.map((Item) => unmarshall(Item) as T);
+  }
+  return [];
+};
+
 export const dbGetByIndexAndKey = async <T>({
   tableName,
   indexName,

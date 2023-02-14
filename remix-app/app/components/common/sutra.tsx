@@ -1,4 +1,4 @@
-import type { Sutra as TSutra } from '~/types';
+import type { CreatedType, Sutra as TSutra } from '~/types';
 import {
   LinkBox,
   Card,
@@ -19,7 +19,7 @@ import { Link, useActionData } from '@remix-run/react';
 import { FormModal } from './modal';
 import { Intent } from '~/types/common';
 import { useEffect } from 'react';
-export interface SutraProps extends TSutra {
+export interface SutraProps extends CreatedType<TSutra> {
   slug: string;
   firstTime: boolean;
 }
