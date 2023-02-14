@@ -236,7 +236,7 @@ export default function DialogRoute() {
               onKeyUp={handleKeyUp}
               name='dialog'
               mt={8}
-              placeholder='your message'
+              placeholder='Click Enter to send your comment'
             />
             <Input readOnly hidden name='PK' value={comments?.[0].PK} />
             <Input readOnly hidden name='SK' value={comments?.[0].SK} />

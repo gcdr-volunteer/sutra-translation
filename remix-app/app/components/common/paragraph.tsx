@@ -163,13 +163,7 @@ export const Paragraph = ({
         // TODO: this needs improvements
         <Heading as={category === 'HEAD1' ? 'h3' : 'h4'}>{argumentedContent}</Heading>
       ) : (
-        <Text
-          flex={1}
-          color={toggle ? 'white' : 'inherit'}
-          lineHeight={1.8}
-          fontSize={'xl'}
-          // fontFamily="Noto Serif HK"
-        >
+        <Text flex={1} color={toggle ? 'white' : 'inherit'} lineHeight={1.8} fontSize={'xl'}>
           {argumentedContent}
         </Text>
       )}
@@ -261,10 +255,14 @@ const CommentBadges = (props: CommentBadgesProps) => {
   }, [message]);
 
   useEffect(() => {
-    if (lastMessage?.createdBy !== currentUser?.email) {
-      setNotifications((prev) => ({ ...prev, [rootComment.id]: true }));
-    } else {
-      setNotifications((prev) => ({ ...prev, [rootComment.id]: false }));
+    if (rootComment) {
+      if (lastMessage?.createdBy !== currentUser?.email) {
+        setNotifications((prev) => ({ ...prev, [rootComment.id]: true }));
+      } else if (lastMessage?.id === rootComment?.id) {
+        setNotifications((prev) => ({ ...prev, [rootComment.id]: false }));
+      } else {
+        setNotifications((prev) => ({ ...prev, [rootComment.id]: false }));
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rootComment]);

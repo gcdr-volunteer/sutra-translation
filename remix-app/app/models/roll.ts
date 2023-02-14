@@ -1,22 +1,13 @@
 import type { CreateType, Key, Roll, UpdateType } from '~/types';
-import type { QueryCommandInput } from '@aws-sdk/client-dynamodb';
-import { QueryCommand } from '@aws-sdk/client-dynamodb';
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { dbClient, dbGetByKey, dbInsert, dbUpdate } from '~/models/external_services/dynamodb';
+import {
+  dbGetByKey,
+  dbGetByPartitionKey,
+  dbInsert,
+  dbUpdate,
+} from '~/models/external_services/dynamodb';
 
 export const getRollsBySutraId = async (PK: string): Promise<Roll[]> => {
-  const params: QueryCommandInput = {
-    TableName: process.env.TRANSLATION_TABLE,
-    KeyConditionExpression: 'PK = :PK',
-    ExpressionAttributeValues: marshall({
-      ':PK': PK,
-    }),
-  };
-  const { Items } = await dbClient().send(new QueryCommand(params));
-  if (Items?.length) {
-    return Items.map((Item) => unmarshall(Item) as Roll);
-  }
-  return [];
+  return await dbGetByPartitionKey(PK);
 };
 
 export const getRollByPrimaryKey = async (key: Key): Promise<Roll | undefined> => {

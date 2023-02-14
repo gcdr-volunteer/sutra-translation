@@ -1,23 +1,25 @@
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { Roll } from '~/types';
+import type { Comment } from '~/types/comment';
+import type { MutableRefObject } from 'react';
 import { json } from '@remix-run/node';
 import { Outlet, useLoaderData, useLocation, useNavigate } from '@remix-run/react';
-import { IconButton, Flex, Box } from '@chakra-ui/react';
+import { IconButton, Flex, Box, Heading } from '@chakra-ui/react';
 import { useEffect, useRef } from 'react';
 import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
 import { getOriginParagraphsByRollId, getTargetParagraphsByRollId } from '~/models/paragraph';
 import { getAllCommentsByParentId, getAllRootCommentsForRoll } from '~/models/comment';
 import { handleNewComment } from '~/services/__app/tripitaka/$sutraId/$rollId';
-import type { Comment } from '~/types/comment';
 import { assertAuthUser } from '~/auth.server';
 import { Intent } from '~/types/common';
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
-import type { MutableRefObject } from 'react';
 import { badRequest } from 'remix-utils';
 import { utcNow } from '~/utils';
-
+import { getRollByPrimaryKey } from '~/models/roll';
 export const loader = async ({ params }: LoaderArgs) => {
-  const { rollId } = params;
+  const { rollId, sutraId } = params;
   if (rollId) {
+    const roll = await getRollByPrimaryKey({ PK: sutraId ?? '', SK: rollId });
     const originParagraphs = await getOriginParagraphsByRollId(rollId);
     const targetParagraphs = await getTargetParagraphsByRollId(rollId);
     // TODO: update language to match user's profile
@@ -56,6 +58,7 @@ export const loader = async ({ params }: LoaderArgs) => {
       origins,
       targets,
       lastMessages,
+      roll,
     });
   }
 
@@ -89,17 +92,19 @@ export type ParagraphLoadData = {
   content: string;
   comments: [];
 };
-export default function RollRoute() {
-  const { origins, targets, footnotes } = useLoaderData<{
+export default function ParagraphRoute() {
+  const { origins, targets, footnotes, roll } = useLoaderData<{
     origins: ParagraphLoadData[];
     targets: ParagraphLoadData[];
     footnotes: [];
+    roll?: Roll;
   }>();
 
   const navigate = useNavigate();
   const checkedParagraphs = useRef(new Set<number>());
 
   const location = useLocation();
+  const { pathname } = location;
   const refs = targets?.reduce((acc, cur) => {
     // TODO: (low) should have a better way to do this
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -114,6 +119,8 @@ export default function RollRoute() {
       });
     }
   }, [location.hash, refs]);
+
+  const isStagingRoute = pathname?.includes('staging');
 
   const paragraphsComp = origins?.map((origin, index) => {
     // TODO: handle out of order selection
@@ -146,29 +153,35 @@ export default function RollRoute() {
         gap={4}
         mt={10}
       >
+        {roll?.title && !isStagingRoute ? <Heading size={'lg'}>{roll.title}</Heading> : null}
+        {roll?.subtitle && !isStagingRoute ? <Heading size={'md'}>{roll.subtitle}</Heading> : null}
+        {!isStagingRoute ? (
+          <>
+            {paragraphsComp}
+            <IconButton
+              borderRadius={'50%'}
+              w={12}
+              h={12}
+              pos={'fixed'}
+              bottom={8}
+              right={8}
+              icon={<FiEdit />}
+              aria-label='edit roll'
+              colorScheme={'iconButton'}
+              onClick={() => {
+                navigate(`staging`, {
+                  replace: true,
+                  state: {
+                    paragraphs: Array.from(checkedParagraphs.current)
+                      .sort()
+                      .map((index) => origins[index]),
+                  },
+                });
+              }}
+            />
+          </>
+        ) : null}
         <Outlet context={{ modal: true }} />
-        {paragraphsComp}
-        <IconButton
-          borderRadius={'50%'}
-          w={12}
-          h={12}
-          pos={'fixed'}
-          bottom={8}
-          right={8}
-          icon={<FiEdit />}
-          aria-label='edit roll'
-          colorScheme={'iconButton'}
-          onClick={() => {
-            navigate(`staging`, {
-              replace: true,
-              state: {
-                paragraphs: Array.from(checkedParagraphs.current)
-                  .sort()
-                  .map((index) => origins[index]),
-              },
-            });
-          }}
-        />
       </Flex>
     );
   }

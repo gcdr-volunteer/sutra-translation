@@ -1,5 +1,4 @@
 import type { ChangeEvent } from 'react';
-import type { ParagraphLoadData } from '../$rollId';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { Paragraph, Glossary as TGlossary, Footnote, CreateType } from '~/types';
 import {
@@ -23,7 +22,6 @@ import {
   ButtonGroup,
   IconButton,
   Textarea,
-  CardFooter,
   Divider,
   Button,
   Tooltip,
@@ -61,6 +59,7 @@ import { logger } from '~/utils';
 import { BiLinkExternal } from 'react-icons/bi';
 import { getParagraphsByRollId } from '~/models/paragraph';
 import { upsertFootnote } from '~/models/footnote';
+import type { ParagraphLoadData } from '../$rollId';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId } = params;
@@ -410,6 +409,14 @@ function TranlationWorkspace({
               </Tooltip>
               <FootnoteModal content={content} cursorPos={textareaRef.current?.selectionStart} />
               <SearchModal />
+              <Button
+                marginLeft={'auto'}
+                onClick={handleSubmitTranslation}
+                colorScheme={'iconButton'}
+                disabled={!content}
+              >
+                Submit
+              </Button>
             </ButtonGroup>
             {glossary ? <GlossaryModal /> : null}
             <Form method='post' ref={textareaFormRef} style={{ height: '100%' }}>
@@ -430,16 +437,6 @@ function TranlationWorkspace({
               <Input name='intent' value={Intent.CREATE_TRANSLATION} hidden readOnly />
             </Form>
           </CardBody>
-          <Divider />
-          <CardFooter>
-            <Button
-              onClick={handleSubmitTranslation}
-              colorScheme={'iconButton'}
-              disabled={!content}
-            >
-              Submit
-            </Button>
-          </CardFooter>
         </Card>
       </Flex>
     </Flex>

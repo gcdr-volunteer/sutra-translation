@@ -1,8 +1,7 @@
 import type { Lang } from './lang';
 import type { Team } from './team';
-import type { CommonMeta } from './common';
 
-export interface Sutra extends CommonMeta {
+export interface Sutra {
   /**
    * The title of the sutra, like Avatamsaka
    */
@@ -59,6 +58,10 @@ export interface Sutra extends CommonMeta {
    * From what AC time to what AC time
    */
   time_to: number;
+  /**
+   * Indicate if the translation of this roll finished
+   */
+  finish: boolean;
   /**
    * The helper type
    */

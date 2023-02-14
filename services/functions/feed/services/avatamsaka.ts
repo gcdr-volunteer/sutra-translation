@@ -150,6 +150,7 @@ export const getMetaData = async (feed: FeedParams) => {
       dynasty: sutraMeta.time_dynasty,
       team: '',
       num_chars: sutraMeta.cjk_chars,
+      finish: true,
       kind,
     };
 
