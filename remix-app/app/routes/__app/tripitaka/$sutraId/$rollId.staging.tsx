@@ -59,7 +59,7 @@ import { logger } from '~/utils';
 import { BiLinkExternal } from 'react-icons/bi';
 import { getParagraphsByRollId } from '~/models/paragraph';
 import { upsertFootnote } from '~/models/footnote';
-import type { ParagraphLoadData } from '../$rollId';
+import type { ParagraphLoadData } from './$rollId';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId } = params;

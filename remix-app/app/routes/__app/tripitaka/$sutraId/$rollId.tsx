@@ -104,7 +104,6 @@ export default function ParagraphRoute() {
   const checkedParagraphs = useRef(new Set<number>());
 
   const location = useLocation();
-  const { pathname } = location;
   const refs = targets?.reduce((acc, cur) => {
     // TODO: (low) should have a better way to do this
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -119,8 +118,6 @@ export default function ParagraphRoute() {
       });
     }
   }, [location.hash, refs]);
-
-  const isStagingRoute = pathname?.includes('staging');
 
   const paragraphsComp = origins?.map((origin, index) => {
     // TODO: handle out of order selection
@@ -153,35 +150,31 @@ export default function ParagraphRoute() {
         gap={4}
         mt={10}
       >
-        {roll?.title && !isStagingRoute ? <Heading size={'lg'}>{roll.title}</Heading> : null}
-        {roll?.subtitle && !isStagingRoute ? <Heading size={'md'}>{roll.subtitle}</Heading> : null}
-        {!isStagingRoute ? (
-          <>
-            {paragraphsComp}
-            <IconButton
-              borderRadius={'50%'}
-              w={12}
-              h={12}
-              pos={'fixed'}
-              bottom={8}
-              right={8}
-              icon={<FiEdit />}
-              aria-label='edit roll'
-              colorScheme={'iconButton'}
-              onClick={() => {
-                navigate(`staging`, {
-                  replace: true,
-                  state: {
-                    paragraphs: Array.from(checkedParagraphs.current)
-                      .sort()
-                      .map((index) => origins[index]),
-                  },
-                });
-              }}
-            />
-          </>
-        ) : null}
         <Outlet context={{ modal: true }} />
+        {roll?.title ? <Heading size={'lg'}>{roll.title}</Heading> : null}
+        {roll?.subtitle ? <Heading size={'md'}>{roll.subtitle}</Heading> : null}
+        {paragraphsComp}
+        <IconButton
+          borderRadius={'50%'}
+          w={12}
+          h={12}
+          pos={'fixed'}
+          bottom={8}
+          right={8}
+          icon={<FiEdit />}
+          aria-label='edit roll'
+          colorScheme={'iconButton'}
+          onClick={() => {
+            navigate(`staging`, {
+              replace: true,
+              state: {
+                paragraphs: Array.from(checkedParagraphs.current)
+                  .sort()
+                  .map((index) => origins[index]),
+              },
+            });
+          }}
+        />
       </Flex>
     );
   }
