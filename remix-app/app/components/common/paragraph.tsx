@@ -1,10 +1,9 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import {
   Text,
   Flex,
   Checkbox,
   useBoolean,
-  Tooltip,
   useDisclosure,
   Heading,
   useHighlight,
@@ -15,12 +14,13 @@ import {
 import { FormModal } from '~/components/common';
 import { Comment } from './comment';
 import type { MutableRefObject } from 'react';
-import type { Comment as TComment } from '~/types';
+import type { Comment as TComment, CreatedType, Footnote } from '~/types';
 import { Intent } from '~/types/common';
 import { Link, useLoaderData } from '@remix-run/react';
 import { AiFillMessage } from 'react-icons/ai';
 import { AppContext } from '~/routes/__app';
 import { useEventSource } from 'remix-utils';
+import { SText } from './textwithfootnotes';
 type TextSelection = {
   start?: number;
   end?: number;
@@ -38,7 +38,7 @@ export const ParagraphTarget = ({
   paragraphId: string;
   content: string;
   comments: TComment[];
-  footnotes: string[];
+  footnotes: Footnote[];
   toggle?: boolean;
   background?: string;
 }) => {
@@ -122,34 +122,15 @@ export const Paragraph = ({
   content,
   toggle,
   background,
-  footnotes,
+  footnotes = [],
   category,
 }: {
   content: string;
   toggle?: boolean;
   background?: string;
-  footnotes?: {
-    num: number;
-    offset: number;
-    note: string;
-  }[];
+  footnotes?: CreatedType<Footnote>[];
   category?: string;
 }) => {
-  const argumentedContent = footnotes?.length
-    ? footnotes.map((footnote, index, arr) => {
-        const { num, offset, note } = footnote;
-        const nextOffset = arr[index + 1]?.offset ?? -1;
-        return (
-          <span key={num}>
-            <Text as='span'>{content.slice(0, offset)}</Text>
-            <Tooltip label={note} aria-label='footnote tooltip'>
-              <span style={{ paddingLeft: 4, paddingRight: 4, color: 'blue' }}>[{num}]</span>
-            </Tooltip>
-            <Text as='span'>{content.slice(offset, nextOffset)}</Text>
-          </span>
-        );
-      })
-    : content;
   return (
     <Flex
       flex={1}
@@ -161,10 +142,21 @@ export const Paragraph = ({
     >
       {category?.startsWith('HEAD') ? (
         // TODO: this needs improvements
-        <Heading as={category === 'HEAD1' ? 'h3' : 'h4'}>{argumentedContent}</Heading>
+        <Heading as={category === 'HEAD1' ? 'h3' : 'h4'} size={'md'}>
+          <SText footnotes={footnotes} text={content} />
+        </Heading>
       ) : (
-        <Text flex={1} color={toggle ? 'white' : 'inherit'} lineHeight={1.8} fontSize={'xl'}>
-          {argumentedContent}
+        <Text
+          fontFamily={
+            category === 'PREFACE' ? 'monospace' : category === 'BYLINE' ? 'serif' : 'mono'
+          }
+          as={category === 'PREFACE' ? 'i' : category === 'BYLINE' ? 'cite' : undefined}
+          flex={1}
+          color={toggle ? 'white' : 'inherit'}
+          lineHeight={1.8}
+          fontSize={'xl'}
+        >
+          <SText footnotes={footnotes} text={content} />
         </Text>
       )}
     </Flex>
@@ -177,19 +169,27 @@ export const ParagraphOrigin = ({
   index,
   checkedParagraphs,
   background,
+  params,
+  SK,
 }: {
   content: string;
   footnotes: string[];
   index: number;
   checkedParagraphs?: MutableRefObject<Set<number>>;
   background?: string;
+  params?: URLSearchParams;
+  SK?: string;
 }) => {
   const [toggle, setToggle] = useBoolean(false);
-  if (toggle) {
-    checkedParagraphs?.current.add(index);
-  } else {
-    checkedParagraphs?.current.delete(index);
-  }
+  useMemo(() => {
+    if (toggle) {
+      checkedParagraphs?.current.add(index);
+      params?.append('p', SK ?? '');
+    } else {
+      checkedParagraphs?.current.delete(index);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toggle]);
   return (
     <Flex w={'85%'} flexDir={'row'} alignItems={'flex-start'}>
       <Checkbox ml={-6} borderColor={'primary.300'} onChange={setToggle.toggle}>
@@ -222,8 +222,8 @@ export const ParagraphPair = ({
         paragraphId={origin.SK}
         background='secondary.200'
         content={target?.content}
-        comments={target?.comments}
-        footnotes={footnotes}
+        comments={target?.comments || []}
+        footnotes={[]}
       />
     </Flex>
   );

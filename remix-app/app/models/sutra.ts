@@ -33,7 +33,15 @@ export const getSutrasByLangAndVersion = async (
 };
 
 export const getAllSutras = async (): Promise<CreatedType<Sutra>[]> => {
-  return await dbGetByPartitionKey<CreatedType<Sutra>>('TRIPITAKA');
+  return await dbGetByPartitionKey<CreatedType<Sutra>>({
+    tableName: process.env.TRANSLATION_TABLE,
+    PK: 'TRIPITAKA',
+  });
+};
+
+export const getAllSutraThatFinished = async (): Promise<CreatedType<Sutra>[]> => {
+  const sutras = await getAllSutras();
+  return sutras.filter((sutra) => sutra.finish);
 };
 
 export const getSutraByPrimaryKey = async (key: Key): Promise<CreatedType<Sutra> | undefined> => {

@@ -20,11 +20,20 @@ export const loader = async ({ params }: LoaderArgs) => {
     }
     return acc;
   }, {} as Record<string, boolean>);
-  const extractedRolls = rolls?.map((roll) => ({
-    firstTime: mapper[roll.SK ?? ''] ?? true,
-    slug: roll.SK,
-    ...roll,
-  }));
+  const extractedRolls = rolls
+    ?.filter((roll) => {
+      const target = targetRolls.find((target) => target.origin_rollId === roll.SK);
+      if (target?.finish) {
+        return false;
+      }
+
+      return true;
+    })
+    .map((roll) => ({
+      firstTime: mapper[roll.SK ?? ''] ?? true,
+      slug: roll.SK,
+      ...roll,
+    }));
   return json({ data: extractedRolls });
 };
 

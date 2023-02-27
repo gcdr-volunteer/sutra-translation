@@ -121,6 +121,7 @@ export async function RemixStack({ stack }: StackContext) {
       DEEPL_AUTHKEY: process.env.DEEPL_AUTHKEY ?? '',
       TOPIC_ARN: topic.topicArn,
       ES_URL: domain.domainEndpoint,
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
     },
   });
   const esAccess = new iam.PolicyStatement({

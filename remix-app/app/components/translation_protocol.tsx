@@ -4,7 +4,7 @@ export const TranslationProtocol = () => {
   return (
     <Box>
       <Heading textAlign={'center'} as='h3' size='lg'>
-        The Eight Guidelines for Translators and Volunteers 译经八项基本守则
+        The Eight Guidelines for Translators and Volunteers 譯經八項基本守則
       </Heading>
       <SimpleGrid columns={1} spacing={4}>
         <OrderedList>

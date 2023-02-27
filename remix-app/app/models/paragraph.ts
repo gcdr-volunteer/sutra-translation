@@ -34,7 +34,9 @@ export const getTargetParagraphsByRollId = async (
   return getParagraphsByRollId(key);
 };
 
-export const getParagraphByPrimaryKey = async (key: Key): Promise<Paragraph | undefined> => {
+export const getParagraphByPrimaryKey = async (
+  key: Key
+): Promise<CreatedType<Paragraph> | undefined> => {
   return await dbGetByKey({ key, tableName: process.env.TRANSLATION_TABLE });
 };
 

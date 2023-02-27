@@ -38,14 +38,47 @@ export const dbGetByKey = async <T>({
   }
   return undefined;
 };
-
-export const dbGetByPartitionKey = async <T>(PK: string) => {
+export const dbGetBySortKeyBeginwith = async <T>({
+  tableName,
+  key,
+  sort = true,
+}: {
+  key: Key;
+  tableName: string;
+  sort?: boolean;
+}) => {
   const params: QueryCommandInput = {
-    TableName: process.env.TRANSLATION_TABLE,
+    TableName: tableName,
+    KeyConditionExpression: 'PK = :PK AND begins_with(SK, :SK)',
+    ExpressionAttributeValues: marshall({
+      ':PK': key.PK,
+      ':SK': key.SK,
+    }),
+    ScanIndexForward: sort,
+  };
+  const { Items } = await dbClient().send(new QueryCommand(params));
+  if (Items?.length) {
+    return Items.map((Item) => unmarshall(Item) as T);
+  }
+  return [];
+};
+
+export const dbGetByPartitionKey = async <T>({
+  PK,
+  tableName,
+  sort = true,
+}: {
+  PK: string;
+  tableName: string;
+  sort?: boolean;
+}) => {
+  const params: QueryCommandInput = {
+    TableName: tableName,
     KeyConditionExpression: 'PK = :PK',
     ExpressionAttributeValues: marshall({
       ':PK': PK,
     }),
+    ScanIndexForward: sort,
   };
   const { Items } = await dbClient().send(new QueryCommand(params));
   if (Items?.length) {
@@ -58,14 +91,17 @@ export const dbGetByIndexAndKey = async <T>({
   tableName,
   indexName,
   key,
+  sort = true,
 }: {
   tableName: string;
-  key: Record<string, string>;
+  key: Record<string, string | number>;
   indexName: string;
+  sort?: boolean;
 }) => {
   const params: QueryCommandInput = {
     TableName: tableName,
     IndexName: indexName,
+    ScanIndexForward: sort,
     KeyConditionExpression: Object.keys(key).reduce((acc, cur, index, array) => {
       if (index === array.length - 1) {
         acc += `${cur} = :${cur}`;
@@ -78,14 +114,14 @@ export const dbGetByIndexAndKey = async <T>({
       ...Object.entries(key).reduce((acc, [key, value]) => {
         acc[`:${key}`] = value;
         return acc;
-      }, {} as Record<string, string>),
+      }, {} as Record<string, string | number>),
     }),
   };
   const { Items } = await dbClient().send(new QueryCommand(params));
   if (Items?.length) {
     return Items.map((Item) => unmarshall(Item) as T);
   }
-  return undefined;
+  return [];
 };
 
 export const dbInsert = async ({ tableName, doc }: { doc: CreateType<Doc>; tableName: string }) => {
@@ -135,13 +171,16 @@ export const dbUpdate = async ({ tableName, doc }: { doc: UpdateType<Doc>; table
       return acct;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }, {} as Record<string, any>),
-    ExpressionAttributeValues: marshall({
-      ...Object.entries(rest).reduce((acct, [key, value]) => {
-        acct[`:${key}`] = value;
-        return acct;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }, {} as Record<string, any>),
-    }),
+    ExpressionAttributeValues: marshall(
+      {
+        ...Object.entries(rest).reduce((acct, [key, value]) => {
+          acct[`:${key}`] = value;
+          return acct;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }, {} as Record<string, any>),
+      },
+      { removeUndefinedValues: true }
+    ),
     ReturnValues: ReturnValue.ALL_NEW,
   };
   return await dbClient().send(new UpdateItemCommand(params));

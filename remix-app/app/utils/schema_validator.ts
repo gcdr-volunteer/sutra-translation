@@ -26,8 +26,8 @@ export const schemaValidator = async <S extends AnyObjectSchema, T>({
 export const initialSchema = () => {
   return yup.object().shape({
     createdAt: yup.string().default(utcNow()),
-    createdBy: yup.string().default('Admin'),
+    createdBy: yup.string(),
     updatedAt: yup.string().default(utcNow()),
-    updatedBy: yup.string().default('Admin'),
+    updatedBy: yup.string(),
   });
 };

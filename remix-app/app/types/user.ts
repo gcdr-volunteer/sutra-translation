@@ -50,6 +50,12 @@ export interface User extends CommonMeta {
    */
   avatar?: string;
   /**
+   * The sutra the user is currently working on. Generally a user can working
+   * on a sutra at a time and should match whatever his/her team working on
+   * however, an assistor can working on different sutras
+   */
+  working_sutra?: string;
+  /**
    * The helper type
    */
   kind: 'USER';

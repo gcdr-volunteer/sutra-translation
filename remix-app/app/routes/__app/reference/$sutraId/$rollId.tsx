@@ -8,31 +8,21 @@ import { IconButton, Flex, Box, Heading } from '@chakra-ui/react';
 import { useEffect, useRef } from 'react';
 import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
-import { getOriginParagraphsByRollId, getTargetParagraphsByRollId } from '~/models/paragraph';
-import { getAllCommentsByParentId, getAllRootCommentsForRoll } from '~/models/comment';
+import { getOriginParagraphsByRollId } from '~/models/paragraph';
 import { handleNewComment } from '~/services/__app/tripitaka/$sutraId/$rollId';
 import { assertAuthUser } from '~/auth.server';
 import { Intent } from '~/types/common';
 import { badRequest } from 'remix-utils';
 import { utcNow } from '~/utils';
 import { getRollByPrimaryKey } from '~/models/roll';
-import { getFootnotesByPartitionKey } from '~/models/footnote';
+import { getTargetReferencesByRollId } from '~/models/reference';
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId, sutraId } = params;
   if (rollId) {
     const roll = await getRollByPrimaryKey({ PK: sutraId ?? '', SK: rollId });
     const originParagraphs = await getOriginParagraphsByRollId(rollId);
-    const targetParagraphs = await getTargetParagraphsByRollId(rollId);
-    const footnotes = await getFootnotesByPartitionKey(rollId.replace('ZH', 'EN'));
+    const targetReferences = await getTargetReferencesByRollId(rollId);
     // TODO: update language to match user's profile
-    const rootComments = await getAllRootCommentsForRoll(rollId.replace('ZH', 'EN'));
-
-    const lastMessages = await Promise.all(
-      rootComments.map(async (comment) => {
-        const comments = await getAllCommentsByParentId(comment.id);
-        return comments.at(-1);
-      })
-    );
 
     const origins = originParagraphs?.map(({ PK, SK, category, content, num, finish }) => ({
       PK,
@@ -42,24 +32,30 @@ export const loader = async ({ params }: LoaderArgs) => {
       num,
       finish,
     }));
-    const targets = targetParagraphs?.map(({ category, content, num, SK, finish }) => {
-      const comments = rootComments.filter(
-        (comment) => comment?.paragraphId === SK && !comment?.resolved
-      );
-      return {
-        comments,
-        category,
-        content,
-        num,
-        SK,
-        finish,
-      };
-    });
+    const targets = targetReferences
+      ?.sort((a, b) => {
+        if (a.SK && b.SK) {
+          if (a.SK > b.SK) {
+            return 1;
+          }
+          if (a.SK < b.SK) {
+            return -1;
+          }
+          return 0;
+        }
+        return 0;
+      })
+      .filter(({ finish }) => finish)
+      .map(({ content, SK, finish, paragraph }) => {
+        return {
+          content: paragraph ?? content,
+          SK,
+          finish,
+        };
+      });
     return json({
-      footnotes,
       origins,
       targets,
-      lastMessages,
       roll,
     });
   }
@@ -93,6 +89,7 @@ export type ParagraphLoadData = {
   finish: boolean;
   content: string;
   comments: [];
+  paragraph?: string;
 };
 export default function ParagraphRoute() {
   const { origins, targets, roll } = useLoaderData<{
@@ -121,15 +118,14 @@ export default function ParagraphRoute() {
     }
   }, [location.hash, refs]);
 
-  const urlparams = new URLSearchParams();
+  const params = new URLSearchParams();
 
   const paragraphsComp = origins?.map((origin, index) => {
     // TODO: handle out of order selection
     const target = targets[index];
-    const ref = refs[`#${target?.SK}`];
     if (target && target?.finish) {
       return (
-        <Box key={origin.SK} w='85%' ref={ref}>
+        <Box key={origin.SK} w='85%'>
           <ParagraphPair origin={origin} target={target} footnotes={[]} />
         </Box>
       );
@@ -141,7 +137,7 @@ export default function ParagraphRoute() {
         index={index}
         SK={origin.SK}
         footnotes={[]}
-        params={urlparams}
+        params={params}
         checkedParagraphs={checkedParagraphs}
       />
     );
@@ -171,7 +167,7 @@ export default function ParagraphRoute() {
           aria-label='edit roll'
           colorScheme={'iconButton'}
           onClick={() => {
-            navigate(`staging?${urlparams.toString()}`, {
+            navigate(`staging?${params.toString()}`, {
               replace: true,
             });
           }}

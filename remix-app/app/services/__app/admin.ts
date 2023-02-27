@@ -1,4 +1,4 @@
-import type { Team, User } from '~/types';
+import type { Team, UpdateType, User } from '~/types';
 import type { Lang } from '~/types/lang';
 import type { PublishCommandInput } from '@aws-sdk/client-sns';
 import { json } from '@remix-run/node';
@@ -6,7 +6,7 @@ import { badRequest, created } from 'remix-utils';
 import * as yup from 'yup';
 import { createNewLang, getLang } from '~/models/lang';
 import { createNewTeam, getTeam } from '~/models/team';
-import { createNewUser, getWholeUserTable } from '~/models/user';
+import { createNewUser, getWholeUserTable, updateUser } from '~/models/user';
 import { Intent } from '~/types/common';
 import { LangCode } from '~/types/lang';
 import { RoleType } from '~/types/role';
@@ -128,6 +128,17 @@ export const handleCreateNewUser = async (user: Omit<User, 'kind'>) => {
   } catch (errors) {
     logger.error(handleCreateNewUser.name, 'errors', errors);
     return badRequest({ errors: errors, intent: Intent.CREATE_USER });
+  }
+};
+
+export const handleUpdateUser = async (user: UpdateType<User>) => {
+  try {
+    logger.log(handleUpdateUser.name, 'user', user);
+    await updateUser(user);
+    return json({ intent: Intent.UPDATE_USER });
+  } catch (errors) {
+    logger.error(handleCreateNewUser.name, 'errors', errors);
+    return badRequest({ errors: errors, intent: Intent.UPDATE_USER });
   }
 };
 

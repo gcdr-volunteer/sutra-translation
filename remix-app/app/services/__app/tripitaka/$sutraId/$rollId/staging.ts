@@ -1,4 +1,4 @@
-import type { Glossary } from '~/types';
+import type { Footnote, Glossary } from '~/types';
 import type { Paragraph } from '~/types/paragraph';
 import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
@@ -6,12 +6,14 @@ import { translateZH2EN } from '~/models/external_services/deepl';
 import { json } from '@remix-run/node';
 import { upsertParagraph, getParagraphByPrimaryKey } from '~/models/paragraph';
 import { logger } from '~/utils';
-import { createNewGlossary, getAllGlossary } from '~/models/glossary';
+import { getAllGlossary, upsertGlossary } from '~/models/glossary';
 import { Intent } from '~/types/common';
 import { created, serverError, unprocessableEntity } from 'remix-utils';
 import { esClient } from '~/models/external_services/opensearch';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import { getFootnotesByPartitionKey, upsertFootnote } from '~/models/footnote';
+import { translate } from '~/models/external_services/openai';
 
 const newTranslationSchema = () => {
   const baseSchema = initialSchema();
@@ -39,6 +41,18 @@ const newGlossarySchema = () => {
   return glossarySchema;
 };
 
+const newFootnoteSchema = () => {
+  const baseSchema = initialSchema();
+  return baseSchema.shape({
+    PK: yup.string().trim().required(),
+    SK: yup.string().trim().required(),
+    content: yup.string().trim().required(),
+    offset: yup.number().required(),
+    paragraphId: yup.string().required(),
+    kind: yup.mixed<'FOOTNOTE'>().default('FOOTNOTE'),
+  });
+};
+
 export const hanldeDeepLFetch = async ({ origins }: { origins: Record<string, string> }) => {
   try {
     logger.log(hanldeDeepLFetch.name, 'origins', origins);
@@ -56,6 +70,43 @@ export const hanldeDeepLFetch = async ({ origins }: { origins: Record<string, st
   } catch (error) {
     // TODO: handle error from frontend
     logger.error(hanldeDeepLFetch.name, 'error', error);
+    return json({ errors: { deepl: (error as unknown as Error)?.message } }, { status: 400 });
+  }
+};
+
+export const handleOpenaiFetch = async ({ origins }: { origins: Record<string, string> }) => {
+  try {
+    logger.log(handleOpenaiFetch.name, 'origins', origins);
+
+    // TODO: only fetch working user's profile glossary
+    const glossaries = await getAllGlossary();
+    const sourceGlossaries = glossaries?.map((glossary) => ({
+      key: glossary.origin,
+      value: glossary.target,
+    }));
+    const results = await Promise.all(
+      Object.values(origins).map((text) => {
+        const glossaries = sourceGlossaries
+          .filter((glossary) => text.indexOf(glossary.key) !== -1)
+          .reduce((acc, cur) => {
+            acc[cur.key] = cur.value;
+            return acc;
+          }, {} as Record<string, string>);
+        return translate(text, glossaries);
+      })
+    );
+    const obj = Object.keys(origins).reduce((acc, key, index) => {
+      if (results) {
+        acc[key] = results[index];
+        return acc;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+    logger.log(handleOpenaiFetch.name, 'results', obj);
+    return json({ payload: obj, intent: Intent.READ_OPENAI });
+  } catch (error) {
+    // TODO: handle error from frontend
+    logger.error(handleOpenaiFetch.name, 'error', error);
     return json({ errors: { deepl: (error as unknown as Error)?.message } }, { status: 400 });
   }
 };
@@ -149,23 +200,23 @@ export const replaceWithGlossary = async (
   return origins;
 };
 
-export const handleNewGlossary = async (newGlossary: Omit<Glossary, 'kind'>) => {
-  logger.log(handleNewGlossary.name, 'newGlossary', newGlossary);
+export const handleCreateNewGlossary = async (newGlossary: Omit<Glossary, 'kind'>) => {
+  logger.log(handleCreateNewGlossary.name, 'newGlossary', newGlossary);
   try {
     const result = await schemaValidator({
       schema: newGlossarySchema(),
       obj: newGlossary,
     });
 
-    logger.log(handleNewGlossary.name, 'result', result);
-    await createNewGlossary(result);
+    logger.log(handleCreateNewGlossary.name, 'result', result);
+    await upsertGlossary(result);
 
     return created({
       payload: { origin: result.origin, target: result.target },
       intent: Intent.CREATE_GLOSSARY,
     });
   } catch (errors) {
-    logger.error(handleNewGlossary.name, 'error', errors);
+    logger.error(handleCreateNewGlossary.name, 'error', errors);
     if (errors instanceof ConditionalCheckFailedException) {
       return unprocessableEntity({
         errors: { error: 'duplicated glossary' },
@@ -199,7 +250,6 @@ export const searchByTerm = async (term: string) => {
       index: 'translation',
       body: query,
     });
-    console.log(resp);
     if (resp.body.hits?.hits?.length) {
       logger.log(searchByTerm.name, 'response', resp.body?.hits.hits);
       // TODO: utiliza highlight result
@@ -214,5 +264,64 @@ export const searchByTerm = async (term: string) => {
     // TODO: handle this error in frontend?
     logger.warn(searchByTerm.name, 'warn', error);
     return json({ payload: [] as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
+  }
+};
+
+export const handleNewFootnote = async (footnote: Omit<Footnote, 'kind'>) => {
+  logger.log(handleNewFootnote.name, 'footnote', footnote);
+  try {
+    const result = await schemaValidator({
+      schema: newFootnoteSchema(),
+      obj: footnote,
+    });
+
+    logger.log(handleNewFootnote.name, 'result', result);
+    await upsertFootnote(result);
+
+    return created({
+      payload: {},
+      intent: Intent.CREATE_FOOTNOTE,
+    });
+  } catch (errors) {
+    logger.error(handleNewFootnote.name, 'error', errors);
+    if (errors instanceof ConditionalCheckFailedException) {
+      return unprocessableEntity({
+        errors: { error: 'duplicated footnote' },
+        intent: Intent.CREATE_FOOTNOTE,
+      });
+    }
+    return serverError({ errors: { error: 'internal error' }, intent: Intent.CREATE_FOOTNOTE });
+  }
+};
+
+export const getLatestFootnoteId = async (PK: string) => {
+  function increaseId(id?: string) {
+    if (id) {
+      const idNumber = parseInt(id.slice(-4)) + 1;
+
+      return {
+        numId: idNumber,
+        strId: `${PK}-F${idNumber.toString().padStart(4, '0')}`,
+      };
+    }
+    return {
+      numId: 1,
+      strId: undefined,
+    };
+  }
+  try {
+    const footnotes = await getFootnotesByPartitionKey(PK);
+    logger.log(getLatestFootnoteId.name, 'latest footnote', footnotes?.[0]);
+    const { strId, numId } = increaseId(footnotes?.[0]?.SK);
+    return {
+      latestFootnoteIdNum: numId,
+      latestFootnoteId: strId || `${PK}-F0001`,
+    };
+  } catch (error) {
+    logger.error(getLatestFootnoteId.name, 'error', error);
+    return {
+      latestFootnoteIdNum: 0,
+      latestFootnoteId: '',
+    };
   }
 };
