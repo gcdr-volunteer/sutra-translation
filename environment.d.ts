@@ -13,6 +13,7 @@ declare global {
       DEEPL_URL: string;
       TOPIC_ARN: string;
       ES_URL: string;
+      OPENAI_API_KEY: string;
     }
   }
 }

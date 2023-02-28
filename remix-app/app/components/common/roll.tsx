@@ -13,13 +13,15 @@ import {
   FormLabel,
   Input,
 } from '@chakra-ui/react';
-import { Link, useActionData } from '@remix-run/react';
+import { Link, useActionData, useLocation } from '@remix-run/react';
 import { FormModal } from './modal';
 import { Intent } from '~/types/common';
 import { useEffect } from 'react';
 export function Roll(props: RollProps) {
   const actionData = useActionData<{ intent: Intent; data: string }>();
+  const location = useLocation();
   const { slug, subtitle, title, firstTime } = props;
+  const isOpenMetaModal = firstTime && !location?.pathname.includes('sutra');
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_SUTRA_META && actionData?.data) {
@@ -37,13 +39,13 @@ export function Roll(props: RollProps) {
         w={400}
         borderRadius={12}
         boxShadow='0 12px 12px 0 rgba(0, 0, 0, 0.05)'
-        onClick={firstTime ? handleClick : undefined}
+        onClick={isOpenMetaModal ? handleClick : undefined}
       >
         <CardHeader>
           <Heading size='lg'>{title}</Heading>
         </CardHeader>
         <CardBody>
-          <LinkOverlay as={firstTime ? Box : Link} to={slug}>
+          <LinkOverlay as={isOpenMetaModal ? Box : Link} to={slug}>
             <Text>{subtitle}</Text>
           </LinkOverlay>
         </CardBody>

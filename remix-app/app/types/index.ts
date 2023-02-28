@@ -8,6 +8,7 @@ import type { Team } from './team';
 import type { Role } from './role';
 import type { User } from './user';
 import type { Footnote } from './footnote';
+import type { Reference } from './reference';
 
 export * from './comment';
 export * from './error';
@@ -20,6 +21,7 @@ export * from './roll';
 export * from './glossary';
 export * from './paragraph';
 export * from './footnote';
+export * from './reference';
 
 export type Key = {
   SK: string;
@@ -47,4 +49,5 @@ export type Doc =
   | Omit<Team, 'kind'>
   | Omit<User, 'kind'>
   | Omit<Role, 'kind'>
-  | Omit<Footnote, 'kind'>;
+  | Omit<Footnote, 'kind'>
+  | Omit<Reference, 'kind'>;

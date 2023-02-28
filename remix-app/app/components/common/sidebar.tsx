@@ -15,7 +15,14 @@ import {
 import { ArrowLeftIcon, ArrowRightIcon } from '@chakra-ui/icons';
 import { NavLink } from '@remix-run/react';
 import { FiHome } from 'react-icons/fi';
-import { AiOutlineBook, AiOutlineTranslation, AiOutlineSetting } from 'react-icons/ai';
+import {
+  AiOutlineBook,
+  AiOutlineTranslation,
+  AiOutlineSetting,
+  AiOutlineRead,
+  AiOutlineTable,
+} from 'react-icons/ai';
+import { MdOutlineManageAccounts } from 'react-icons/md';
 import { Can } from '~/authorisation';
 export const Sidebar = () => {
   const [toggle, setToggle] = useBoolean(true);
@@ -73,25 +80,27 @@ export const Sidebar = () => {
                   </HStack>
                 </NavLink>
               </Box>
-              <Box
-                px={6}
-                py={2}
-                _hover={{
-                  color: 'secondary.500',
-                  background: 'whiteAlpha.300',
-                  borderRadius: 8,
-                }}
-              >
-                <NavLink
-                  to='tripitaka'
-                  style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+              <Can I='Read' this='Translation'>
+                <Box
+                  px={6}
+                  py={2}
+                  _hover={{
+                    color: 'secondary.500',
+                    background: 'whiteAlpha.300',
+                    borderRadius: 8,
+                  }}
                 >
-                  <HStack justifyContent={'flex-start'}>
-                    <Icon as={AiOutlineBook} />
-                    <Text as='b'>Translation</Text>
-                  </HStack>
-                </NavLink>
-              </Box>
+                  <NavLink
+                    to='tripitaka'
+                    style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+                  >
+                    <HStack justifyContent={'flex-start'}>
+                      <Icon as={AiOutlineBook} />
+                      <Text as='b'>Translation</Text>
+                    </HStack>
+                  </NavLink>
+                </Box>
+              </Can>
               <Box
                 px={6}
                 py={2}
@@ -102,7 +111,7 @@ export const Sidebar = () => {
                 }}
               >
                 <NavLink
-                  to='translation'
+                  to='sutra'
                   style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
                 >
                   <HStack justifyContent={'flex-start'}>
@@ -111,6 +120,67 @@ export const Sidebar = () => {
                   </HStack>
                 </NavLink>
               </Box>
+              <Box
+                px={6}
+                py={2}
+                _hover={{
+                  color: 'secondary.500',
+                  background: 'whiteAlpha.300',
+                  borderRadius: 8,
+                }}
+              >
+                <NavLink
+                  to='glossary'
+                  style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+                >
+                  <HStack justifyContent={'flex-start'}>
+                    <Icon as={AiOutlineTable} />
+                    <Text as='b'>Glossary</Text>
+                  </HStack>
+                </NavLink>
+              </Box>
+              <Can I='Read' this='Reference'>
+                <Box
+                  px={6}
+                  py={2}
+                  _hover={{
+                    color: 'secondary.500',
+                    background: 'whiteAlpha.300',
+                    borderRadius: 8,
+                  }}
+                >
+                  <NavLink
+                    to='reference'
+                    style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+                  >
+                    <HStack justifyContent={'flex-start'}>
+                      <Icon as={AiOutlineRead} />
+                      <Text as='b'>Reference</Text>
+                    </HStack>
+                  </NavLink>
+                </Box>
+              </Can>
+              <Can I='Read' this='Management'>
+                <Box
+                  px={6}
+                  py={2}
+                  _hover={{
+                    color: 'secondary.500',
+                    background: 'whiteAlpha.300',
+                    borderRadius: 8,
+                  }}
+                >
+                  <NavLink
+                    to='management'
+                    style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+                  >
+                    <HStack justifyContent={'flex-start'}>
+                      <Icon as={MdOutlineManageAccounts} />
+                      <Text as='b'>Management</Text>
+                    </HStack>
+                  </NavLink>
+                </Box>
+              </Can>
               <Can I='Read' this='Administration'>
                 <Box
                   px={6}

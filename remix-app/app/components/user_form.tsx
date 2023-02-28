@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LangCode } from '~/types/lang';
+import type { CreatedType, Sutra } from '~/types';
 import { RoleType } from '~/types';
 import type { ChangeEvent } from 'react';
 import type { Role, Team, User } from '~/types';
@@ -12,16 +13,18 @@ import {
   Select,
   SimpleGrid,
 } from '@chakra-ui/react';
-import { useActionData } from '@remix-run/react';
+import { useActionData, useSubmit } from '@remix-run/react';
+import { Intent } from '~/types/common';
 
 interface UserFormProps {
   user?: User;
   teams: Team[];
   langs: Lang[];
+  sutras: CreatedType<Sutra>[];
   isNew?: boolean;
 }
 export const UserForm = (props: UserFormProps) => {
-  const { user } = props || {};
+  const { user, sutras } = props || {};
   const { errors } = useActionData<{ errors: User }>() || {};
   const [formState, setFormState] = useState<Omit<User, 'kind'>>({
     username: user?.username ?? '',
@@ -32,7 +35,10 @@ export const UserForm = (props: UserFormProps) => {
     target_lang: LangCode.EN,
     first_login: false,
     password: '',
+    working_sutra: '',
   });
+
+  const submit = useSubmit();
 
   const handleFormStateUpdate = (
     type: string,
@@ -46,6 +52,17 @@ export const UserForm = (props: UserFormProps) => {
       newFormState = { ...formState, [type]: e.target.value };
     }
     setFormState(newFormState);
+
+    // This means we are going to update user
+    if (!isNew) {
+      const newObj: Record<string, string> = {
+        intent: Intent.UPDATE_USER,
+        [type]: e.target.value,
+        PK: user?.PK ?? '',
+        SK: user?.SK ?? '',
+      };
+      submit(newObj, { method: 'post', replace: false });
+    }
   };
   const { teams, langs, isNew } = props;
   return (
@@ -148,6 +165,24 @@ export const UserForm = (props: UserFormProps) => {
         </Select>
         {errors?.roles ? <FormErrorMessage>{errors?.roles}</FormErrorMessage> : null}
       </FormControl>
+      <FormControl isInvalid={Boolean(errors?.roles)}>
+        <FormLabel>Working Sutra:</FormLabel>
+        <Select
+          value={formState.working_sutra}
+          onChange={(e) => handleFormStateUpdate('working_sutra', e)}
+          name='working_sutra'
+          multiple={false}
+        >
+          {sutras?.map((sutra) => (
+            <option key={sutra.SK} value={sutra.SK}>
+              {sutra.title}
+            </option>
+          ))}
+        </Select>
+        {errors?.roles ? <FormErrorMessage>{errors?.roles}</FormErrorMessage> : null}
+      </FormControl>
+      <Input hidden readOnly name='PK' value={user?.PK} />
+      <Input hidden readOnly name='SK' value={user?.SK} />
     </SimpleGrid>
   );
 };

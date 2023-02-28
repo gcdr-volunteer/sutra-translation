@@ -1,11 +1,13 @@
-import { dbClient } from '~/models/external_services/dynamodb';
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import type {
   PutItemCommandInput,
   GetItemCommandInput,
   UpdateItemCommandInput,
   QueryCommandInput,
 } from '@aws-sdk/client-dynamodb';
+import type { UpdateType } from '~/types';
+import type { User } from '~/types/user';
+import type { Team } from '~/types/team';
+import type { Lang } from '~/types/lang';
 import {
   PutItemCommand,
   ReturnValue,
@@ -18,9 +20,8 @@ import bcrypt from 'bcryptjs';
 import { LangCode } from '~/types/lang';
 import * as role from '~/types/role';
 import { Kind } from '~/types/common';
-import type { User } from '~/types/user';
-import type { Team } from '~/types/team';
-import type { Lang } from '~/types/lang';
+import { dbClient, dbUpdate } from '~/models/external_services/dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 interface DBUser extends User {
   password: string;
 }
@@ -71,6 +72,10 @@ export const getUserByEmail = async (email: string): Promise<DBUser | undefined>
     return unmarshall(Item) as DBUser;
   }
   return undefined;
+};
+
+export const updateUser = async (user: UpdateType<User>) => {
+  return await dbUpdate({ tableName: process.env.USER_TABLE, doc: user });
 };
 
 export const updateUserPassword = async ({

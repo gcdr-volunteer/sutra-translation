@@ -1,5 +1,5 @@
 import type { ActionArgs } from '@remix-run/node';
-import type { Team, User, Lang, LangCode, Role } from '~/types';
+import type { Team, User, Lang, LangCode, Role, Sutra, CreatedType } from '~/types';
 import {
   Flex,
   Box,
@@ -18,6 +18,7 @@ import {
   Select,
   Button,
   HStack,
+  Divider,
 } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
 import { Form, useLoaderData } from '@remix-run/react';
@@ -32,17 +33,21 @@ import {
   handleCreateNewUser,
   getLoaderData,
   feedSutra,
+  handleUpdateUser,
 } from '~/services/__app/admin';
 import { UserForm, TeamForm } from '~/components';
 import { LangForm } from '~/components/lang_form';
 import { Intent } from '~/types/common';
+import { getAllSutraThatFinished } from '~/models/sutra';
 
 export const loader = async () => {
   const { teams, users, langs } = await getLoaderData();
-  return json<{ teams: Team[]; users: User[]; langs: Lang[] }>({
+  const sutras = await getAllSutraThatFinished();
+  return json<{ teams: Team[]; users: User[]; langs: Lang[]; sutras: CreatedType<Sutra>[] }>({
     teams,
     users,
     langs,
+    sutras,
   });
 };
 
@@ -91,6 +96,15 @@ export const action = async ({ request }: ActionArgs) => {
       first_login: true,
     });
   }
+  if (intent && intent === Intent.UPDATE_USER) {
+    const user = {
+      ...entryData,
+      PK: entryData.PK as string,
+      SK: entryData.SK as string,
+      ...(entryData.roles ? { roles: [entryData.roles] as RoleType[] } : undefined),
+    };
+    return handleUpdateUser(user);
+  }
   if (intent && intent === Intent.CREATE_TEAM) {
     return await handleCreateNewTeam({ name: team_name as string, alias: team_alias as string });
   }
@@ -108,21 +122,28 @@ export const action = async ({ request }: ActionArgs) => {
 };
 
 export default function AdminRoute() {
-  const { users, teams, langs } = useLoaderData<typeof loader>();
+  const { users, teams, langs, sutras } = useLoaderData<typeof loader>();
   const usersComp = users?.map((user) => {
     return (
       <UserConfig
         key={user.email}
         user={user}
-        userform={<UserForm user={user} teams={teams} langs={langs} />}
+        userform={<UserForm user={user} teams={teams} langs={langs} sutras={sutras} />}
       />
     );
   });
   return (
     <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
+      <Heading as='h5' size={'md'}>
+        Admin
+      </Heading>
+      <Divider mt={4} mb={4} borderColor={'primary.300'} />
+      <Heading as='h5' size={'md'}>
+        User Management
+      </Heading>
       {usersComp}
       <SutraManagement />
-      <AdminActionButtons teams={teams} langs={langs} />
+      <AdminActionButtons teams={teams} langs={langs} sutras={sutras} />
     </Flex>
   );
 }
@@ -163,8 +184,8 @@ const UserConfig = (props: UserConfigProps) => {
 
 const SutraManagement = () => {
   return (
-    <Box>
-      <Heading as='h5' size={'lg'}>
+    <Box mt={10}>
+      <Heading as='h5' size={'md'}>
         Sutra management
       </Heading>
       <Form method='post'>
@@ -187,15 +208,6 @@ const SutraManagement = () => {
           >
             Sutra Feed
           </Button>
-          <Button
-            flex={1}
-            type='submit'
-            name='intent'
-            value={Intent.CREATE_SUTRA}
-            colorScheme={'blue'}
-          >
-            complete
-          </Button>
         </HStack>
       </Form>
     </Box>
@@ -204,9 +216,9 @@ const SutraManagement = () => {
 interface AdminActionButtonsProps {
   teams: Team[];
   langs: Lang[];
+  sutras: CreatedType<Sutra>[];
 }
-const AdminActionButtons = (props: AdminActionButtonsProps) => {
-  const { teams, langs } = props;
+const AdminActionButtons = ({ teams, langs, sutras }: AdminActionButtonsProps) => {
   const { isOpen, onToggle } = useDisclosure();
   const { isOpen: isOpenNewUser, onOpen: onOpenNewUser, onClose: onCloseNewUser } = useDisclosure();
   const { isOpen: isOpenNewTeam, onOpen: onOpenNewTeam, onClose: onCloseNewTeam } = useDisclosure();
@@ -229,7 +241,7 @@ const AdminActionButtons = (props: AdminActionButtonsProps) => {
               />
               <FormModal
                 header='Add a New User'
-                body={<UserForm teams={teams} langs={langs} isNew={true} />}
+                body={<UserForm teams={teams} langs={langs} isNew={true} sutras={sutras} />}
                 isOpen={isOpenNewUser}
                 onClose={onCloseNewUser}
                 value={Intent.CREATE_USER}

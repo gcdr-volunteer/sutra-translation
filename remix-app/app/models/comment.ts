@@ -1,7 +1,7 @@
 import type { Comment } from '~/types/comment';
 import type { QueryCommandInput, UpdateItemCommandInput } from '@aws-sdk/client-dynamodb';
 import { dbUpdate } from '~/models/external_services/dynamodb';
-import type { Key, UpdateType, User } from '~/types';
+import type { CreatedType, Key, UpdateType, User } from '~/types';
 import {
   dbClient,
   dbGetByIndexAndKey,
@@ -88,6 +88,15 @@ export const getAllCommentsByRollId = async (rollId: string) => {
     key: { PK: 'COMMENT', rollId },
     indexName: 'rollId-index',
   });
+};
+
+export const getAllNotResolvedCommentsForRoll = async (roll: string) => {
+  const comments = await dbGetByIndexAndKey<CreatedType<Comment>>({
+    tableName: process.env.COMMENT_TABLE,
+    key: { PK: 'COMMENT', resolved: 0 },
+    indexName: 'resolved-index',
+  });
+  return comments.filter((comment) => comment.rollId === roll);
 };
 
 export const getAllNotResolvedCommentsForMe = async (user?: User): Promise<Comment[]> => {

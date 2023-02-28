@@ -201,7 +201,7 @@ export default function TripitakaRoute() {
           </Heading>
           <VStack spacing={2}>{commentsComp}</VStack>
         </GridItem>
-        <GridItem height={'100%'} bg='papayawhip' borderRadius={10} padding={2}>
+        <GridItem bg='papayawhip' borderRadius={10} padding={2}>
           <Stat>
             <StatLabel>Number of Teams</StatLabel>
             <StatNumber>{teams?.length ?? 0}</StatNumber>

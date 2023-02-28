@@ -24,6 +24,10 @@ export enum RoleType {
    */
   Reader = 'Reader',
   /**
+   * Reader can only read, and see translation tab
+   */
+  Assistor = 'Assistor',
+  /**
    * The role is to help debug system issue, like view history to identify
    * issues
    */

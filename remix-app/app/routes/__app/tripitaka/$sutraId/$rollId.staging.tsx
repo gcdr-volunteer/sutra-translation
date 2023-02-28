@@ -1,6 +1,13 @@
 import type { ChangeEvent } from 'react';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
-import type { Paragraph, Glossary as TGlossary, Footnote, CreateType } from '~/types';
+import type {
+  Paragraph,
+  Glossary as TGlossary,
+  Footnote,
+  CreateType,
+  CreatedType,
+  Reference,
+} from '~/types';
 import {
   useActionData,
   useLocation,
@@ -8,6 +15,7 @@ import {
   Form,
   useNavigate,
   useLoaderData,
+  useTransition,
 } from '@remix-run/react';
 import {
   Tag,
@@ -38,6 +46,10 @@ import {
   ListItem,
   useToast,
   Highlight,
+  ModalHeader,
+  ModalCloseButton,
+  ModalFooter,
+  ModalBody,
 } from '@chakra-ui/react';
 import { RepeatIcon, CopyIcon } from '@chakra-ui/icons';
 import { useState, useRef, useEffect } from 'react';
@@ -46,10 +58,11 @@ import { BiTable, BiSearch, BiNote, BiCheck } from 'react-icons/bi';
 import { Warning } from '~/components/common/errors';
 import { FormModal } from '~/components/common';
 import {
-  handleNewGlossary,
+  getLatestFootnoteId,
+  handleNewFootnote,
+  handleCreateNewGlossary,
   handleNewTranslationParagraph,
-  hanldeDeepLFetch,
-  replaceWithGlossary,
+  handleOpenaiFetch,
   searchByTerm,
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { Intent } from '~/types/common';
@@ -57,18 +70,32 @@ import { assertAuthUser } from '~/auth.server';
 import { useDebounce, useKeyPress } from '~/hooks';
 import { logger } from '~/utils';
 import { BiLinkExternal } from 'react-icons/bi';
-import { getParagraphsByRollId } from '~/models/paragraph';
-import { upsertFootnote } from '~/models/footnote';
-import type { ParagraphLoadData } from '../$rollId';
+import { getParagraphByPrimaryKey, getParagraphsByRollId } from '~/models/paragraph';
+import { getFootnotesByPartitionKey } from '~/models/footnote';
+import { getReferencesBySK } from '~/models/reference';
+import { GlossaryForm } from '~/components/common/glossary_form';
+import { getAllGlossary } from '~/models/glossary';
+import { translate } from '~/models/external_services/openai';
 
-export const loader = async ({ params }: LoaderArgs) => {
+export const loader = async ({ params, request }: LoaderArgs) => {
   const { rollId } = params;
-  const paragraphs = await getParagraphsByRollId(rollId?.replace('ZH', 'EN'));
-  const paragraph = paragraphs.find((paragraph) => !paragraph.finish);
+  const url = new URL(request.url);
+  const ps = [...new Set(url.searchParams.getAll('p'))];
+  const paragraphs = await Promise.all(
+    ps.map((p) => getParagraphByPrimaryKey({ PK: rollId ?? '', SK: p }))
+  );
+  const references = await Promise.all(ps.map((p) => getReferencesBySK(p)));
+  const rollIdInTargetLang = rollId?.replace('ZH', 'EN') ?? '';
+  const targetParagraphs = await getParagraphsByRollId(rollIdInTargetLang);
+  const footnotes = await getFootnotesByPartitionKey(rollIdInTargetLang);
+  const paragraph = targetParagraphs.find((paragraph) => !paragraph.finish);
   return json({
     sentenceIndex: paragraph?.sentenceIndex ?? -1,
     paragraphIndex: paragraph?.paragraphIndex ?? -1,
     paragraph,
+    footnotes: footnotes.filter((footnote) => footnote.paragraphId === paragraph?.SK),
+    paragraphs,
+    references,
   });
 };
 
@@ -77,18 +104,55 @@ export const action = async ({ request, params }: ActionArgs) => {
   const user = await assertAuthUser(request);
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
-  if (entryData?.intent === Intent.READ_DEEPL) {
+  if (entryData?.intent === Intent.READ_OPENAI) {
     const { intent, ...rest } = entryData;
     // Uncomment the following line when doing debug
     // return json({ data: {}, intent: Intent.READ_DEEPL });
     if (Object.keys(rest)?.length) {
-      const origins = await replaceWithGlossary(rest as Record<string, string>);
-      return await hanldeDeepLFetch({ origins });
+      // const origins = await replaceWithGlossary(rest as Record<string, string>);
+      return await handleOpenaiFetch({ origins: rest as Record<string, string> });
     }
   }
+
+  if (entryData?.intent === Intent.UPDATE_OPENAI) {
+    const origin = entryData?.origin as string;
+    const glossaries = await getAllGlossary();
+    const sourceGlossaries = glossaries?.reduce((acc, glossary) => {
+      acc[glossary.origin] = glossary.target;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const translation = await translate(origin, sourceGlossaries);
+    return json({ intent: Intent.UPDATE_OPENAI, origin, translation });
+  }
   if (entryData?.intent === Intent.CREATE_TRANSLATION) {
+    const rollIdInTargetLang = rollId?.replace('ZH', 'EN') ?? '';
     // Uncomment the following line when doing debug
     // return json({ payload: { index: entryData?.index }, intent: Intent.CREATE_TRANSLATION });
+    const footnotes: FN[] = entryData?.footnotes
+      ? JSON.parse(entryData.footnotes as string)
+      : ([] as FN[]);
+    const { latestFootnoteIdNum } = await getLatestFootnoteId(rollIdInTargetLang);
+
+    const prevParagraphLength = entryData?.prevParagraph?.length ?? 0;
+
+    Promise.all(
+      footnotes.map((footnote, index) => {
+        const doc: CreateType<Footnote> = {
+          PK: rollIdInTargetLang,
+          SK: `${rollIdInTargetLang}-F${(latestFootnoteIdNum + index).toString().padStart(4, '0')}`,
+          num: latestFootnoteIdNum + index,
+          paragraphId: footnote.paragraphId.replace('ZH', 'EN') as string,
+          offset: (footnote.offset + prevParagraphLength + 1) as unknown as number,
+          content: footnote.content as string,
+          kind: 'FOOTNOTE',
+          createdBy: user?.SK,
+          updatedBy: user?.SK,
+        };
+        return handleNewFootnote(doc);
+      })
+    );
+
     return await handleNewTranslationParagraph(
       {
         paragraphIndex: entryData?.paragraphIndex as string,
@@ -103,10 +167,16 @@ export const action = async ({ request, params }: ActionArgs) => {
     );
   }
   if (entryData?.intent === Intent.CREATE_GLOSSARY) {
-    return await handleNewGlossary({
+    return await handleCreateNewGlossary({
       origin: entryData?.origin as string,
       target: entryData?.target as string,
+      short_definition: entryData?.short_definition as string,
+      options: entryData?.options as string,
       note: entryData?.note as string,
+      example_use: entryData?.example_use as string,
+      related_terms: entryData?.related_terms as string,
+      terms_to_avoid: entryData?.terms_to_avoid as string,
+      discussion: entryData?.discussion as string,
       createdBy: user?.SK,
       creatorAlias: user?.username,
     });
@@ -117,26 +187,12 @@ export const action = async ({ request, params }: ActionArgs) => {
       return await searchByTerm(entryData.value as string);
     }
   }
-  if (entryData?.intent === Intent.CREATE_FOOTNOTE) {
-    // TODO: refactor the code here, this is just a stub
-    const doc: CreateType<Footnote> = {
-      PK: 'ddd',
-      SK: 'xxx',
-      paragraphId: 'xxxx',
-      offset: 12,
-      content: 'abc',
-      kind: 'FOOTNOTE',
-    };
-    await upsertFootnote(doc);
-  }
   return json({});
 };
 
-interface stateType {
-  paragraphs: ParagraphLoadData[];
-}
 export default function StagingRoute() {
   const loaderData = useLoaderData<typeof loader>();
+  const { footnotes, references } = loaderData;
   const actionData = useActionData<{
     payload: { paragraphIndex: number; sentenceIndex: number } | Record<string, string>;
     intent: Intent;
@@ -146,14 +202,13 @@ export default function StagingRoute() {
   const [sentenceFinish, setSentenceFinish] = useState<Record<string, boolean>>({});
   const [paragraphFinish, setParagraphFinish] = useState<Record<string, boolean>>({});
 
-  const location = useLocation();
-  const paragraphs = (location.state as stateType)?.paragraphs;
+  const paragraphs = loaderData.paragraphs;
   const ref = useRef(paragraphs);
   const submit = useSubmit();
   useEffect(() => {
     const origins = paragraphs?.reduce(
       (acc, cur, i) => {
-        const sentences = cur.content.split(/(?<=。|！|？)/g);
+        const sentences = cur?.content.trim().split(/(?<=。|！|？|；)/g) || [];
         if (sentences.length > 1) {
           sentences.reduce(
             (accu, curr, j) => {
@@ -163,20 +218,18 @@ export default function StagingRoute() {
             { acc }
           );
         } else {
-          acc[`${i}`] = cur.content;
+          acc[`${i}`] = cur?.content || '';
         }
         return acc;
       },
-      { intent: Intent.READ_DEEPL } as Record<string, string>
+      { intent: Intent.READ_OPENAI } as Record<string, string>
     );
     const paragraphFinish = paragraphs?.reduce((acc, _, index) => {
       acc[index] = false;
       return acc;
     }, {} as Record<string, boolean>);
     setParagraphFinish(paragraphFinish);
-    if (origins && Object.keys(origins).length) {
-      submit(origins, { method: 'post', replace: true });
-    }
+    submit(origins, { method: 'post', replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -195,7 +248,7 @@ export default function StagingRoute() {
   }, [loaderData]);
 
   useEffect(() => {
-    if (actionData?.intent === Intent.READ_DEEPL) {
+    if (actionData?.intent === Intent.READ_OPENAI) {
       setTranslation(actionData.payload as Record<string, string>);
     }
     if (actionData?.intent === Intent.CREATE_TRANSLATION) {
@@ -212,9 +265,9 @@ export default function StagingRoute() {
   }, [actionData]);
 
   const paragraphsComp = ref.current?.map((paragraph, i, arr) => {
-    const sentences = paragraph.content.split(/(?<=。|！|？)/g);
+    const sentences = paragraph?.content.trim().split(/(?<=。|！|？|；)/g) || [];
     // const paragraphIndex = actionData?.data?.paragraphIndex ?? 0;
-    if (sentences.length > 2) {
+    if (sentences.length >= 2) {
       return (
         // collapse only when paragraph finish and all sentences finish
         <Box key={i}>
@@ -227,21 +280,52 @@ export default function StagingRoute() {
                   }
                   styles={{ px: '1', py: '1', bg: 'orange.100', whiteSpace: 'wrap' }}
                 >
-                  {paragraph.content}
+                  {paragraph?.content || ''}
                 </Highlight>
               </Text>
             </Box>
             {loaderData?.paragraph?.content ? (
               <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
                 <Text size={'lg'} fontSize='1.5rem' lineHeight={1.5}>
-                  {loaderData?.paragraph?.content}
+                  {footnotes?.length
+                    ? footnotes
+                        .sort((a, b) => a.num - b.num)
+                        .filter((footnote) => footnote.paragraphId === loaderData?.paragraph?.SK)
+                        .map((footnote, index, arr) => {
+                          const { offset, content: fn } = footnote;
+                          const prevOffset = index === 0 ? index : arr[index - 1]?.offset;
+                          if (loaderData?.paragraph?.content) {
+                            return (
+                              <Text as='span' key={index}>
+                                <Text as='span'>
+                                  {loaderData.paragraph.content.slice(prevOffset, offset)}
+                                </Text>
+                                <Tooltip label={fn} aria-label='footnote tooltip'>
+                                  <span style={{ paddingLeft: 4, color: 'blue' }}>
+                                    [{footnote.num}]
+                                  </span>
+                                </Tooltip>
+                                {index === arr.length - 1 ? (
+                                  <Text as='span'>
+                                    {loaderData.paragraph.content.slice(
+                                      offset,
+                                      loaderData.paragraph.content.length
+                                    )}
+                                  </Text>
+                                ) : null}
+                              </Text>
+                            );
+                          }
+                          return null;
+                        })
+                    : loaderData?.paragraph?.content}
                 </Text>
               </Box>
             ) : null}
           </Collapse>
           {sentences.map((sentence, j, arr) => {
-            if (j >= loaderData.sentenceIndex) {
-              const para = { ...paragraph, content: sentence };
+            if (j >= loaderData.sentenceIndex && paragraph) {
+              const newParagraph = { ...paragraph, content: sentence };
               return (
                 <Collapse
                   key={j}
@@ -250,14 +334,14 @@ export default function StagingRoute() {
                   unmountOnExit={true}
                 >
                   <TranlationWorkspace
-                    origin={para}
+                    origin={newParagraph}
                     paragraphIndex={i}
                     sentenceIndex={j}
                     totalSentences={sentences.length - 1}
                     translation={
                       Object.keys(translation).length ? translation[`${i}.${j}`] : 'loading....'
                     }
-                    reference='Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur.'
+                    reference={references?.[i]?.[j] ?? ''}
                     totalParagraphs={ref?.current.length - 1}
                   />
                   {j !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
@@ -277,10 +361,11 @@ export default function StagingRoute() {
         animateOpacity={true}
       >
         <TranlationWorkspace
-          origin={paragraph}
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          origin={paragraph!}
           paragraphIndex={i}
           translation={Object.keys(translation).length ? translation[`${i}`] : 'loading....'}
-          reference='Quisque gravida quis sapien sit amet auctor. In hac habitasse platea dictumst. Pellentesque in viverra risus, et pharetra sapien. Sed facilisis orci rhoncus erat ultricies, nec tempor sapien accumsan. Vivamus vel lectus ut mi ornare consectetur eget non nisl. Mauris rutrum dui augue, a sollicitudin risus elementum facilisis. Sed blandit lectus quam, dictum congue turpis venenatis vel. Integer rhoncus luctus consectetur.'
+          reference={references?.[i]?.[0] ?? ''}
           totalParagraphs={ref?.current.length - 1}
         />
         {i !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
@@ -294,11 +379,17 @@ export default function StagingRoute() {
   }
 }
 
+type FN = {
+  paragraphId: string;
+  offset: number;
+  content: string;
+  sentence: string;
+};
 interface WorkSpaceProps {
-  origin: ParagraphLoadData;
+  origin: CreatedType<Paragraph>;
   paragraphIndex: number;
   translation: string;
-  reference: string;
+  reference: CreatedType<Reference>;
   totalParagraphs: number;
   sentenceIndex?: number;
   totalSentences?: number;
@@ -321,14 +412,45 @@ function TranlationWorkspace({
   const textareaFormRef = useRef(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [glossary, setGlossary] = useBoolean(false);
+  const [cursorPos, setCursorPos] = useState(-1);
+  const [footnotes, setFootnotes] = useState<FN[]>([]);
+  const transaction = useTransition();
+  const isSubmit = Boolean(transaction.submission);
+  const [refresh, setRefresh] = useState<number>(0);
+  const [latestTranslation, setLatestTranslation] = useState<string>('');
+  const [prevTranslation, setPrevTranslation] = useState<string>('');
 
+  useEffect(() => {
+    if (translation) {
+      setPrevTranslation(translation);
+    }
+  }, [translation]);
   const handleSubmitTranslation = () => {
     if (textareaRef?.current) {
       textareaRef.current.value = `${loaderData?.paragraph?.content ?? ''} ${content}`;
     }
-    submit(textareaFormRef.current, { replace: true });
     setContent('');
+    submit(textareaFormRef.current, { replace: true });
   };
+
+  useEffect(() => {
+    if (actionData?.intent === Intent.UPDATE_OPENAI && actionData?.origin === origin.content) {
+      setContent(prevTranslation);
+      setLatestTranslation(actionData.translation);
+      setPrevTranslation(actionData.translation);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionData]);
+
+  useEffect(() => {
+    if (refresh) {
+      submit(
+        { intent: Intent.UPDATE_OPENAI, origin: origin.content },
+        { method: 'post', replace: false }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh]);
 
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_TRANSLATION) {
@@ -349,6 +471,48 @@ function TranlationWorkspace({
     }
   }, [actionData, location.pathname, navigate, totalParagraphs]);
 
+  useEffect(() => {
+    const footnotesAfterCursor = footnotes.filter((footnote) => footnote.offset > cursorPos);
+    const footnotesBeforeCursor = footnotes.filter((footnote) => footnote.offset < cursorPos);
+
+    const newFootnotesAfterCursor = footnotesAfterCursor?.map((footnote) => {
+      const length = content?.length - footnote.sentence.length;
+      return {
+        ...footnote,
+        sentence: content,
+        offset: length + footnote.offset,
+      };
+    });
+    setFootnotes([...footnotesBeforeCursor, ...newFootnotesAfterCursor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cursorPos, content]);
+
+  const handleCursorChange = (e: React.MouseEvent<HTMLTextAreaElement, MouseEvent>) => {
+    setCursorPos((e.target as HTMLTextAreaElement)?.selectionStart);
+  };
+
+  const argumentedContent = footnotes?.length
+    ? footnotes.map((footnote, index, arr) => {
+        const { offset, content: fn } = footnote;
+        const num = index + 1 + loaderData?.footnotes?.length ?? 0;
+        // const nextOffset = arr[index + 1]?.offset ?? content.length;
+        const prevOffset = index === 0 ? index : arr[index - 1]?.offset;
+        if (content) {
+          return (
+            <Text as='span' key={num}>
+              <Text as='span'>{content.slice(prevOffset, offset)}</Text>
+              <Tooltip label={fn} aria-label='footnote tooltip'>
+                <span style={{ paddingLeft: 4, color: 'blue' }}>[{num}]</span>
+              </Tooltip>
+              {index === arr.length - 1 ? (
+                <Text as='span'>{content.slice(offset, content.length)}</Text>
+              ) : null}
+            </Text>
+          );
+        }
+        return null;
+      })
+    : content;
   // TODO: refactor this code to sub components
   return (
     <Flex gap={4} flexDir='row' justifyContent='space-between'>
@@ -363,9 +527,16 @@ function TranlationWorkspace({
         </Card>
         <Card w='100%' background={'secondary.300'} borderRadius={12}>
           <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
-            <Heading size='sm'>DeepL</Heading>
+            <Heading size='sm'>OpenAI</Heading>
             <ButtonGroup variant='outline' spacing='6'>
-              <IconButton icon={<RepeatIcon />} aria-label='refresh' />
+              <IconButton
+                isLoading={isSubmit}
+                icon={<RepeatIcon />}
+                onClick={() => {
+                  setRefresh((pre) => pre + 1);
+                }}
+                aria-label='refresh'
+              />
               <IconButton
                 icon={<CopyIcon />}
                 aria-label='copy'
@@ -374,22 +545,22 @@ function TranlationWorkspace({
             </ButtonGroup>
           </CardHeader>
           <CardBody>
-            <Text fontSize={'xl'}>{translation}</Text>
+            <Text fontSize={'xl'}>{latestTranslation || translation}</Text>
           </CardBody>
         </Card>
         <Card w='100%' background={'secondary.400'} borderRadius={12}>
           <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
-            <Heading size='sm'>Reference</Heading>
+            <Heading size='sm'>Cleary</Heading>
             <ButtonGroup variant='outline' spacing='6'>
               <IconButton
                 icon={<CopyIcon />}
                 aria-label='copy'
-                onClick={() => setContent(reference)}
+                onClick={() => setContent(reference.content)}
               />
             </ButtonGroup>
           </CardHeader>
           <CardBody>
-            <Text fontSize={'xl'}>{reference}</Text>
+            <Text fontSize={'xl'}>{reference?.content ?? ''}</Text>
           </CardBody>
         </Card>
       </VStack>
@@ -407,26 +578,37 @@ function TranlationWorkspace({
                   aria-label='glossary button'
                 />
               </Tooltip>
-              <FootnoteModal content={content} cursorPos={textareaRef.current?.selectionStart} />
+              <FootnoteModal
+                setFootnotes={setFootnotes}
+                paragraphId={origin.SK}
+                content={content}
+                cursorPos={cursorPos}
+              />
               <SearchModal />
               <Button
                 marginLeft={'auto'}
                 onClick={handleSubmitTranslation}
                 colorScheme={'iconButton'}
                 disabled={!content}
+                isLoading={isSubmit}
               >
                 Submit
               </Button>
             </ButtonGroup>
             {glossary ? <GlossaryModal /> : null}
             <Form method='post' ref={textareaFormRef} style={{ height: '100%' }}>
+              {argumentedContent ? (
+                <Text bg={'primary.300'} p={2} borderRadius={4} mb={4}>
+                  {argumentedContent}
+                </Text>
+              ) : null}
               <Textarea
-                flexGrow={1}
                 name='translation'
                 ref={textareaRef}
-                height='100%'
+                height={content ? '70%' : '100%'}
                 placeholder='Edit your paragraph'
                 value={content}
+                onClick={handleCursorChange}
                 onChange={(e) => setContent(e.target.value)}
               />
               <Input name='PK' value={origin.PK} hidden readOnly />
@@ -434,6 +616,8 @@ function TranlationWorkspace({
               <Input name='paragraphIndex' value={paragraphIndex} hidden readOnly />
               <Input name='sentenceIndex' value={sentenceIndex} hidden readOnly />
               <Input name='totalSentences' value={totalSentences} hidden readOnly />
+              <Input name='footnotes' value={JSON.stringify(footnotes)} hidden readOnly />
+              <Input name='prevParagraph' value={loaderData?.paragraph?.content} hidden readOnly />
               <Input name='intent' value={Intent.CREATE_TRANSLATION} hidden readOnly />
             </Form>
           </CardBody>
@@ -526,19 +710,7 @@ const GlossaryModal = () => {
       </Form>
       <FormModal
         header='Add note to glossary'
-        body={
-          <Box>
-            <Text>
-              Source: <Tag>{origin}</Tag>
-            </Text>
-            <Input name='origin' readOnly hidden value={origin} />
-            <Text>
-              Target: <Tag>{target}</Tag>
-            </Text>
-            <Input name='target' readOnly hidden value={target} />
-            <Textarea name='note' _focus={{ outline: 'none' }} placeholder='glossary note' />
-          </Box>
-        }
+        body={<GlossaryForm props={{ origin, target }} />}
         value={Intent.CREATE_GLOSSARY}
         isOpen={isOpenNote}
         onClose={onCloseNote}
@@ -550,56 +722,97 @@ const GlossaryModal = () => {
 type FootnoteModalProps = {
   cursorPos?: number;
   content: string;
+  paragraphId: string;
+  setFootnotes: React.Dispatch<React.SetStateAction<FN[]>>;
 };
-const FootnoteModal = (props: FootnoteModalProps) => {
+const FootnoteModal = ({
+  cursorPos = -1,
+  content,
+  paragraphId,
+  setFootnotes,
+}: FootnoteModalProps) => {
   const {
     isOpen: isOpenFootnote,
     onOpen: onOpenFootnote,
     onClose: onCloseFootnote,
   } = useDisclosure();
-  const getCurrentCursorText = (): string | undefined => {
-    const { cursorPos = -1, content } = props;
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  const onAdd = () => {
+    const footnote: FN = {
+      paragraphId,
+      offset: cursorPos,
+      content: ref.current?.value ?? '',
+      sentence: content,
+    };
+    setFootnotes((prev) => [...prev, footnote]);
+    onCloseFootnote();
+  };
+  const getCurrentCursorText = () => {
     if (cursorPos >= 0) {
-      const textBeforeCursor = content.slice(0, cursorPos - 1);
-      const textAfterCursor = content.slice(cursorPos + 1);
-      const indexBeforeCursor = textBeforeCursor.lastIndexOf(' ');
-      const indexAfterCursor = textAfterCursor.indexOf(' ');
+      const textBeforeCursor = cursorPos === 0 ? '' : content.slice(0, cursorPos - 1);
+      const textAfterCursor = content.slice(cursorPos);
+      const indexBeforeCursor = textBeforeCursor.trim().lastIndexOf(' ');
+      const indexAfterCursor = textAfterCursor.trim().indexOf(' ');
       const wordsCursorSitting = content.slice(
         indexBeforeCursor >= 0 ? indexBeforeCursor : 0,
-        indexAfterCursor >= 0 ? indexAfterCursor + cursorPos : -1
+        indexAfterCursor >= 0 ? indexAfterCursor + cursorPos + 1 : content.length
       );
-      return wordsCursorSitting;
+      if (cursorPos === 0) {
+        return (
+          <Text>
+            Your cursor is at the beginning of
+            <Tag>{wordsCursorSitting}</Tag>
+          </Text>
+        );
+      }
+      if (cursorPos === content.length) {
+        return (
+          <Text>
+            Your cursor is at the end of
+            <Tag>{wordsCursorSitting}</Tag>
+          </Text>
+        );
+      }
+      return (
+        <Text>
+          Your cursor is between
+          <Tag>{wordsCursorSitting}</Tag>
+        </Text>
+      );
     }
-    return 'You forget to put your cursor in text';
+    return <Text>You forget to put your cursor somewhere</Text>;
   };
   return (
     <>
       <Tooltip label='add footnote' openDelay={1000} closeDelay={1000}>
         <IconButton
-          disabled={!props.content}
+          disabled={!content}
           onClick={onOpenFootnote}
           icon={<BiNote />}
           aria-label='footnote button'
         />
       </Tooltip>
-      <FormModal
-        value={Intent.CREATE_FOOTNOTE}
-        header='Add footnote'
-        body={
-          <Box>
-            <Text>
-              Your cursor is between
-              <Tag>{getCurrentCursorText()}</Tag>
-            </Text>
-            <Text mb={8}>
-              Make sure put your cursor at the correct location where you want to put footnote
-            </Text>
-            <Textarea _focus={{ outline: 'none' }} placeholder='add your footnotes' />
-          </Box>
-        }
-        isOpen={isOpenFootnote}
-        onClose={onCloseFootnote}
-      />
+      <Modal isOpen={isOpenFootnote} onClose={onCloseFootnote} size={'2xl'}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>add footnote</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Box>
+              {getCurrentCursorText()}
+              <Textarea autoFocus mt={4} ref={ref} placeholder='add your footnotes' />
+            </Box>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button colorScheme='iconButton' mr={3} onClick={onAdd}>
+              Add
+            </Button>
+            <Button onClick={onCloseFootnote}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 };

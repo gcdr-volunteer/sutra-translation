@@ -15,7 +15,7 @@ import {
   FormLabel,
   Input,
 } from '@chakra-ui/react';
-import { Link, useActionData } from '@remix-run/react';
+import { Link, useActionData, useLocation } from '@remix-run/react';
 import { FormModal } from './modal';
 import { Intent } from '~/types/common';
 import { useEffect } from 'react';
@@ -25,7 +25,9 @@ export interface SutraProps extends CreatedType<TSutra> {
 }
 export function Sutra(props: SutraProps) {
   const actionData = useActionData<{ intent: Intent; data: string }>();
+  const location = useLocation();
   const { slug, category, title, translator, firstTime } = props;
+  const isOpenMetaModal = firstTime && !location?.pathname.includes('sutra');
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_SUTRA_META && actionData?.data) {
@@ -44,7 +46,7 @@ export function Sutra(props: SutraProps) {
         h={'100%'}
         borderRadius={12}
         boxShadow='0 12px 12px 0 rgba(0, 0, 0, 0.05)'
-        onClick={firstTime ? () => handleClick() : undefined}
+        onClick={isOpenMetaModal ? () => handleClick() : undefined}
       >
         <CardHeader>
           <Heading size='md'>
@@ -54,7 +56,7 @@ export function Sutra(props: SutraProps) {
           </Heading>
         </CardHeader>
         <CardBody>
-          <LinkOverlay as={firstTime ? Box : Link} to={slug}>
+          <LinkOverlay as={isOpenMetaModal ? Box : Link} to={slug}>
             <Text as='b' fontSize='3xl'>
               {title}
             </Text>

@@ -35,6 +35,7 @@ export const createReferenceTable = async (
       paragraphId: 'string',
       resolved: 'number',
       parentId: 'string',
+      kind: 'string',
     },
     primaryIndex: {
       partitionKey: 'PK',
@@ -55,6 +56,20 @@ export const createReferenceTable = async (
       },
       'parentId-index': {
         sortKey: 'parentId',
+      },
+    },
+    globalIndexes: {
+      'kind-index': {
+        partitionKey: 'PK',
+        sortKey: 'kind',
+      },
+      'rollId-kind-index': {
+        partitionKey: 'rollId',
+        sortKey: 'kind',
+      },
+      'paragraphId-kind-index': {
+        partitionKey: 'paragraphId',
+        sortKey: 'kind',
       },
     },
     stream: true,

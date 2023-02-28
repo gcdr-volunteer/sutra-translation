@@ -7,7 +7,7 @@ import {
 } from '~/models/external_services/dynamodb';
 
 export const getRollsBySutraId = async (PK: string): Promise<Roll[]> => {
-  return await dbGetByPartitionKey(PK);
+  return await dbGetByPartitionKey({ tableName: process.env.TRANSLATION_TABLE, PK });
 };
 
 export const getRollByPrimaryKey = async (key: Key): Promise<Roll | undefined> => {
