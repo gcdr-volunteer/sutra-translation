@@ -92,6 +92,7 @@ export const action = async ({ request, params }: ActionArgs) => {
 
 export default function StagingRoute() {
   const loaderData = useLoaderData<typeof loader>();
+  console.log(loaderData);
   const actionData = useActionData<{
     payload: { paragraphIndex: number; sentenceIndex: number } | Record<string, string>;
     intent: Intent;
@@ -115,7 +116,7 @@ export default function StagingRoute() {
   }, [loaderData]);
 
   useEffect(() => {
-    if (actionData?.intent === Intent.CREATE_TRANSLATION) {
+    if (actionData?.intent === Intent.CREATE_REFERENCE) {
       const { paragraphIndex = 0, finish } = actionData.payload as {
         paragraphIndex: number;
         sentenceIndex: number;

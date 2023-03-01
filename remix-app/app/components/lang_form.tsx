@@ -13,17 +13,18 @@ import {
   Thead,
   Tr,
 } from '@chakra-ui/react';
-import { useActionData } from '@remix-run/react';
 import { useState } from 'react';
 import type { Lang, LangCode } from '~/types';
 import type { ChangeEvent } from 'react';
 
 interface LangFormProps {
   langs: Lang[];
-  onClose: () => void;
+  errors?: {
+    name: string;
+    alias: string;
+  };
 }
-export const LangForm = (props: LangFormProps) => {
-  const { errors } = useActionData<{ errors: { name: string; alias: string } }>() || {};
+export const LangForm = ({ langs, errors }: LangFormProps) => {
   const [formState, setFormState] = useState<Omit<Lang, 'kind'>>({
     name: '' as LangCode,
     alias: '',
@@ -35,7 +36,6 @@ export const LangForm = (props: LangFormProps) => {
     const newFormState = { ...formState, [type]: e.target.value };
     setFormState(newFormState);
   };
-  const { langs } = props;
   return (
     <Box>
       {langs.length ? (

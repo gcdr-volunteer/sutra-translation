@@ -21,7 +21,7 @@ import {
   Divider,
 } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { EditIcon } from '@chakra-ui/icons';
 import { RiUser2Line, RiTeamLine } from 'react-icons/ri';
 import { FaLanguage } from 'react-icons/fa';
@@ -39,6 +39,7 @@ import { UserForm, TeamForm } from '~/components';
 import { LangForm } from '~/components/lang_form';
 import { Intent } from '~/types/common';
 import { getAllSutraThatFinished } from '~/models/sutra';
+import { useEffect, useState } from 'react';
 
 export const loader = async () => {
   const { teams, users, langs } = await getLoaderData();
@@ -219,10 +220,25 @@ interface AdminActionButtonsProps {
   sutras: CreatedType<Sutra>[];
 }
 const AdminActionButtons = ({ teams, langs, sutras }: AdminActionButtonsProps) => {
+  const actionData = useActionData<{ errors: { name: string; alias: string } }>();
+  const [errors, setErrors] = useState<{ name: string; alias: string } | undefined>();
   const { isOpen, onToggle } = useDisclosure();
   const { isOpen: isOpenNewUser, onOpen: onOpenNewUser, onClose: onCloseNewUser } = useDisclosure();
   const { isOpen: isOpenNewTeam, onOpen: onOpenNewTeam, onClose: onCloseNewTeam } = useDisclosure();
   const { isOpen: isOpenNewLang, onOpen: onOpenNewLang, onClose: onCloseNewLang } = useDisclosure();
+
+  useEffect(() => {
+    if (!isOpenNewLang || !isOpenNewTeam) {
+      setErrors({ name: '', alias: '' });
+    }
+  }, [isOpenNewLang, isOpenNewTeam]);
+
+  useEffect(() => {
+    if (actionData?.errors) {
+      setErrors(actionData.errors);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionData]);
 
   return (
     <Box pos={'fixed'} right={8} bottom={8}>
@@ -261,7 +277,7 @@ const AdminActionButtons = ({ teams, langs, sutras }: AdminActionButtonsProps) =
               />
               <FormModal
                 header='Add a New Team'
-                body={<TeamForm teams={teams} onClose={onCloseNewTeam} />}
+                body={<TeamForm teams={teams} errors={errors} />}
                 isOpen={isOpenNewTeam}
                 onClose={onCloseNewTeam}
                 value={Intent.CREATE_TEAM}
@@ -281,7 +297,7 @@ const AdminActionButtons = ({ teams, langs, sutras }: AdminActionButtonsProps) =
               />
               <FormModal
                 header='Add a New Language'
-                body={<LangForm langs={langs} onClose={onCloseNewLang} />}
+                body={<LangForm langs={langs} errors={errors} />}
                 isOpen={isOpenNewLang}
                 onClose={onCloseNewLang}
                 value={Intent.CREATE_LANG}

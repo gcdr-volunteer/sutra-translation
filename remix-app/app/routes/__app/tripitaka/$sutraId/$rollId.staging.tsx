@@ -7,6 +7,7 @@ import type {
   CreateType,
   CreatedType,
   Reference,
+  Glossary,
 } from '~/types';
 import {
   useActionData,
@@ -50,11 +51,14 @@ import {
   ModalCloseButton,
   ModalFooter,
   ModalBody,
+  Icon,
+  InputRightElement,
 } from '@chakra-ui/react';
 import { RepeatIcon, CopyIcon } from '@chakra-ui/icons';
 import { useState, useRef, useEffect } from 'react';
 import { json } from '@remix-run/node';
 import { BiTable, BiSearch, BiNote, BiCheck } from 'react-icons/bi';
+import { AiFillGoogleCircle, AiOutlineGoogle } from 'react-icons/ai';
 import { Warning } from '~/components/common/errors';
 import { FormModal } from '~/components/common';
 import {
@@ -63,13 +67,13 @@ import {
   handleCreateNewGlossary,
   handleNewTranslationParagraph,
   handleOpenaiFetch,
-  searchByTerm,
+  handleSearchByTerm,
+  handleSearchGlossary,
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { Intent } from '~/types/common';
 import { assertAuthUser } from '~/auth.server';
 import { useDebounce, useKeyPress } from '~/hooks';
 import { logger } from '~/utils';
-import { BiLinkExternal } from 'react-icons/bi';
 import { getParagraphByPrimaryKey, getParagraphsByRollId } from '~/models/paragraph';
 import { getFootnotesByPartitionKey } from '~/models/footnote';
 import { getReferencesBySK } from '~/models/reference';
@@ -184,7 +188,10 @@ export const action = async ({ request, params }: ActionArgs) => {
   if (entryData?.intent === Intent.READ_OPENSEARCH) {
     logger.log('action', 'value', entryData);
     if (entryData?.value) {
-      return await searchByTerm(entryData.value as string);
+      if (entryData?.glossary_only === 'true') {
+        return await handleSearchGlossary(entryData?.value as string);
+      }
+      return await handleSearchByTerm(entryData.value as string);
     }
   }
   return json({});
@@ -824,18 +831,24 @@ const SearchModal = () => {
   const [focusIndex, setFocusIndex] = useState<number>(-1);
   const submit = useSubmit();
   const actionData = useActionData();
+  const [show, setShow] = useState(false);
+  const handleClick = () => setShow(!show);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 1000);
 
   useEffect(() => {
     if (debouncedSearchTerm.length > 3) {
       submit(
-        { intent: Intent.READ_OPENSEARCH, value: debouncedSearchTerm },
+        {
+          intent: Intent.READ_OPENSEARCH,
+          value: debouncedSearchTerm.value,
+          glossary_only: String(show),
+        },
         { method: 'post', replace: true }
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, show]);
   const arrowUpPressed = useKeyPress('ArrowUp');
   const arrowDownPressed = useKeyPress('ArrowDown');
 
@@ -870,10 +883,12 @@ const SearchModal = () => {
   const getContent = (index: number) => {
     const result = searchResults[index];
     if (result.kind === 'PARAGRAPH') {
-      return result.content;
+      return (result.content as unknown as string[])?.map((text) => (
+        <Text mb={2} key={text} dangerouslySetInnerHTML={{ __html: text }} />
+      ));
     }
     if (result.kind === 'GLOSSARY') {
-      return `${result.origin}-${result.target}`;
+      return <GlossaryDetails glossary={result} />;
     }
     return '';
   };
@@ -886,16 +901,29 @@ const SearchModal = () => {
         <ModalOverlay />
         <ModalContent>
           <VStack>
-            <Input
-              variant={'filled'}
-              boxShadow='none'
-              size='lg'
-              type={'text'}
-              placeholder='Search'
-              border={'none'}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <InputGroup>
+              <Input
+                variant={'filled'}
+                boxShadow='none'
+                size='lg'
+                type={'text'}
+                placeholder='Search'
+                border={'none'}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <InputRightElement
+                h={'100%'}
+                onClick={handleClick}
+                children={
+                  !show ? (
+                    <Icon mr={2} as={AiOutlineGoogle} boxSize={'2rem'} />
+                  ) : (
+                    <Icon mr={2} as={AiFillGoogleCircle} boxSize={'2rem'} />
+                  )
+                }
+              />
+            </InputGroup>
             {searchResults.length ? (
               <HStack w='100%' alignItems={'flex-start'}>
                 <List flex='1' borderRight={'1px solid lightgray'}>
@@ -924,10 +952,9 @@ const SearchModal = () => {
                                 {result.sutra}
                               </Heading>
                               <Text pt='2' fontSize='sm'>
-                                {result.roll}
+                                {result.roll},{` p.${result.num}`}
                               </Text>
                             </Box>
-                            <BiLinkExternal />
                           </HStack>
                         </ListItem>
                       );
@@ -959,14 +986,77 @@ const SearchModal = () => {
                     return <ListItem key={index}>unknown type</ListItem>;
                   })}
                 </List>
-                <Box flex='1' h='100%'>
-                  <Text fontSize={'sm'}>{focusIndex >= 0 ? getContent(focusIndex) : ''}</Text>
+                <Box flex='1' h='100%' p={2}>
+                  {focusIndex >= 0 ? getContent(focusIndex) : ''}
                 </Box>
               </HStack>
             ) : null}
           </VStack>
         </ModalContent>
       </Modal>
+    </>
+  );
+};
+
+type GlossaryDetailsProps = {
+  glossary: Glossary;
+};
+export const GlossaryDetails = ({ glossary }: GlossaryDetailsProps) => {
+  const { origin, target, short_definition, example_use, related_terms, terms_to_avoid } = glossary;
+  return (
+    <>
+      {origin && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Origin:
+          </Heading>
+          <Text p={1} bg={'green.100'} mb={2}>
+            {origin}
+          </Text>
+        </>
+      )}
+      {target && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Target:
+          </Heading>
+          <Text p={1} bg={'blue.100'} mb={2}>
+            {target}
+          </Text>
+        </>
+      )}
+      {short_definition && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Short definition:
+          </Heading>
+          <Text mb={2}>{short_definition}</Text>
+        </>
+      )}
+      {example_use && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Example use:
+          </Heading>
+          <Text mb={2}>{example_use}</Text>
+        </>
+      )}
+      {related_terms && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Related terms:
+          </Heading>
+          <Text mb={2}>{related_terms}</Text>
+        </>
+      )}
+      {terms_to_avoid && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Terms to avoid:
+          </Heading>
+          <Text mb={2}>{terms_to_avoid}</Text>
+        </>
+      )}
     </>
   );
 };

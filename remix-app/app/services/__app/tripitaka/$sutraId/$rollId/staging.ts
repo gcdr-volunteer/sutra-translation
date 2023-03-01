@@ -6,7 +6,7 @@ import { translateZH2EN } from '~/models/external_services/deepl';
 import { json } from '@remix-run/node';
 import { upsertParagraph, getParagraphByPrimaryKey } from '~/models/paragraph';
 import { logger } from '~/utils';
-import { getAllGlossary, upsertGlossary } from '~/models/glossary';
+import { getAllGlossary, getGlossariesByTerm, upsertGlossary } from '~/models/glossary';
 import { Intent } from '~/types/common';
 import { created, serverError, unprocessableEntity } from 'remix-utils';
 import { esClient } from '~/models/external_services/opensearch';
@@ -227,7 +227,7 @@ export const handleCreateNewGlossary = async (newGlossary: Omit<Glossary, 'kind'
   }
 };
 
-export const searchByTerm = async (term: string) => {
+export const handleSearchByTerm = async (term: string) => {
   try {
     // TODO: this is just a stub function, refine it when you picking the
     // real ticket
@@ -239,6 +239,8 @@ export const searchByTerm = async (term: string) => {
         },
       },
       highlight: {
+        pre_tags: '<em style="background: pink">',
+        post_tags: '</em>',
         fields: {
           content: {},
         },
@@ -251,18 +253,40 @@ export const searchByTerm = async (term: string) => {
       body: query,
     });
     if (resp.body.hits?.hits?.length) {
-      logger.log(searchByTerm.name, 'response', resp.body?.hits.hits);
+      logger.log(handleSearchByTerm.name, 'response', resp.body?.hits.hits);
       // TODO: utiliza highlight result
-      logger.log(searchByTerm.name, 'highlight', resp.body?.hits.hits?.[0].highlight?.content);
+      logger.log(
+        handleSearchByTerm.name,
+        'highlight',
+        resp.body?.hits.hits?.[0].highlight?.content
+      );
       const hits = resp.body.hits.hits;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const results = hits.map((hit: any) => hit._source as Paragraph | Glossary);
+      const results = hits.map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (hit: any) => ({ ...hit._source, content: hit.highlight?.content } as Paragraph | Glossary)
+      );
       return json({ payload: results as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
     }
+    logger.info(handleSearchByTerm.name, 'did not get any result');
     return [];
   } catch (error) {
     // TODO: handle this error in frontend?
-    logger.warn(searchByTerm.name, 'warn', error);
+    logger.warn(handleSearchByTerm.name, 'warn', error);
+    return json({ payload: [] as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
+  }
+};
+
+export const handleSearchGlossary = async (text: string) => {
+  try {
+    const glossaries = await getGlossariesByTerm(text?.toLowerCase());
+    return json({
+      payload: glossaries as (Paragraph | Glossary)[],
+      intent: Intent.READ_OPENSEARCH,
+    });
+  } catch (error) {
+    // TODO: handle this error in frontend?
+    logger.warn(handleSearchByTerm.name, 'warn', error);
     return json({ payload: [] as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
   }
 };
