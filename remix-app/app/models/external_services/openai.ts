@@ -32,7 +32,7 @@ export const translate = async (
       presence_penalty: 0,
       max_tokens: 256,
     });
-    const result = completion?.data?.choices[0].text?.trim() ?? '';
+    const result = completion?.data?.choices[0].text?.trim().replace(/^,/, '') ?? '';
     logger.log(translate.name, 'completetion result', result);
     return result;
   } catch (error) {

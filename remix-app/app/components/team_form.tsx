@@ -1,4 +1,3 @@
-import { useActionData } from '@remix-run/react';
 import { useState } from 'react';
 import {
   Box,
@@ -20,10 +19,12 @@ import type { Team } from '~/types';
 
 interface TeamFormProps {
   teams: Team[];
-  onClose: () => void;
+  errors?: {
+    name: string;
+    alias: string;
+  };
 }
-export const TeamForm = (props: TeamFormProps) => {
-  const { errors } = useActionData<{ errors: { name: string; alias: string } }>() || {};
+export const TeamForm = ({ teams, errors }: TeamFormProps) => {
   const [formState, setFormState] = useState<Omit<Team, 'kind'>>({
     name: '',
     alias: '',
@@ -35,7 +36,6 @@ export const TeamForm = (props: TeamFormProps) => {
     const newFormState = { ...formState, [type]: e.target.value };
     setFormState(newFormState);
   };
-  const { teams } = props;
   return (
     <Box>
       {teams.length ? (

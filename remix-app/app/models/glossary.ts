@@ -15,7 +15,7 @@ export const createNewGlossary = async (glossary: Glossary) => {
         PK: 'GLOSSARY',
         SK,
         ...glossary,
-        content: `${glossary.origin}-${glossary.target}`,
+        content: `${glossary.origin?.toLowerCase()}-${glossary.target?.toLowerCase()}`,
       },
       {
         removeUndefinedValues: true,
@@ -45,6 +45,25 @@ export const getAllGlossary = async (): Promise<Glossary[]> => {
   return [];
 };
 
+export const getGlossariesByTerm = async (term: string): Promise<Glossary[]> => {
+  const params: QueryCommandInput = {
+    TableName: process.env.COMMENT_TABLE,
+    FilterExpression: 'contains(#content, :term)',
+    KeyConditionExpression: 'PK = :pk',
+    ExpressionAttributeNames: {
+      '#content': 'content',
+    },
+    ExpressionAttributeValues: marshall({
+      ':term': term,
+      ':pk': 'GLOSSARY',
+    }),
+  };
+  const { Items } = await dbClient().send(new QueryCommand(params));
+  if (Items?.length) {
+    return Items.map((Item) => unmarshall(Item) as Glossary);
+  }
+  return [];
+};
 export const updateGlossary = async (doc: UpdateType<Glossary>) => {
   return await dbUpdate({ tableName: process.env.COMMENT_TABLE, doc });
 };

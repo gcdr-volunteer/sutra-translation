@@ -20,7 +20,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-ignore
               const doc = unmarshall(Record.dynamodb.NewImage);
-              if (doc.PK && doc.SK && doc.kind !== 'COMMENT' && !doc.PK.startsWith('ZH')) {
+              if (doc.PK && doc.SK && ['PARAGRAPH'].includes(doc.kind)) {
                 const newDoc = {
                   index: {
                     index: 'translation',
@@ -43,7 +43,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-ignore
               const doc = unmarshall(Record.dynamodb.OldImage);
-              if (doc.PK && doc.SK && doc.kind !== 'COMMENT' && !doc.PK.startsWith('ZH')) {
+              if (doc.PK && doc.SK && ['PARAGRAPH'].includes(doc.kind)) {
                 const newDoc = {
                   delete: {
                     _id: `${doc.PK}-${doc.SK}`,
@@ -74,12 +74,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const doc = unmarshall(record.dynamodb.NewImage);
-        if (
-          doc.PK &&
-          doc.SK &&
-          ['PARAGRAPH', 'GLOSSARY'].includes(doc.kind) &&
-          !doc.PK.startsWith('ZH')
-        ) {
+        if (doc.PK && doc.SK && ['PARAGRAPH'].includes(doc.kind)) {
           console.info('ddb-to-es', 'single insertion', doc);
           const resp = await singleInsert(doc);
           if (resp.statusCode !== 201) {
@@ -104,15 +99,12 @@ export const handler = async (event: DynamoDBStreamEvent) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const doc = unmarshall(record.dynamodb.NewImage);
-        if (
-          doc.PK &&
-          doc.SK &&
-          ['PARAGRAPH', 'GLOSSARY'].includes(doc.kind) &&
-          !doc.PK.startsWith('ZH')
-        ) {
+        if (doc.PK && doc.SK && ['PARAGRAPH'].includes(doc.kind)) {
           console.log('ddb-to-es', 'single update', doc);
           const resp = await singleUpdate(doc);
-          console.log('ddb-to-es', 'single update result', resp);
+          if (resp.statusCode !== 200) {
+            console.log('ddb-to-es', 'single update response', resp);
+          }
         }
       }
     }

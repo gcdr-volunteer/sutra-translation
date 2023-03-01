@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
+const bytesize = (str: string) => new Blob([str]).size;
 export function useDebounce(value: string, delay: number) {
   // State and setters for debounced value
-  const [debouncedValue, setDebouncedValue] = useState(value);
+  const [debouncedValue, setDebouncedValue] = useState({ length: 0, value });
   useEffect(
     () => {
       // Update debounced value after delay
       const handler = setTimeout(() => {
-        setDebouncedValue(value);
+        const length = bytesize(value);
+        setDebouncedValue({ length, value });
       }, delay);
       // Cancel the timeout if value changes (also on delay change or unmount)
       // This is how we prevent debounced value from updating if value is changed ...

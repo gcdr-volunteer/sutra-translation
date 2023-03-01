@@ -64,7 +64,7 @@ export const handleCreateNewReference = async (
       origin: 'Cleary',
       paragraphId: result.PK,
     };
-    logger.log(handleCreateNewReference.name, 'translationParagraph', reference);
+    logger.log(handleCreateNewReference.name, 'new reference', reference);
     await createReference(reference);
     return created({
       payload: {
