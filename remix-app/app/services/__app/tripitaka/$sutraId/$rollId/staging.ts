@@ -74,7 +74,13 @@ export const hanldeDeepLFetch = async ({ origins }: { origins: Record<string, st
   }
 };
 
-export const handleOpenaiFetch = async ({ origins }: { origins: Record<string, string> }) => {
+export const handleOpenaiFetch = async ({
+  origins,
+  category,
+}: {
+  origins: Record<string, string>;
+  category?: string;
+}) => {
   try {
     logger.log(handleOpenaiFetch.name, 'origins', origins);
 
@@ -92,7 +98,7 @@ export const handleOpenaiFetch = async ({ origins }: { origins: Record<string, s
             acc[cur.key] = cur.value;
             return acc;
           }, {} as Record<string, string>);
-        return translate(text, glossaries);
+        return translate({ text, category }, glossaries);
       })
     );
     const obj = Object.keys(origins).reduce((acc, key, index) => {

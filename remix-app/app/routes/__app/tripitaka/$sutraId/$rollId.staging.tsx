@@ -109,24 +109,31 @@ export const action = async ({ request, params }: ActionArgs) => {
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
   if (entryData?.intent === Intent.READ_OPENAI) {
-    const { intent, ...rest } = entryData;
+    const { intent, category, ...rest } = entryData;
     // Uncomment the following line when doing debug
     // return json({ data: {}, intent: Intent.READ_DEEPL });
     if (Object.keys(rest)?.length) {
       // const origins = await replaceWithGlossary(rest as Record<string, string>);
-      return await handleOpenaiFetch({ origins: rest as Record<string, string> });
+      return await handleOpenaiFetch({
+        origins: rest as Record<string, string>,
+        category: category as string,
+      });
     }
   }
 
   if (entryData?.intent === Intent.UPDATE_OPENAI) {
+    console.log(entryData);
     const origin = entryData?.origin as string;
+    const category = entryData?.category as string;
     const glossaries = await getAllGlossary();
-    const sourceGlossaries = glossaries?.reduce((acc, glossary) => {
-      acc[glossary.origin] = glossary.target;
-      return acc;
-    }, {} as Record<string, string>);
+    const sourceGlossaries = glossaries
+      ?.filter((glossary) => origin?.includes(glossary.origin))
+      ?.reduce((acc, glossary) => {
+        acc[glossary.origin] = glossary.target;
+        return acc;
+      }, {} as Record<string, string>);
 
-    const translation = await translate(origin, sourceGlossaries);
+    const translation = await translate({ text: origin, category }, sourceGlossaries);
     return json({ intent: Intent.UPDATE_OPENAI, origin, translation });
   }
   if (entryData?.intent === Intent.CREATE_TRANSLATION) {
@@ -227,6 +234,7 @@ export default function StagingRoute() {
         } else {
           acc[`${i}`] = cur?.content || '';
         }
+        acc['category'] = cur?.category ?? 'PARAGRAPH';
         return acc;
       },
       { intent: Intent.READ_OPENAI } as Record<string, string>
@@ -452,7 +460,7 @@ function TranlationWorkspace({
   useEffect(() => {
     if (refresh) {
       submit(
-        { intent: Intent.UPDATE_OPENAI, origin: origin.content },
+        { intent: Intent.UPDATE_OPENAI, origin: origin.content, category: origin.category },
         { method: 'post', replace: false }
       );
     }

@@ -125,7 +125,7 @@ export async function RemixStack({ stack }: StackContext) {
     },
   });
   const esAccess = new iam.PolicyStatement({
-    actions: ['es:Search'],
+    actions: ['es:Search', 'es:ESHttpPost', 'es:ESHttpGet'],
     resources: ['*'],
   });
   site.attachPermissions([userTable, commentTable, translationTable, topic, esAccess]);

@@ -7,7 +7,10 @@ const configuration = new Configuration({
 const openai = () => new OpenAIApi(configuration);
 
 export const translate = async (
-  text: string,
+  input: {
+    text: string;
+    category?: string;
+  },
   glossaries: Record<string, string>
 ): Promise<string> => {
   let glossary = '';
@@ -18,21 +21,28 @@ export const translate = async (
     }, '');
   }
   const prefix = glossary ? `Using this glossary '${glossary}' to translate` : 'Please translate';
-  const postfix = ' in buddhism English style';
-  const prompt = `${prefix} ${text.trim()} ${postfix}`;
+  const postfix =
+    input?.category === 'VERSE'
+      ? ' like a verse in buddhism English style'
+      : ' in buddhism English style';
+  const prompt = `${prefix} ${input.text.trim()} ${postfix}`;
   logger.log(translate.name, 'prompt', prompt);
   try {
-    const completion = await openai().createCompletion({
-      model: 'text-davinci-001',
-      prompt,
+    const completion = await openai().createChatCompletion({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
       temperature: 0.5,
       top_p: 1,
-      best_of: 1,
       frequency_penalty: 0,
       presence_penalty: 0,
       max_tokens: 256,
     });
-    const result = completion?.data?.choices[0].text?.trim().replace(/^,/, '') ?? '';
+    const result = completion?.data?.choices[0].message?.content?.trim().replace(/^,/, '') ?? '';
     logger.log(translate.name, 'completetion result', result);
     return result;
   } catch (error) {
