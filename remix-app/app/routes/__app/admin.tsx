@@ -155,6 +155,15 @@ interface UserConfigProps {
 }
 const UserConfig = (props: UserConfigProps) => {
   const { user, userform } = props;
+  const bgColors: Record<RoleType, string> = {
+    [RoleType.Admin]: 'pink',
+    [RoleType.Leader]: 'lightgreen',
+    [RoleType.Editor]: 'lightblue',
+    [RoleType.Reviewer]: 'lightyellow',
+    [RoleType.Reader]: 'lightcyan',
+    [RoleType.Assistor]: 'lightsalmon',
+    [RoleType.Debug]: 'lightgrey',
+  };
   return (
     <Box>
       <Accordion allowToggle>
@@ -164,11 +173,7 @@ const UserConfig = (props: UserConfigProps) => {
               <Box flex='1' textAlign='left'>
                 {user.username}
                 {user.roles?.map((role) => (
-                  <Tag
-                    key={role}
-                    ml={4}
-                    background={role === RoleType.Admin ? 'pink' : 'lightgreen'}
-                  >
+                  <Tag key={role} ml={4} background={bgColors[role]}>
                     {role}
                   </Tag>
                 ))}

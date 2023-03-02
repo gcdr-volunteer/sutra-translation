@@ -256,7 +256,7 @@ const CommentBadges = (props: CommentBadgesProps) => {
 
   useEffect(() => {
     if (rootComment) {
-      if (lastMessage?.createdBy !== currentUser?.email) {
+      if (lastMessage?.createdBy !== currentUser?.SK) {
         setNotifications((prev) => ({ ...prev, [rootComment.id]: true }));
       } else if (lastMessage?.id === rootComment?.id) {
         setNotifications((prev) => ({ ...prev, [rootComment.id]: false }));
