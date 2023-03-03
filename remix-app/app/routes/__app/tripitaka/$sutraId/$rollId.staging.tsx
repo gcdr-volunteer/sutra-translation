@@ -890,12 +890,12 @@ const SearchModal = () => {
 
   const getContent = (index: number) => {
     const result = searchResults[index];
-    if (result.kind === 'PARAGRAPH') {
+    if (result?.kind === 'PARAGRAPH') {
       return (result.content as unknown as string[])?.map((text) => (
         <Text mb={2} key={text} dangerouslySetInnerHTML={{ __html: text }} />
       ));
     }
-    if (result.kind === 'GLOSSARY') {
+    if (result?.kind === 'GLOSSARY') {
       return <GlossaryDetails glossary={result} />;
     }
     return '';
@@ -936,7 +936,7 @@ const SearchModal = () => {
               <HStack w='100%' alignItems={'flex-start'}>
                 <List flex='1' borderRight={'1px solid lightgray'}>
                   {searchResults.map((result, index) => {
-                    if (result.kind === 'PARAGRAPH') {
+                    if (result?.kind === 'PARAGRAPH') {
                       return (
                         <ListItem
                           px={2}
@@ -967,7 +967,7 @@ const SearchModal = () => {
                         </ListItem>
                       );
                     }
-                    if (result.kind === 'GLOSSARY') {
+                    if (result?.kind === 'GLOSSARY') {
                       return (
                         <ListItem
                           px={2}
