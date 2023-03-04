@@ -20,8 +20,8 @@ const newTranslationSchema = () => {
   // TODO: using strict().noUnknown() to stop unknown params
   const translationSchema = baseSchema.shape({
     translation: yup.string().trim().required('submitted tranlation cannot be empty'),
-    PK: yup.string().trim().required('submitted translation partition key cannot be empty'),
-    SK: yup.string().trim().required('submitted translation sort key cannot be empty'),
+    PK: yup.string().trim().required(),
+    SK: yup.string().trim().required(),
     kind: yup.mixed<'PARAGRAPH'>().default('PARAGRAPH'),
   });
   return translationSchema;
@@ -90,6 +90,7 @@ export const handleOpenaiFetch = async ({
       key: glossary.origin,
       value: glossary.target,
     }));
+
     const results = await Promise.all(
       Object.values(origins).map((text) => {
         const glossaries = sourceGlossaries

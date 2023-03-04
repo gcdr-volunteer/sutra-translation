@@ -7,14 +7,15 @@ import type { Glossary } from '~/types/glossary';
 import type { UpdateType } from '~/types';
 
 export const createNewGlossary = async (glossary: Glossary) => {
-  const SK = `GLOSSARY-${hash(`${glossary.origin}-${glossary.target}`)}`;
+  const { PK, SK, ...rest } = glossary;
+  const sortKey = `GLOSSARY-${hash(`${glossary.origin}-${glossary.target}`)}`;
   const params: PutItemCommandInput = {
     TableName: process.env.COMMENT_TABLE,
     Item: marshall(
       {
         PK: 'GLOSSARY',
-        SK,
-        ...glossary,
+        SK: sortKey,
+        ...rest,
         content: `${glossary.origin?.toLowerCase()}-${glossary.target?.toLowerCase()}`,
       },
       {
