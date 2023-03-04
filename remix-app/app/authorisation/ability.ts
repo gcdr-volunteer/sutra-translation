@@ -18,6 +18,7 @@ export const defineAbilityFor = (user: User) => {
     can('Create', 'Sutra');
   }
   if (user.roles.includes(RoleType.Editor) || user.roles.includes(RoleType.Admin)) {
+    can('Read', 'Paragraph');
     can('Create', 'Paragraph');
     can('Update', 'Paragraph');
     can('Delete', 'Paragraph');
@@ -31,6 +32,7 @@ export const defineAbilityFor = (user: User) => {
   if (
     user.roles.includes(RoleType.Admin) ||
     user.roles.includes(RoleType.Editor) ||
+    user.roles.includes(RoleType.Reviewer) ||
     user.roles.includes(RoleType.Leader)
   ) {
     can('Read', 'Translation');
