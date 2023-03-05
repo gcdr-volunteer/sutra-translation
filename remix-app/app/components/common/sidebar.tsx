@@ -21,7 +21,10 @@ import {
 } from 'react-icons/ai';
 import { MdOutlineManageAccounts } from 'react-icons/md';
 import { Can } from '~/authorisation';
+import { useContext } from 'react';
+import { AppContext } from '~/routes/__app';
 export const Sidebar = () => {
+  const { currentUser } = useContext(AppContext);
   const {
     colors: { primary, secondary },
   } = useTheme();
@@ -111,7 +114,9 @@ export const Sidebar = () => {
               >
                 <HStack justifyContent={'flex-start'}>
                   <Icon as={AiOutlineTranslation} />
-                  <Text as='b'>Sutra</Text>
+                  <Text as='b' w='100%'>
+                    Sutra
+                  </Text>
                 </HStack>
               </NavLink>
             </Box>
@@ -204,12 +209,17 @@ export const Sidebar = () => {
           <Divider borderColor={'primary.300'} />
           <Flex mt={4} alignItems='center' flexDir='row' w='100%' justifyContent='space-evenly'>
             <Flex flexDir='row'>
-              <Avatar mr={2} size='sm' name='Terry Pan' src='https://bit.ly/broken-link' />
+              <Avatar
+                mr={2}
+                size='sm'
+                name={currentUser?.username ?? 'U'}
+                src='https://bit.ly/broken-link'
+              />
               <NavLink to='setting'>
                 <Heading as='h3' size='sm' color='secondary.500'>
-                  Terry Pan
+                  {currentUser?.username}
                 </Heading>
-                <Text color='secondary.500'>Admin</Text>
+                <Text color='secondary.500'>{currentUser?.roles[0]}</Text>
               </NavLink>
             </Flex>
           </Flex>

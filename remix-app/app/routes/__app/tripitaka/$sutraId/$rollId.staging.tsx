@@ -218,9 +218,8 @@ export default function StagingRoute() {
 
   const paragraphs = loaderData.paragraphs;
   const ref = useRef(paragraphs);
-  const submit = useSubmit();
   useEffect(() => {
-    const origins = paragraphs?.reduce(
+    paragraphs?.reduce(
       (acc, cur, i) => {
         const sentences = cur?.content.trim().split(/(?<=。|！|？|；)/g) || [];
         if (sentences.length > 1) {
@@ -244,7 +243,6 @@ export default function StagingRoute() {
       return acc;
     }, {} as Record<string, boolean>);
     setParagraphFinish(paragraphFinish);
-    submit(origins, { method: 'post', replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -349,13 +347,12 @@ export default function StagingRoute() {
                   unmountOnExit={true}
                 >
                   <TranlationWorkspace
+                    isFirst={j === loaderData.sentenceIndex + 1}
                     origin={newParagraph}
                     paragraphIndex={i}
                     sentenceIndex={j}
                     totalSentences={sentences.length - 1}
-                    translation={
-                      Object.keys(translation).length ? translation[`${i}.${j}`] : 'loading....'
-                    }
+                    translation={Object.keys(translation).length ? translation[`${i}.${j}`] : ''}
                     reference={references?.[i]?.[j] ?? ''}
                     totalParagraphs={ref?.current.length - 1}
                   />
@@ -376,10 +373,11 @@ export default function StagingRoute() {
         animateOpacity={true}
       >
         <TranlationWorkspace
+          isFirst={paragraphFinish[i - 1] || i === 0}
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           origin={paragraph!}
           paragraphIndex={i}
-          translation={Object.keys(translation).length ? translation[`${i}`] : 'loading....'}
+          translation={Object.keys(translation).length ? translation[`${i}`] : ''}
           reference={references?.[i]?.[0] ?? ''}
           totalParagraphs={ref?.current.length - 1}
         />
@@ -408,6 +406,7 @@ interface WorkSpaceProps {
   totalParagraphs: number;
   sentenceIndex?: number;
   totalSentences?: number;
+  isFirst: boolean;
 }
 function TranlationWorkspace({
   origin,
@@ -417,6 +416,7 @@ function TranlationWorkspace({
   totalParagraphs,
   sentenceIndex,
   totalSentences,
+  isFirst,
 }: WorkSpaceProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -458,14 +458,14 @@ function TranlationWorkspace({
   }, [actionData]);
 
   useEffect(() => {
-    if (refresh) {
+    if (refresh || isFirst) {
       submit(
         { intent: Intent.UPDATE_OPENAI, origin: origin.content, category: origin.category },
         { method: 'post', replace: false }
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refresh]);
+  }, [refresh, isFirst]);
 
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_TRANSLATION) {
@@ -545,7 +545,7 @@ function TranlationWorkspace({
             <Heading size='sm'>OpenAI</Heading>
             <ButtonGroup variant='outline' spacing='6'>
               <IconButton
-                isLoading={isSubmit}
+                isLoading={isSubmit && isFirst}
                 icon={<RepeatIcon />}
                 onClick={() => {
                   setRefresh((pre) => pre + 1);
@@ -555,7 +555,7 @@ function TranlationWorkspace({
               <IconButton
                 icon={<CopyIcon />}
                 aria-label='copy'
-                onClick={() => setContent(translation)}
+                onClick={() => setContent(latestTranslation || translation)}
               />
             </ButtonGroup>
           </CardHeader>
@@ -605,7 +605,7 @@ function TranlationWorkspace({
                 onClick={handleSubmitTranslation}
                 colorScheme={'iconButton'}
                 disabled={!content}
-                isLoading={isSubmit}
+                isLoading={isSubmit && isFirst}
               >
                 Submit
               </Button>

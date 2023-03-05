@@ -17,6 +17,7 @@ import { badRequest } from 'remix-utils';
 import { utcNow } from '~/utils';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { getFootnotesByPartitionKey } from '~/models/footnote';
+import { Can } from '~/authorisation';
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId, sutraId } = params;
   if (rollId) {
@@ -160,22 +161,24 @@ export default function ParagraphRoute() {
         {roll?.title ? <Heading size={'lg'}>{roll.title}</Heading> : null}
         {roll?.subtitle ? <Heading size={'md'}>{roll.subtitle}</Heading> : null}
         {paragraphsComp}
-        <IconButton
-          borderRadius={'50%'}
-          w={12}
-          h={12}
-          pos={'fixed'}
-          bottom={8}
-          right={8}
-          icon={<FiEdit />}
-          aria-label='edit roll'
-          colorScheme={'iconButton'}
-          onClick={() => {
-            navigate(`staging?${urlparams.toString()}`, {
-              replace: true,
-            });
-          }}
-        />
+        <Can I='Read' this='Paragraph'>
+          <IconButton
+            borderRadius={'50%'}
+            w={12}
+            h={12}
+            pos={'fixed'}
+            bottom={8}
+            right={8}
+            icon={<FiEdit />}
+            aria-label='edit roll'
+            colorScheme={'iconButton'}
+            onClick={() => {
+              navigate(`staging?${urlparams.toString()}`, {
+                replace: true,
+              });
+            }}
+          />
+        </Can>
       </Flex>
     );
   }
