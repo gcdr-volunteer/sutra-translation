@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { useMemo } from 'react';
 import type { ChangeEvent } from 'react';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type {
@@ -80,6 +82,9 @@ import { getReferencesBySK } from '~/models/reference';
 import { GlossaryForm } from '~/components/common/glossary_form';
 import { getAllGlossary } from '~/models/glossary';
 import { translate } from '~/models/external_services/openai';
+import { RTEditor } from '~/components/common/editor';
+import type { Node } from 'slate';
+import { serialize } from '~/components/common/editorcomponent';
 
 export const loader = async ({ params, request }: LoaderArgs) => {
   const { rollId } = params;
@@ -172,6 +177,10 @@ export const action = async ({ request, params }: ActionArgs) => {
         PK: entryData?.PK as string,
         SK: entryData?.SK as string,
         translation: entryData?.translation as string,
+        html: JSON.parse((entryData?.json as string) || '[]')
+          .map((node: Node) => serialize(node))
+          .join('') as string,
+        json: entryData?.json as string,
       },
       // TODO: using frontend route props passing
       { sutraId, rollId }
@@ -298,8 +307,20 @@ export default function StagingRoute() {
               </Text>
             </Box>
             {loaderData?.paragraph?.content ? (
-              <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
-                <Text size={'lg'} fontSize='1.5rem' lineHeight={1.5}>
+              <Box
+                mt={4}
+                w='100%'
+                p={4}
+                background={'primary.300'}
+                borderRadius={16}
+                mb={4}
+                dangerouslySetInnerHTML={{
+                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                  // @ts-ignore
+                  __html: loaderData?.paragraph?.html,
+                }}
+              >
+                {/* <Text size={'lg'} fontSize='1.5rem' lineHeight={1.5}>
                   {footnotes?.length
                     ? footnotes
                         .sort((a, b) => a.num - b.num)
@@ -332,7 +353,7 @@ export default function StagingRoute() {
                           return null;
                         })
                     : loaderData?.paragraph?.content}
-                </Text>
+                </Text> */}
               </Box>
             ) : null}
           </Collapse>
@@ -425,7 +446,6 @@ function TranlationWorkspace({
   const [content, setContent] = useState('');
   const submit = useSubmit();
   const textareaFormRef = useRef(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [glossary, setGlossary] = useBoolean(false);
   const [cursorPos, setCursorPos] = useState(-1);
   const [footnotes, setFootnotes] = useState<FN[]>([]);
@@ -440,11 +460,13 @@ function TranlationWorkspace({
       setPrevTranslation(translation);
     }
   }, [translation]);
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [save, setSave] = useState(false);
+
   const handleSubmitTranslation = () => {
-    if (textareaRef?.current) {
-      textareaRef.current.value = `${loaderData?.paragraph?.content ?? ''} ${content}`;
-    }
     setContent('');
+    setSave(true);
     submit(textareaFormRef.current, { replace: true });
   };
 
@@ -528,6 +550,21 @@ function TranlationWorkspace({
         return null;
       })
     : content;
+
+  const jsonValue = useMemo(() => {
+    if (content) {
+      return JSON.stringify([
+        {
+          type: 'paragraph',
+          children: [
+            {
+              text: content,
+            },
+          ],
+        },
+      ]);
+    }
+  }, [content]);
   // TODO: refactor this code to sub components
   return (
     <Flex gap={4} flexDir='row' justifyContent='space-between'>
@@ -555,7 +592,9 @@ function TranlationWorkspace({
               <IconButton
                 icon={<CopyIcon />}
                 aria-label='copy'
-                onClick={() => setContent(latestTranslation || translation)}
+                onClick={() => {
+                  setContent(latestTranslation || translation);
+                }}
               />
             </ButtonGroup>
           </CardHeader>
@@ -570,7 +609,9 @@ function TranlationWorkspace({
               <IconButton
                 icon={<CopyIcon />}
                 aria-label='copy'
-                onClick={() => setContent(reference.content)}
+                onClick={() => {
+                  setContent(reference.content);
+                }}
               />
             </ButtonGroup>
           </CardHeader>
@@ -578,8 +619,6 @@ function TranlationWorkspace({
             <Text fontSize={'xl'}>{reference?.content ?? ''}</Text>
           </CardBody>
         </Card>
-      </VStack>
-      <Flex flex={1} justifyContent='stretch' alignSelf={'stretch'}>
         <Card background={'secondary.500'} w='100%' borderRadius={12}>
           <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
             <Heading size='sm'>Workspace</Heading>
@@ -588,7 +627,7 @@ function TranlationWorkspace({
             <ButtonGroup colorScheme={'iconButton'} variant={'outline'} p={4} mb={2}>
               <Tooltip label='open glossary' openDelay={1000}>
                 <IconButton
-                  onClick={setGlossary.on}
+                  onClick={setGlossary.toggle}
                   icon={<BiTable />}
                   aria-label='glossary button'
                 />
@@ -612,32 +651,20 @@ function TranlationWorkspace({
             </ButtonGroup>
             {glossary ? <GlossaryModal /> : null}
             <Form method='post' ref={textareaFormRef} style={{ height: '100%' }}>
-              {argumentedContent ? (
-                <Text bg={'primary.300'} p={2} borderRadius={4} mb={4}>
-                  {argumentedContent}
-                </Text>
-              ) : null}
-              <Textarea
-                name='translation'
-                ref={textareaRef}
-                height={content ? '70%' : '100%'}
-                placeholder='Edit your paragraph'
-                value={content}
-                onClick={handleCursorChange}
-                onChange={(e) => setContent(e.target.value)}
-              />
+              <RTEditor key={content} json={jsonValue} />
               <Input name='PK' value={origin.PK} hidden readOnly />
               <Input name='SK' value={origin.SK} hidden readOnly />
               <Input name='paragraphIndex' value={paragraphIndex} hidden readOnly />
               <Input name='sentenceIndex' value={sentenceIndex} hidden readOnly />
               <Input name='totalSentences' value={totalSentences} hidden readOnly />
+              <Input name='translation' value={content} hidden readOnly />
               <Input name='footnotes' value={JSON.stringify(footnotes)} hidden readOnly />
               <Input name='prevParagraph' value={loaderData?.paragraph?.content} hidden readOnly />
               <Input name='intent' value={Intent.CREATE_TRANSLATION} hidden readOnly />
             </Form>
           </CardBody>
         </Card>
-      </Flex>
+      </VStack>
     </Flex>
   );
 }
@@ -1010,7 +1037,16 @@ type GlossaryDetailsProps = {
   glossary: Glossary;
 };
 export const GlossaryDetails = ({ glossary }: GlossaryDetailsProps) => {
-  const { origin, target, short_definition, example_use, related_terms, terms_to_avoid } = glossary;
+  const {
+    origin,
+    target,
+    short_definition,
+    example_use,
+    related_terms,
+    terms_to_avoid,
+    options,
+    discussion,
+  } = glossary;
   return (
     <>
       {origin && (
@@ -1063,6 +1099,22 @@ export const GlossaryDetails = ({ glossary }: GlossaryDetailsProps) => {
             Terms to avoid:
           </Heading>
           <Text mb={2}>{terms_to_avoid}</Text>
+        </>
+      )}
+      {options && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Options:
+          </Heading>
+          <Text mb={2}>{options}</Text>
+        </>
+      )}
+      {discussion && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Discussion:
+          </Heading>
+          <Text mb={2}>{discussion}</Text>
         </>
       )}
     </>

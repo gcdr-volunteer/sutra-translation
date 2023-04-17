@@ -21,7 +21,7 @@ export function Roll(props: RollProps) {
   const actionData = useActionData<{ intent: Intent; data: string }>();
   const location = useLocation();
   const { slug, subtitle, title, firstTime } = props;
-  const isOpenMetaModal = firstTime && !location?.pathname.includes('sutra');
+  const isOpenMetaModal = firstTime && location?.pathname.includes('tripitaka');
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_SUTRA_META && actionData?.data) {

@@ -4,7 +4,7 @@ import type { Comment } from '~/types/comment';
 import type { MutableRefObject } from 'react';
 import { json } from '@remix-run/node';
 import { Outlet, useLoaderData, useLocation, useNavigate } from '@remix-run/react';
-import { IconButton, Flex, Box, Heading } from '@chakra-ui/react';
+import { IconButton, Flex, Box, Heading, useToast } from '@chakra-ui/react';
 import { useEffect, useRef } from 'react';
 import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
@@ -43,7 +43,7 @@ export const loader = async ({ params }: LoaderArgs) => {
       num,
       finish,
     }));
-    const targets = targetParagraphs?.map(({ category, content, num, SK, finish }) => {
+    const targets = targetParagraphs?.map(({ category, content, num, SK, finish, json }) => {
       const comments = rootComments.filter(
         (comment) => comment?.paragraphId === SK && !comment?.resolved
       );
@@ -54,6 +54,7 @@ export const loader = async ({ params }: LoaderArgs) => {
         num,
         SK,
         finish,
+        json,
       };
     });
     return json({
@@ -94,6 +95,7 @@ export type ParagraphLoadData = {
   finish: boolean;
   content: string;
   comments: [];
+  json: string;
 };
 export default function ParagraphRoute() {
   const { origins, targets, roll } = useLoaderData<{
@@ -103,8 +105,10 @@ export default function ParagraphRoute() {
     roll?: Roll;
   }>();
 
+  const toast = useToast();
+
   const navigate = useNavigate();
-  const checkedParagraphs = useRef(new Set<number>());
+  const urlParams = useRef(new URLSearchParams());
 
   const location = useLocation();
   const refs = targets?.reduce((acc, cur) => {
@@ -122,7 +126,34 @@ export default function ParagraphRoute() {
     }
   }, [location.hash, refs]);
 
-  const urlparams = new URLSearchParams();
+  const handleNavigate = () => {
+    const isMonotone = (arrays: string[]) => {
+      const nums = arrays.map((element) => Number(element.slice(element.length - 4)));
+      for (let i = 0; i < nums.length - 1; i++) {
+        if (nums[i] + 1 !== nums[i + 1]) {
+          return false;
+        }
+      }
+      return true;
+    };
+    let allowNavigate = true;
+    if (targets.length) {
+      const lastTarget = targets[targets.length - 1];
+      const arrays = Array.from(urlParams.current.values());
+      arrays.push(lastTarget.SK);
+      arrays.sort();
+      allowNavigate = isMonotone(arrays);
+    }
+    allowNavigate
+      ? navigate(`staging?${urlParams.current.toString()}`, {
+          replace: true,
+        })
+      : toast({
+          title: 'Oops, you cannot progress',
+          description: 'You have to edit paragraphs by order',
+          status: 'warning',
+        });
+  };
 
   const paragraphsComp = origins?.map((origin, index) => {
     // TODO: handle out of order selection
@@ -142,8 +173,7 @@ export default function ParagraphRoute() {
         index={index}
         SK={origin.SK}
         footnotes={[]}
-        params={urlparams}
-        checkedParagraphs={checkedParagraphs}
+        urlParams={urlParams}
       />
     );
   });
@@ -161,7 +191,7 @@ export default function ParagraphRoute() {
         {roll?.title ? <Heading size={'lg'}>{roll.title}</Heading> : null}
         {roll?.subtitle ? <Heading size={'md'}>{roll.subtitle}</Heading> : null}
         {paragraphsComp}
-        <Can I='Read' this='Paragraph'>
+        <Can I='Create' this='Paragraph'>
           <IconButton
             borderRadius={'50%'}
             w={12}
@@ -172,11 +202,7 @@ export default function ParagraphRoute() {
             icon={<FiEdit />}
             aria-label='edit roll'
             colorScheme={'iconButton'}
-            onClick={() => {
-              navigate(`staging?${urlparams.toString()}`, {
-                replace: true,
-              });
-            }}
+            onClick={handleNavigate}
           />
         </Can>
       </Flex>

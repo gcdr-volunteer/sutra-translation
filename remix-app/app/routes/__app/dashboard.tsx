@@ -175,18 +175,18 @@ export default function TripitakaRoute() {
           </ResponsiveContainer>
         </GridItem>
         <GridItem rowSpan={2}>
-          <Heading size={'sm'}>{sutraMetric?.[0].name} (rolls)</Heading>
+          <Heading size={'sm'}>{sutraMetric?.[0]?.name} (rolls)</Heading>
           <ResponsiveContainer width='100%' height='90%'>
             <PieChart>
               <Pie
-                data={sutraMetric?.[0].data}
+                data={sutraMetric?.[0]?.data}
                 dataKey='value'
                 fill='#8884d8'
                 outerRadius={80}
                 innerRadius={40}
                 label
               >
-                {sutraMetric?.[0].data.map((entry, index) => (
+                {sutraMetric?.[0]?.data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

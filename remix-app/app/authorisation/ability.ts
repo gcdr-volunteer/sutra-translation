@@ -17,7 +17,11 @@ export const defineAbilityFor = (user: User) => {
     can('Read', 'Administration');
     can('Create', 'Sutra');
   }
-  if (user.roles.includes(RoleType.Editor) || user.roles.includes(RoleType.Admin)) {
+  if (
+    user.roles.includes(RoleType.Editor) ||
+    user.roles.includes(RoleType.Admin) ||
+    user.roles.includes(RoleType.Leader)
+  ) {
     can('Read', 'Paragraph');
     can('Create', 'Paragraph');
     can('Update', 'Paragraph');

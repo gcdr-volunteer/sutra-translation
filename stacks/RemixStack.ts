@@ -50,8 +50,8 @@ export async function ESStack({ stack }: StackContext) {
     : new Domain(stack, `${process.env.ENV}-Domain`, {
         version: EngineVersion.ELASTICSEARCH_7_10,
         capacity: {
-          dataNodeInstanceType: 't3.small.search',
-          masterNodeInstanceType: 't3.small.search',
+          dataNodeInstanceType: 't3.medium.search',
+          masterNodeInstanceType: 't3.medium.search',
         },
         removalPolicy: isProd() ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
       });
@@ -104,9 +104,9 @@ export async function SNSStack({ stack }: StackContext) {
 
 export async function RemixStack({ stack }: StackContext) {
   dependsOn(ESStack);
+  const { domain } = use(ESStack);
   dependsOn(TableStack);
   dependsOn(SNSStack);
-  const { domain } = use(ESStack);
   const { translationTable, userTable, commentTable } = use(TableStack);
   const { topic } = use(SNSStack);
   const site = new RemixSite(stack, 'Site', {

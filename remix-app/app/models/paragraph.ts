@@ -51,10 +51,17 @@ export const updateParagraph = async (paragraph: UpdateType<Paragraph>) => {
 export const upsertParagraph = async (paragraph: CreateType<Paragraph> | UpdateType<Paragraph>) => {
   const prevParagraph = await getParagraphByPrimaryKey({ PK: paragraph.PK, SK: paragraph.SK });
   if (prevParagraph) {
+    const prevJsonObj = JSON.parse(prevParagraph.json ?? '[]');
+    const curJsonObj = JSON.parse(paragraph.json ?? '[]');
+    const newJsonObj = [...prevJsonObj, ...curJsonObj];
     const newParagraph = {
       ...prevParagraph,
       ...paragraph,
-      content: paragraph.content,
+      html: prevParagraph?.html ? `${prevParagraph.html}${paragraph.html}` : paragraph.html,
+      json: JSON.stringify(newJsonObj),
+      content: prevParagraph?.content
+        ? `${prevParagraph.content} ${paragraph.content}`
+        : paragraph.content,
     };
     logger.log(upsertParagraph.name, 'updateParagraph', newParagraph);
     return await updateParagraph(newParagraph);

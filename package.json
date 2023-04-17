@@ -41,6 +41,7 @@
     ]
   },
   "dependencies": {
+    "@lexical/react": "^0.9.0",
     "@serverless-stack/node": "^1.18.4"
   },
   "workspaces": [

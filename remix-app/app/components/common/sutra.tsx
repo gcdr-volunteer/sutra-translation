@@ -27,7 +27,7 @@ export function Sutra(props: SutraProps) {
   const actionData = useActionData<{ intent: Intent; data: string }>();
   const location = useLocation();
   const { slug, category, title, translator, firstTime } = props;
-  const isOpenMetaModal = firstTime && !location?.pathname.includes('sutra');
+  const isOpenMetaModal = firstTime && location?.pathname.includes('tripitaka');
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_SUTRA_META && actionData?.data) {

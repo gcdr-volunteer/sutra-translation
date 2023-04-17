@@ -2,10 +2,11 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import { FeedParams } from '../index';
-import { CreateType, LangCode, Paragraph } from '../../../../remix-app/app/types';
+import { CreateType, Paragraph } from '../../../../remix-app/app/types';
 import {
-  composeIdForReference,
-  composeIdForTranslation,
+  composeIdForFootnote,
+  composeIdForParagraph,
+  composeIdForRoll,
 } from '../../../../remix-app/app/models/utils';
 
 type Mulu = {
@@ -35,7 +36,7 @@ type CBeta = {
 };
 const getJson = async ({ sutra, roll }: FeedParams): Promise<CBeta | undefined> => {
   const { data, status } = await axios.get<CBeta>(
-    `http://cbdata.dila.edu.tw/v1.2/juans?work=${sutra}&juan=${roll}&work_info=1&toc=1`,
+    `http://cbdata.dila.edu.tw/stable/juans?work=${sutra}&juan=${roll}&work_info=1&toc=1`,
     { headers: { accept: 'application/json' } }
   );
   if (status === 200) {
@@ -148,12 +149,14 @@ export const paragraphComposer = ({
   startId,
   sutra,
   roll,
+  sutraId,
 }: {
   preface: Doc[];
   rolls: Doc[];
   startId: string;
   sutra: string;
   roll: string;
+  sutraId: string;
 }): CreateType<Paragraph>[] => {
   return [...preface, ...rolls]
     .map((doc) => {
@@ -163,20 +166,17 @@ export const paragraphComposer = ({
       return rest;
     })
     .map((doc) => {
+      const PK = composeIdForRoll({
+        sutraId,
+        id: startId,
+      });
       return {
         updatedBy: 'Admin',
         createdBy: 'Admin',
-        PK: composeIdForTranslation({
-          lang: LangCode.ZH,
-          version: 'V1',
-          id: startId,
-          kind: 'ROLL',
-        }),
-        SK: composeIdForTranslation({
-          lang: LangCode.ZH,
-          version: 'V1',
+        PK,
+        SK: composeIdForParagraph({
+          rollId: PK,
           id: doc.num,
-          kind: 'PARAGRAPH',
         }),
         sutra,
         roll,
@@ -211,20 +211,19 @@ export const footnotesComposer = ({
         )
       );
     })
-    .map((footnote) => {
+    .map((footnote, index) => {
       if (footnote.href) {
+        const paragraphId = composeIdForParagraph({
+          rollId,
+          id: footnote.parentIndex,
+        });
         return {
           PK: rollId,
-          SK: composeIdForReference({
-            kind: 'FOOTNOTE',
-            id: footnote.parentIndex,
+          SK: composeIdForFootnote({
+            paragraphId,
+            id: index + 1,
           }),
-          paragraphId: composeIdForTranslation({
-            kind: 'PARAGRAPH',
-            version: 'V1',
-            id: footnote.parentIndex,
-            lang: LangCode.ZH,
-          }),
+          paragraphId,
           offset: footnote.position,
           content: footnotes[footnote.href],
         };

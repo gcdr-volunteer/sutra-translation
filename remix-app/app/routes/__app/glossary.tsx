@@ -31,7 +31,9 @@ import { useEffect } from 'react';
 
 export const loader = async () => {
   const glossaries = await getAllGlossary();
-  return json({ glossaries });
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  glossaries.sort((a, b) => a.createdAt!.localeCompare(b.createdAt!));
+  return json({ glossaries: glossaries.reverse() });
 };
 
 export const action = async ({ request }: ActionArgs) => {
