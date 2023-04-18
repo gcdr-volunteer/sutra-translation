@@ -48,7 +48,7 @@ export const loader = async ({ params }: LoaderArgs) => {
       .filter(({ finish }) => finish)
       .map(({ content, SK, finish, paragraph }) => {
         return {
-          content: paragraph ?? content,
+          json: JSON.stringify([{ type: 'paragraph', children: [{ text: content }] }]),
           SK,
           finish,
         };
@@ -88,6 +88,7 @@ export type ParagraphLoadData = {
   num: string;
   finish: boolean;
   content: string;
+  json: string;
   comments: [];
   paragraph?: string;
 };
@@ -100,7 +101,7 @@ export default function ParagraphRoute() {
   }>();
 
   const navigate = useNavigate();
-  const checkedParagraphs = useRef(new Set<number>());
+  const urlParams = useRef<URLSearchParams>(new URLSearchParams());
 
   const location = useLocation();
   const refs = targets?.reduce((acc, cur) => {
@@ -118,10 +119,7 @@ export default function ParagraphRoute() {
     }
   }, [location.hash, refs]);
 
-  const params = new URLSearchParams();
-
   const paragraphsComp = origins?.map((origin, index) => {
-    // TODO: handle out of order selection
     const target = targets[index];
     if (target && target?.finish) {
       return (
@@ -137,8 +135,7 @@ export default function ParagraphRoute() {
         index={index}
         SK={origin.SK}
         footnotes={[]}
-        params={params}
-        checkedParagraphs={checkedParagraphs}
+        urlParams={urlParams}
       />
     );
   });
@@ -167,7 +164,7 @@ export default function ParagraphRoute() {
           aria-label='edit roll'
           colorScheme={'iconButton'}
           onClick={() => {
-            navigate(`staging?${params.toString()}`, {
+            navigate(`staging?${urlParams.current.toString()}`, {
               replace: true,
             });
           }}

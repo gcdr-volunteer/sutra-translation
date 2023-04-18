@@ -40,6 +40,7 @@ const newCommentSchema = () => {
     parentId: yup.string().default(id),
     createdBy: yup.string(),
     updatedBy: yup.string(),
+    json: yup.string(),
     kind: yup.mixed<'COMMENT'>().default('COMMENT'),
   });
   return translationSchema;
@@ -53,6 +54,8 @@ export const handleNewComment = async (newComment: Omit<Comment, 'kind'>) => {
       obj: newComment,
     });
     logger.log(handleNewComment.name, 'result', result);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     await createNewComment(result);
     return created({ data: {}, intent: Intent.CREATE_COMMENT });
   } catch (errors) {

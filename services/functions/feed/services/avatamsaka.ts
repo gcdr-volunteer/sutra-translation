@@ -2,7 +2,7 @@ import type { HTMLElement } from 'node-html-parser';
 import type { FeedParams } from '../../feed';
 import { parse } from 'node-html-parser';
 import { LangCode, Sutra, Roll, CreateType } from '@remix-app/app/types';
-import { composeIdForTranslation } from '@remix-app/app/models/utils';
+import { composeIdForRoll, composeIdForSutra } from '@remix-app/app/models/utils';
 import * as cn from 'chinese-numbering';
 import {
   footnotesComposer,
@@ -131,11 +131,10 @@ export const getMetaData = async (feed: FeedParams) => {
     const kind = 'SUTRA';
     const sutra: CreateType<Sutra> = {
       PK: 'TRIPITAKA',
-      SK: composeIdForTranslation({
+      SK: composeIdForSutra({
         lang: LangCode.ZH,
         version: 'V1',
-        kind: 'SUTRA',
-        id: feed.roll,
+        id: '1',
       }),
       title: sutraMeta.title,
       category: sutraMeta.category,
@@ -156,21 +155,19 @@ export const getMetaData = async (feed: FeedParams) => {
 
     const rolls = rollsMeta.mulu.reduce((pacc, pcur) => {
       if (pcur.isFolder) {
+        const PK = composeIdForSutra({
+          lang: LangCode.ZH,
+          version: 'V1',
+          id: '1',
+        });
         const children = pcur.children.reduce((acc, cur) => {
           const kind = 'ROLL';
           const title = pcur.title.replace(/\d+\s+/u, '');
           const category = cur.type ?? '品';
           const roll: CreateType<Roll> = {
-            PK: composeIdForTranslation({
-              lang: LangCode.ZH,
-              version: 'V1',
-              kind: 'SUTRA',
-              id: feed.roll,
-            }),
-            SK: composeIdForTranslation({
-              lang: LangCode.ZH,
-              version: 'V1',
-              kind: 'ROLL',
+            PK,
+            SK: composeIdForRoll({
+              sutraId: PK,
               id: cur.juan,
             }),
             title: `${sutraMeta.title}第${cn.numberToChinese(cur.juan)}${category}`,
@@ -190,20 +187,18 @@ export const getMetaData = async (feed: FeedParams) => {
       const preface = '序';
       // Skip preface, cause preface will be together with chapter 1
       if (preface !== pcur.type) {
+        const PK = composeIdForSutra({
+          lang: LangCode.ZH,
+          version: 'V1',
+          id: '1',
+        });
         const kind = 'ROLL';
         const subtitle = pcur.title.replace(/\d+\s+/u, '');
         const number = `第${cn.numberToChinese(pcur.juan)}`;
         const roll: CreateType<Roll> = {
-          PK: composeIdForTranslation({
-            lang: LangCode.ZH,
-            version: 'V1',
-            kind: 'SUTRA',
-            id: feed.roll,
-          }),
-          SK: composeIdForTranslation({
-            lang: LangCode.ZH,
-            version: 'V1',
-            kind: 'ROLL',
+          PK,
+          SK: composeIdForRoll({
+            sutraId: PK,
             id: pcur.juan,
           }),
           title: `${sutraMeta.title}${number}${pcur.type}`,
@@ -238,23 +233,28 @@ export const getFeed1 = async (feed: FeedParams) => {
     });
     const notes = parseFootnotes({ root: cleanedRoot });
 
+    const sutraId = composeIdForSutra({
+      lang: LangCode.ZH,
+      version: 'V1',
+      id: '1',
+    });
     const paragraphs = paragraphComposer({
       rolls,
       preface,
       startId: feed.roll,
       sutra: rolls[0].content,
       roll: rolls[2].content,
+      sutraId,
+    });
+    const rollId = composeIdForRoll({
+      sutraId,
+      id: feed.roll,
     });
     const footnotes = footnotesComposer({
       preface,
       rolls,
       footnotes: notes,
-      rollId: composeIdForTranslation({
-        lang: LangCode.ZH,
-        version: 'V1',
-        kind: 'ROLL',
-        id: feed.roll,
-      }),
+      rollId,
     });
     return {
       paragraphs,
@@ -275,21 +275,25 @@ export const getFeedx = async (feed: FeedParams) => {
     });
     const notes = parseFootnotes({ root: cleanedRoot });
 
+    const sutraId = composeIdForSutra({
+      lang: LangCode.ZH,
+      version: 'V1',
+      id: '1',
+    });
     const paragraphs = paragraphComposer({
       rolls,
       preface,
       startId: feed.roll,
       sutra: rolls[0].content,
+      sutraId,
       roll: rolls[2].content,
     });
     const footnotes = footnotesComposer({
       preface,
       rolls,
       footnotes: notes,
-      rollId: composeIdForTranslation({
-        lang: LangCode.ZH,
-        version: 'V1',
-        kind: 'ROLL',
+      rollId: composeIdForRoll({
+        sutraId,
         id: feed.roll,
       }),
     });
@@ -300,7 +304,7 @@ export const getFeedx = async (feed: FeedParams) => {
   }
 };
 
-const getFeedByChapter = async (params: FeedParams) => {
+export const getFeedByChapter = async (params: FeedParams) => {
   if (params.roll === '1') {
     // Only run metadata for first chapter, because it contains all the
     // metadata for the rest of the chapters

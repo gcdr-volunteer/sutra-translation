@@ -6,31 +6,29 @@ import {
   Switch,
   Input,
   Button,
-  ModalOverlay,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
   useDisclosure,
-  ModalFooter,
   useBoolean,
   VStack,
-  Highlight,
   Box,
   useToast,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  DrawerHeader,
+  DrawerBody,
+  DrawerFooter,
 } from '@chakra-ui/react';
 import {
   Form,
   useActionData,
   useLoaderData,
-  useLocation,
   useNavigate,
   useOutletContext,
   useSubmit,
   useTransition,
 } from '@remix-run/react';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef } from 'react';
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import type { Comment } from '~/types';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
@@ -49,6 +47,7 @@ import { emitter, EVENTS, utcNow } from '~/utils';
 import { getParagraphByPrimaryKey, updateParagraph } from '~/models/paragraph';
 import { useMessage } from '~/hooks/useMessage';
 import { Can } from '~/authorisation';
+import { RTEditor } from '~/components/common/editor';
 
 type CommentPayload = {
   PK: string;
@@ -56,6 +55,7 @@ type CommentPayload = {
   paragraph: string;
   dialog: string;
   intent: Intent;
+  json: string;
 };
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId, paragraphId, dialog } = params;
@@ -104,7 +104,8 @@ export const action = async ({ request, params }: ActionArgs) => {
       // TODO: user profile
       PK: rollId.replace('ZH', 'EN'),
       SK: paragraphId.replace('ZH', 'EN'),
-      content: entryData.paragraph,
+      content: entryData.paragraph || '',
+      json: entryData.json,
     });
     await updateComment({ SK: entryData.SK ?? '', PK: 'COMMENT', resolved: 1 });
   }
@@ -121,17 +122,14 @@ export default function DialogRoute() {
   const navigate = useNavigate();
   const isSubmitting = Boolean(transaction.submission);
   const { onClose } = useDisclosure();
-  const { state } = useLocation();
-  const { paragraph } = (state as { comment: Comment; paragraph: string }) || {
+  const { paragraph } = {
     paragraph: actionData?.paragraph ?? loaderData.paragraph?.content,
   };
   const { modal } = useOutletContext<{ modal: boolean }>();
   const [toggle, setToggle] = useBoolean();
-  const [textareaHeight, setTextareaHeight] = useState(0);
   const dialogInputRef = useRef<HTMLTextAreaElement>(null);
   const paragraphEditFormRef = useRef<HTMLFormElement>(null);
   const { currentUser } = useContext(AppContext);
-  const [updateParagraph, setUpdateParagraph] = useState(paragraph);
   useMessage(currentUser);
   const toast = useToast();
 
@@ -172,13 +170,8 @@ export default function DialogRoute() {
     }
   };
 
-  const paragraphRef = useCallback((node: HTMLParagraphElement) => {
-    if (node?.clientHeight) {
-      setTextareaHeight(node.clientHeight);
-    }
-  }, []);
-
   const handleClose = () => {
+    onClose();
     navigate(-1);
   };
 
@@ -192,12 +185,12 @@ export default function DialogRoute() {
   };
 
   return (
-    <Modal size={'3xl'} isOpen={modal} onClose={onClose}>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Comment</ModalHeader>
-        <ModalCloseButton onClick={handleClose} />
-        <ModalBody>
+    <Drawer onClose={handleClose} isOpen={modal} size={'lg'}>
+      <DrawerOverlay />
+      <DrawerContent overflow={'scroll'}>
+        <DrawerCloseButton />
+        <DrawerHeader>Comment Workspace</DrawerHeader>
+        <DrawerBody>
           <Box overflowY={'auto'} maxH={'30vh'}>
             {comments?.length
               ? comments.map((comment, index) => {
@@ -242,7 +235,6 @@ export default function DialogRoute() {
             <Input readOnly hidden name='SK' value={comments?.[0].SK} />
             <Input readOnly hidden name='paragraph' value={paragraph} />
             <Button hidden type='submit' name='intent' value={Intent.CREATE_MESSAGE} ref={ref} />
-            {/* <Input type='submit' readOnly hidden name="intent" value={'new_message'} /> */}
             <Can I='Update' this='Paragraph'>
               <FormControl display='flex' alignItems='center'>
                 <FormLabel htmlFor='edit-paragraph' mb='0'>
@@ -253,38 +245,27 @@ export default function DialogRoute() {
             </Can>
           </Form>
           <Form method='post' ref={paragraphEditFormRef}>
-            {!toggle ? (
-              <Text ref={paragraphRef}>
-                <Highlight
-                  query={comments?.[0]?.content}
-                  styles={{ px: '1', py: '1', bg: 'orange.100' }}
-                >
-                  {paragraph}
-                </Highlight>
-              </Text>
-            ) : (
-              <Box>
-                <Textarea
-                  name='paragraph'
-                  value={updateParagraph}
-                  onChange={(e) => {
-                    setUpdateParagraph(e.target.value);
-                  }}
-                  height={textareaHeight}
-                />
-                <Input readOnly hidden name='SK' value={comments?.[0].SK} />
-                <Input readOnly hidden name='intent' value={Intent.UPDATE_PARAGRAPH} />
-              </Box>
-            )}
+            <Box>
+              <RTEditor
+                key={loaderData.paragraph?.json || '[]'}
+                highlights={comments.map((comment) => ({ text: comment.content }))}
+                readonly={!toggle}
+                json={loaderData.paragraph?.json || '[]'}
+              />
+              <Input readOnly hidden name='SK' value={comments?.[0].SK} />
+              <Input readOnly hidden name='intent' value={Intent.UPDATE_PARAGRAPH} />
+            </Box>
           </Form>
-        </ModalBody>
-        <ModalFooter>
-          <Button disabled={!toggle} onClick={handleUpdateParagraph} colorScheme='blue' mr={3}>
-            Save
+        </DrawerBody>
+        <DrawerFooter borderTopWidth='1px'>
+          <Button variant='outline' mr={3} onClick={handleClose}>
+            Cancel
           </Button>
-          <Button onClick={handleClose}>Cancel</Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+          <Button colorScheme='blue' onClick={handleUpdateParagraph}>
+            Submit
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 }

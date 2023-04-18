@@ -25,28 +25,24 @@ export const translate = async (
     input?.category === 'VERSE'
       ? ' like a verse in buddhism English style'
       : ' in buddhism English style';
-  const prompt = `${prefix} ${input.text.trim()} ${postfix}`;
+  const prompt = `${prefix} '${input.text.trim()}' ${postfix}`;
   logger.log(translate.name, 'prompt', prompt);
   try {
-    const completion = await openai().createChatCompletion({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.5,
+    const completion = await openai().createCompletion({
+      model: 'text-davinci-001',
+      prompt,
+      temperature: 0.4,
+      best_of: 1,
       top_p: 1,
       frequency_penalty: 0,
       presence_penalty: 0,
       max_tokens: 256,
     });
-    const result = completion?.data?.choices[0].message?.content?.trim().replace(/^,/, '') ?? '';
+    const result = completion?.data?.choices[0].text?.trim().replace(/^,/, '') ?? '';
     logger.log(translate.name, 'completetion result', result);
     return result;
   } catch (error) {
     console.log(error);
-    return 'not avaiable';
+    return 'not available';
   }
 };

@@ -32,6 +32,14 @@ export interface Paragraph {
    */
   paragraphIndex?: number;
   /**
+   * The serialized html value that from the editor
+   */
+  html?: string;
+  /**
+   * The serialized json string that from the editor
+   */
+  json?: string;
+  /**
    * The helper type
    */
   kind: 'PARAGRAPH';

@@ -68,6 +68,10 @@ export interface Comment extends CommonMeta {
    */
   latestMessage?: string;
   /**
+   * json
+   */
+  json: string;
+  /**
    * The helper type
    */
   kind: 'COMMENT';

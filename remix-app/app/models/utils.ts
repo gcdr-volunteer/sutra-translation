@@ -109,6 +109,48 @@ export const composeIdForTranslation = ({
 };
 
 /**
+ * New id composer for sutra
+ */
+export const composeIdForSutra = ({
+  lang,
+  version,
+  id,
+}: {
+  lang: LangCode;
+  version: string;
+  id: string | number;
+}) => {
+  return `${lang}-${version}-S${id.toString().padStart(4, '0')}`;
+};
+
+/**
+ * New id composer for Roll
+ */
+export const composeIdForRoll = ({ sutraId, id }: { sutraId: string; id: string | number }) => {
+  return `${sutraId}-R${id.toString().padStart(4, '0')}`;
+};
+
+/**
+ * New id composer for Paragraph
+ */
+export const composeIdForParagraph = ({ rollId, id }: { rollId: string; id: string | number }) => {
+  return `${rollId}-P${id.toString().padStart(4, '0')}`;
+};
+
+/**
+ * New id composer for Footnote
+ */
+export const composeIdForFootnote = ({
+  paragraphId,
+  id,
+}: {
+  paragraphId: string;
+  id: string | number;
+}) => {
+  return `${paragraphId}-F${id.toString().padStart(4, '0')}`;
+};
+
+/**
  * The composed user id can be used as SK in user table
  * @param id the user id
  * @returns composed user id
@@ -131,5 +173,5 @@ export const composeSKForRole = ({ name }: { name: string }) => {
 };
 
 export const composeSKForSutra = ({ lang, version }: { lang: string; version: string }) => {
-  return `${lang}-SUTRA-${version?.toUpperCase()}`;
+  return `${lang}-${version?.toUpperCase()}`;
 };
