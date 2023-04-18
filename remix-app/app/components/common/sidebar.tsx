@@ -9,6 +9,7 @@ import {
   HStack,
   Box,
   useTheme,
+  Spinner,
 } from '@chakra-ui/react';
 import { NavLink } from '@remix-run/react';
 import { FiHome } from 'react-icons/fi';
@@ -23,7 +24,9 @@ import { MdOutlineManageAccounts } from 'react-icons/md';
 import { Can } from '~/authorisation';
 import { useContext } from 'react';
 import { AppContext } from '~/routes/__app';
+import { useGlobalPendingState } from 'remix-utils';
 export const Sidebar = () => {
+  const globalState = useGlobalPendingState();
   const { currentUser } = useContext(AppContext);
   const {
     colors: { primary, secondary },
@@ -52,6 +55,7 @@ export const Sidebar = () => {
           <VStack pt={6} w='100%'>
             <NavLink to='.' style={{ textAlign: 'center', marginBottom: '0.2rem' }}>
               <Text as='b' fontSize={'3xl'} color={'secondary.300'}>
+                {globalState === 'pending' ? <Spinner /> : null}
                 Kumārajīva
               </Text>
             </NavLink>
