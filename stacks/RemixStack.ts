@@ -50,8 +50,8 @@ export async function ESStack({ stack }: StackContext) {
     : new Domain(stack, `${process.env.ENV}-Domain`, {
         version: EngineVersion.ELASTICSEARCH_7_10,
         capacity: {
-          dataNodeInstanceType: 't3.medium.search',
-          masterNodeInstanceType: 't3.medium.search',
+          dataNodeInstanceType: 't3.small.search',
+          masterNodeInstanceType: 't3.small.search',
         },
         removalPolicy: isProd() ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
       });
