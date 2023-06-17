@@ -20,6 +20,7 @@ export const defineAbilityFor = (user: User) => {
   if (
     user.roles.includes(RoleType.Editor) ||
     user.roles.includes(RoleType.Admin) ||
+    user.roles.includes(RoleType.Manager) ||
     user.roles.includes(RoleType.Leader)
   ) {
     can('Read', 'Paragraph');
@@ -27,16 +28,25 @@ export const defineAbilityFor = (user: User) => {
     can('Update', 'Paragraph');
     can('Delete', 'Paragraph');
   }
-  if (user.roles.includes(RoleType.Assistor) || user.roles.includes(RoleType.Admin)) {
+  if (
+    user.roles.includes(RoleType.Assistor) ||
+    user.roles.includes(RoleType.Admin) ||
+    user.roles.includes(RoleType.Manager)
+  ) {
     can('Read', 'Reference');
   }
-  if (user.roles.includes(RoleType.Leader) || user.roles.includes(RoleType.Admin)) {
+  if (
+    user.roles.includes(RoleType.Leader) ||
+    user.roles.includes(RoleType.Admin) ||
+    user.roles.includes(RoleType.Manager)
+  ) {
     can('Read', 'Management');
   }
   if (
     user.roles.includes(RoleType.Admin) ||
     user.roles.includes(RoleType.Editor) ||
     user.roles.includes(RoleType.Reviewer) ||
+    user.roles.includes(RoleType.Manager) ||
     user.roles.includes(RoleType.Leader)
   ) {
     can('Read', 'Translation');

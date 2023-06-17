@@ -161,6 +161,7 @@ const UserConfig = (props: UserConfigProps) => {
     [RoleType.Editor]: 'lightblue',
     [RoleType.Reviewer]: 'lightyellow',
     [RoleType.Reader]: 'lightcyan',
+    [RoleType.Manager]: 'lightpink',
     [RoleType.Assistor]: 'lightsalmon',
     [RoleType.Debug]: 'lightgrey',
   };

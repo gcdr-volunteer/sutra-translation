@@ -24,7 +24,11 @@ export enum RoleType {
    */
   Reader = 'Reader',
   /**
-   * Reader can only read, and see translation tab
+   * Manager is the leader for volunteers
+   */
+  Manager = 'Manager',
+  /**
+   * Assistor help volunteer sutra/reference contribution
    */
   Assistor = 'Assistor',
   /**

@@ -6,6 +6,7 @@ import type { LoaderArgs } from '@remix-run/node';
 import { getParagraphsByRollId } from '~/models/paragraph';
 import { getFootnotesByRollId } from '~/models/footnote';
 import { getRollByPrimaryKey } from '~/models/roll';
+import { useSetTheme } from '~/hooks';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { sutraId = '', rollId = '' } = params;
@@ -30,13 +31,9 @@ export const loader = async ({ params }: LoaderArgs) => {
 };
 export default function RollRoute() {
   const { paragraphs, footnotes, roll } = useLoaderData<typeof loader>();
+  const font = useSetTheme();
   const paragraphsComp = paragraphs.map((paragraph, index) => (
-    <Paragraph
-      key={paragraph.num}
-      content={paragraph.content}
-      category={paragraph.category}
-      footnotes={footnotes.filter(({ paragraphId }) => paragraphId === paragraph.SK)}
-    />
+    <Paragraph key={paragraph.num} content={paragraph.content} font={font} />
   ));
   if (paragraphs.length) {
     return (

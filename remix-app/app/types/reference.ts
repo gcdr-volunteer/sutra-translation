@@ -4,10 +4,6 @@ export interface Reference {
    */
   content: string;
   /**
-   * The original sutra which this reference belongs to
-   */
-  origin: string;
-  /**
    * The Id to find exact sutra
    */
   sutraId: string;
@@ -35,9 +31,15 @@ export interface Reference {
   /**
    * current paragraph id
    */
-  paragraphId?: string;
+  paragraphId: string;
   /**
    * The helper type
    */
   kind: 'REFERENCE';
+}
+
+export interface RefBook {
+  bookname: string;
+  team: string;
+  sutraId: string;
 }

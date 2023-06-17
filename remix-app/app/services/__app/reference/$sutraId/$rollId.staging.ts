@@ -4,7 +4,7 @@ import { logger } from '~/utils';
 import { created } from 'remix-utils';
 import { Intent } from '~/types/common';
 import { json } from '@remix-run/node';
-import { createReference, getLatestReference } from '~/models/reference';
+import { getLatestReference, upsertReference } from '~/models/reference';
 const newReferenceSchema = () => {
   const baseSchema = initialSchema();
   // TODO: using strict().noUnknown() to stop unknown params
@@ -16,61 +16,56 @@ const newReferenceSchema = () => {
       .transform((value) => {
         return value || 'not provided';
       }),
-    PK: yup.string().trim().required('submitted translation partition key cannot be empty'),
-    SK: yup.string().trim().required('submitted translation sort key cannot be empty'),
+    paragraphId: yup.string().trim().required('paragraphId cannot be empty'),
     kind: yup.mixed<'REFERENCE'>().default('REFERENCE'),
   });
   return referenceSchema;
 };
 
-export const handleCreateNewReference = async (
-  newReference: {
-    paragraphIndex: string;
-    sentenceIndex: string;
-    PK: string;
-    SK: string;
-    content: string;
-    totalSentences: string;
-    paragraph?: string;
-  },
-  { sutraId, rollId }: { sutraId?: string; rollId?: string }
-) => {
+export const handleCreateNewReference = async (newReference: {
+  paragraphIndex: string;
+  sentenceIndex: string;
+  paragraphId: string;
+  content: string;
+  totalSentences: string;
+  sutraId: string;
+  rollId: string;
+  finish: boolean;
+}) => {
   logger.log(handleCreateNewReference.name, 'newReference', newReference);
-  const { sentenceIndex, paragraphIndex, totalSentences, paragraph } = newReference;
+  const { sentenceIndex, paragraphIndex, totalSentences, sutraId, rollId, paragraphId, finish } =
+    newReference;
   try {
     const result = await schemaValidator({
       schema: newReferenceSchema(),
       obj: newReference,
     });
     logger.log(handleCreateNewReference.name, 'result', result);
-    const sentenceIndexNum = sentenceIndex ? parseInt(sentenceIndex) : 0;
-    const paragraphIndexNum = paragraphIndex ? parseInt(paragraphIndex) : 0;
+    const sentenceIndexNum = sentenceIndex ? parseInt(sentenceIndex) + 1 : 0;
+    const paragraphIndexNum = paragraphIndex ? parseInt(paragraphIndex) + 1 : 0;
     const totalSentenceIndexNum = totalSentences ? parseInt(totalSentences) : 0;
 
-    const SK = await handleGetLatestReferenceId(result.SK);
-    const kind = 'REFERENCE' as const;
+    const latestRef = await getLatestReference(paragraphId);
     const reference = {
       content: result.content ?? '',
       // TODO: this needs to be updated to match user profile language
       PK: 'REFERENCE',
-      SK,
-      sutraId: sutraId ?? '',
-      rollId: rollId ?? '',
+      SK: latestRef?.SK || `${paragraphId}-R0000`,
+      sutraId,
+      rollId,
       finish: sentenceIndexNum === totalSentenceIndexNum,
       sentenceIndex: sentenceIndexNum,
       paragraphIndex: paragraphIndexNum,
-      paragraph: paragraph ? `${paragraph} ${result.content}` : result.content,
-      kind,
-      origin: 'Cleary',
-      paragraphId: result.PK,
+      kind: result.kind,
+      paragraphId,
     };
     logger.log(handleCreateNewReference.name, 'new reference', reference);
-    await createReference(reference);
+    await upsertReference(reference);
     return created({
       payload: {
-        paragraphIndex,
-        sentenceIndex,
-        finish: sentenceIndexNum === totalSentenceIndexNum,
+        paragraphIndex: paragraphIndexNum,
+        sentenceIndex: sentenceIndexNum,
+        finish: finish,
       },
       intent: Intent.CREATE_REFERENCE,
     });
@@ -80,7 +75,7 @@ export const handleCreateNewReference = async (
   }
 };
 
-export const handleGetLatestReferenceId = async (paragraphId: string) => {
+export const handleGetLatestReferenceIdByParagraphId = async (paragraphId: string) => {
   try {
     const reference = await getLatestReference(paragraphId);
     if (reference) {
@@ -90,7 +85,7 @@ export const handleGetLatestReferenceId = async (paragraphId: string) => {
     }
     return `${paragraphId}-R0000`;
   } catch (error) {
-    logger.error(handleGetLatestReferenceId.name, 'error', error);
+    logger.error(handleGetLatestReferenceIdByParagraphId.name, 'error', error);
     return '';
   }
 };

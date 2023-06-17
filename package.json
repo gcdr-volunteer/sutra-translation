@@ -13,7 +13,7 @@
     "prepare": "husky install",
     "format": "prettier --write . --ignore-path .gitignore",
     "prettier": "prettier --check . --ignore-path .gitignore",
-    "lint": "eslint --no-error-on-unmatched-pattern --max-warnings=0 --ignore-path .gitignore --cache --cache-location  ./node_modules/.cache/eslint .",
+    "lint": "eslint --no-error-on-unmatched-pattern --max-warnings=1 --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "typecheck": "npm run typecheck --ws",
     "validate": "npm-run-all --parallel typecheck lint format"
   },

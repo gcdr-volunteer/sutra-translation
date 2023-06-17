@@ -19,9 +19,7 @@ const newTranslationSchema = () => {
   const baseSchema = initialSchema();
   // TODO: using strict().noUnknown() to stop unknown params
   const translationSchema = baseSchema.shape({
-    translation: yup.string().trim().required('submitted tranlation cannot be empty'),
-    html: yup.string().trim().optional(),
-    json: yup.string().trim().optional(),
+    content: yup.string().trim().required('submitted tranlation cannot be empty'),
     PK: yup.string().trim().required(),
     SK: yup.string().trim().required(),
     kind: yup.mixed<'PARAGRAPH'>().default('PARAGRAPH'),
@@ -126,10 +124,8 @@ export const handleNewTranslationParagraph = async (
     sentenceIndex: string;
     PK: string;
     SK: string;
-    translation: string;
+    content: string;
     totalSentences: string;
-    html: string;
-    json: string;
   },
   { sutraId, rollId }: { sutraId?: string; rollId?: string }
 ) => {
@@ -158,7 +154,7 @@ export const handleNewTranslationParagraph = async (
 
       const translatedParagraph = {
         ...originParagraph,
-        content: result.translation,
+        content: result.content,
         // TODO: this needs to be updated to match user profile language
         PK: result.PK?.replace('ZH', 'EN'),
         SK: result.SK?.replace('ZH', 'EN'),
@@ -167,8 +163,6 @@ export const handleNewTranslationParagraph = async (
         finish: sentenceIndexNum === totalSentenceIndexNum,
         sentenceIndex: sentenceIndexNum,
         paragraphIndex: paragraphIndexNum,
-        html: result.html,
-        json: result.json,
       };
       logger.log(handleNewTranslationParagraph.name, 'translationParagraph', translatedParagraph);
       await upsertParagraph(translatedParagraph);

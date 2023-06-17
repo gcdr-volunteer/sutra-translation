@@ -2,6 +2,13 @@ import { getAllNotResolvedCommentsForRoll } from '~/models/comment';
 import { dbUpdate } from '~/models/external_services/dynamodb';
 import { getParagraphsByRollId } from '~/models/paragraph';
 import { getRollByPrimaryKey } from '~/models/roll';
+import { logger } from '~/utils';
+import { initialSchema, schemaValidator } from '~/utils/schema_validator';
+import * as yup from 'yup';
+import { badRequest, created } from 'remix-utils';
+import { Intent } from '~/types/common';
+import { createRefBook } from '~/models/reference';
+import type { RefBook } from '~/types';
 
 export const handleIsSutraRollComplete = async ({
   sutra,
@@ -29,6 +36,32 @@ export const handleIsSutraRollComplete = async ({
   return {
     isCompleted: true,
   };
+};
+
+const newRefBookSchema = () => {
+  const baseSchema = initialSchema();
+  const refBookSchema = baseSchema.shape({
+    bookname: yup.string().trim().required('book name cannot be empty'),
+    team: yup.string().trim().required('team name cannot be empty'),
+    sutraId: yup.string().trim().required('sutra name cannot be empty'),
+    kind: yup.mixed<'REFBOOK'>().default('REFBOOK'),
+  });
+  return refBookSchema;
+};
+
+export const handleCreateRefBook = async (refBook: RefBook) => {
+  try {
+    const result = await schemaValidator({
+      schema: newRefBookSchema(),
+      obj: refBook,
+    });
+    logger.log(handleCreateRefBook.name, 'result', result);
+    await createRefBook(result);
+    return created({ data: {}, intent: Intent.CREATE_REF_BOOK });
+  } catch (errors) {
+    logger.error(handleCreateRefBook.name, 'errors', errors);
+    return badRequest({ errors: errors, intent: Intent.CREATE_REF_BOOK });
+  }
 };
 
 export const handleMarkRollComplete = async ({ sutra, roll }: { sutra: string; roll: string }) => {

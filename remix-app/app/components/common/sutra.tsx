@@ -19,6 +19,7 @@ import { Link, useActionData, useLocation } from '@remix-run/react';
 import { FormModal } from './modal';
 import { Intent } from '~/types/common';
 import { useEffect } from 'react';
+import { useSetTheme } from '~/hooks';
 export interface SutraProps extends CreatedType<TSutra> {
   slug: string;
   firstTime: boolean;
@@ -38,6 +39,8 @@ export function Sutra(props: SutraProps) {
   const handleClick = () => {
     onOpen();
   };
+
+  const { fontFamilyOrigin } = useSetTheme();
   return (
     <LinkBox as='article' key={slug}>
       <Card
@@ -57,13 +60,13 @@ export function Sutra(props: SutraProps) {
         </CardHeader>
         <CardBody>
           <LinkOverlay as={isOpenMetaModal ? Box : Link} to={slug}>
-            <Text as='b' fontSize='3xl'>
+            <Text as='b' fontSize='3xl' fontFamily={fontFamilyOrigin}>
               {title}
             </Text>
           </LinkOverlay>
         </CardBody>
         <CardFooter>
-          <Text>{translator}</Text>
+          <Text fontFamily={fontFamilyOrigin}>{translator}</Text>
         </CardFooter>
       </Card>
       <FormModal

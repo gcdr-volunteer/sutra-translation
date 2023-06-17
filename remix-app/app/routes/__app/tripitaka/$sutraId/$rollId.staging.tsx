@@ -2,15 +2,7 @@
 import { useMemo } from 'react';
 import type { ChangeEvent } from 'react';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
-import type {
-  Paragraph,
-  Glossary as TGlossary,
-  Footnote,
-  CreateType,
-  CreatedType,
-  Reference,
-  Glossary,
-} from '~/types';
+import type { Paragraph, Glossary as TGlossary, CreatedType, Reference, Glossary } from '~/types';
 import {
   useActionData,
   useLocation,
@@ -64,8 +56,6 @@ import { AiFillGoogleCircle, AiOutlineGoogle } from 'react-icons/ai';
 import { Warning } from '~/components/common/errors';
 import { FormModal } from '~/components/common';
 import {
-  getLatestFootnoteId,
-  handleNewFootnote,
   handleCreateNewGlossary,
   handleNewTranslationParagraph,
   handleOpenaiFetch,
@@ -74,7 +64,7 @@ import {
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { Intent } from '~/types/common';
 import { assertAuthUser } from '~/auth.server';
-import { useDebounce, useKeyPress } from '~/hooks';
+import { useDebounce, useKeyPress, useSetTheme } from '~/hooks';
 import { logger } from '~/utils';
 import { getParagraphByPrimaryKey, getParagraphsByRollId } from '~/models/paragraph';
 import { getFootnotesByPartitionKey } from '~/models/footnote';
@@ -82,9 +72,6 @@ import { getReferencesBySK } from '~/models/reference';
 import { GlossaryForm } from '~/components/common/glossary_form';
 import { getAllGlossary } from '~/models/glossary';
 import { translate } from '~/models/external_services/openai';
-import { RTEditor } from '~/components/common/editor';
-import type { Node } from 'slate';
-import { serialize } from '~/components/common/editorcomponent';
 
 export const loader = async ({ params, request }: LoaderArgs) => {
   const { rollId } = params;
@@ -127,7 +114,6 @@ export const action = async ({ request, params }: ActionArgs) => {
   }
 
   if (entryData?.intent === Intent.UPDATE_OPENAI) {
-    console.log(entryData);
     const origin = entryData?.origin as string;
     const category = entryData?.category as string;
     const glossaries = await getAllGlossary();
@@ -141,33 +127,10 @@ export const action = async ({ request, params }: ActionArgs) => {
     const translation = await translate({ text: origin, category }, sourceGlossaries);
     return json({ intent: Intent.UPDATE_OPENAI, origin, translation });
   }
+
   if (entryData?.intent === Intent.CREATE_TRANSLATION) {
-    const rollIdInTargetLang = rollId?.replace('ZH', 'EN') ?? '';
     // Uncomment the following line when doing debug
     // return json({ payload: { index: entryData?.index }, intent: Intent.CREATE_TRANSLATION });
-    const footnotes: FN[] = entryData?.footnotes
-      ? JSON.parse(entryData.footnotes as string)
-      : ([] as FN[]);
-    const { latestFootnoteIdNum } = await getLatestFootnoteId(rollIdInTargetLang);
-
-    const prevParagraphLength = entryData?.prevParagraph?.length ?? 0;
-
-    Promise.all(
-      footnotes.map((footnote, index) => {
-        const doc: CreateType<Footnote> = {
-          PK: rollIdInTargetLang,
-          SK: `${rollIdInTargetLang}-F${(latestFootnoteIdNum + index).toString().padStart(4, '0')}`,
-          num: latestFootnoteIdNum + index,
-          paragraphId: footnote.paragraphId.replace('ZH', 'EN') as string,
-          offset: (footnote.offset + prevParagraphLength + 1) as unknown as number,
-          content: footnote.content as string,
-          kind: 'FOOTNOTE',
-          createdBy: user?.SK,
-          updatedBy: user?.SK,
-        };
-        return handleNewFootnote(doc);
-      })
-    );
 
     return await handleNewTranslationParagraph(
       {
@@ -176,16 +139,13 @@ export const action = async ({ request, params }: ActionArgs) => {
         totalSentences: entryData?.totalSentences as string,
         PK: entryData?.PK as string,
         SK: entryData?.SK as string,
-        translation: entryData?.translation as string,
-        html: JSON.parse((entryData?.json as string) || '[]')
-          .map((node: Node) => serialize(node))
-          .join('') as string,
-        json: entryData?.json as string,
+        content: entryData?.content as string,
       },
       // TODO: using frontend route props passing
       { sutraId, rollId }
     );
   }
+
   if (entryData?.intent === Intent.CREATE_GLOSSARY) {
     return await handleCreateNewGlossary({
       origin: entryData?.origin as string,
@@ -213,7 +173,7 @@ export const action = async ({ request, params }: ActionArgs) => {
   return json({});
 };
 
-export default function StagingRoute() {
+export default function ParagraphStagingRoute() {
   const loaderData = useLoaderData<typeof loader>();
   const { footnotes, references } = loaderData;
   const actionData = useActionData<{
@@ -286,6 +246,8 @@ export default function StagingRoute() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData]);
 
+  const { fontFamilyOrigin, fontFamilyTarget, fontSize } = useSetTheme();
+
   const paragraphsComp = ref.current?.map((paragraph, i, arr) => {
     const sentences = paragraph?.content.trim().split(/(?<=。|！|？|；)/g) || [];
     // const paragraphIndex = actionData?.data?.paragraphIndex ?? 0;
@@ -295,7 +257,7 @@ export default function StagingRoute() {
         <Box key={i}>
           <Collapse in={!paragraphFinish[i]} unmountOnExit={true}>
             <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
-              <Text size={'lg'} fontSize='1.5rem' lineHeight={1.5}>
+              <Text fontSize={fontSize} fontFamily={fontFamilyOrigin}>
                 <Highlight
                   query={
                     sentences[loaderData.paragraphIndex >= i ? loaderData.sentenceIndex + 1 : 0]
@@ -307,53 +269,10 @@ export default function StagingRoute() {
               </Text>
             </Box>
             {loaderData?.paragraph?.content ? (
-              <Box
-                mt={4}
-                w='100%'
-                p={4}
-                background={'primary.300'}
-                borderRadius={16}
-                mb={4}
-                dangerouslySetInnerHTML={{
-                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                  // @ts-ignore
-                  __html: loaderData?.paragraph?.html,
-                }}
-              >
-                {/* <Text size={'lg'} fontSize='1.5rem' lineHeight={1.5}>
-                  {footnotes?.length
-                    ? footnotes
-                        .sort((a, b) => a.num - b.num)
-                        .filter((footnote) => footnote.paragraphId === loaderData?.paragraph?.SK)
-                        .map((footnote, index, arr) => {
-                          const { offset, content: fn } = footnote;
-                          const prevOffset = index === 0 ? index : arr[index - 1]?.offset;
-                          if (loaderData?.paragraph?.content) {
-                            return (
-                              <Text as='span' key={index}>
-                                <Text as='span'>
-                                  {loaderData.paragraph.content.slice(prevOffset, offset)}
-                                </Text>
-                                <Tooltip label={fn} aria-label='footnote tooltip'>
-                                  <span style={{ paddingLeft: 4, color: 'blue' }}>
-                                    [{footnote.num}]
-                                  </span>
-                                </Tooltip>
-                                {index === arr.length - 1 ? (
-                                  <Text as='span'>
-                                    {loaderData.paragraph.content.slice(
-                                      offset,
-                                      loaderData.paragraph.content.length
-                                    )}
-                                  </Text>
-                                ) : null}
-                              </Text>
-                            );
-                          }
-                          return null;
-                        })
-                    : loaderData?.paragraph?.content}
-                </Text> */}
+              <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
+                <Text fontSize={fontSize} fontFamily={fontFamilyTarget}>
+                  {loaderData?.paragraph?.content}
+                </Text>
               </Box>
             ) : null}
           </Collapse>
@@ -445,7 +364,6 @@ function TranlationWorkspace({
   const actionData = useActionData();
   const [content, setContent] = useState('');
   const submit = useSubmit();
-  const textareaFormRef = useRef(null);
   const [glossary, setGlossary] = useBoolean(false);
   const [cursorPos, setCursorPos] = useState(-1);
   const [footnotes, setFootnotes] = useState<FN[]>([]);
@@ -455,19 +373,30 @@ function TranlationWorkspace({
   const [latestTranslation, setLatestTranslation] = useState<string>('');
   const [prevTranslation, setPrevTranslation] = useState<string>('');
 
+  const [text, setText] = useState('');
+
   useEffect(() => {
     if (translation) {
       setPrevTranslation(translation);
     }
   }, [translation]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [save, setSave] = useState(false);
-
+  const refce = useRef();
   const handleSubmitTranslation = () => {
     setContent('');
-    setSave(true);
-    submit(textareaFormRef.current, { replace: true });
+    submit(
+      {
+        PK: origin.PK,
+        SK: origin.SK,
+        paragraphIndex: paragraphIndex.toString(),
+        sentenceIndex: sentenceIndex?.toString() ?? '',
+        totalSentences: totalSentences?.toString() ?? '',
+        content: text || content,
+        prevParagraph: loaderData?.paragraph?.content || '',
+        intent: Intent.CREATE_TRANSLATION,
+      },
+      { replace: false, method: 'post' }
+    );
   };
 
   useEffect(() => {
@@ -528,43 +457,8 @@ function TranlationWorkspace({
     setCursorPos((e.target as HTMLTextAreaElement)?.selectionStart);
   };
 
-  const argumentedContent = footnotes?.length
-    ? footnotes.map((footnote, index, arr) => {
-        const { offset, content: fn } = footnote;
-        const num = index + 1 + loaderData?.footnotes?.length ?? 0;
-        // const nextOffset = arr[index + 1]?.offset ?? content.length;
-        const prevOffset = index === 0 ? index : arr[index - 1]?.offset;
-        if (content) {
-          return (
-            <Text as='span' key={num}>
-              <Text as='span'>{content.slice(prevOffset, offset)}</Text>
-              <Tooltip label={fn} aria-label='footnote tooltip'>
-                <span style={{ paddingLeft: 4, color: 'blue' }}>[{num}]</span>
-              </Tooltip>
-              {index === arr.length - 1 ? (
-                <Text as='span'>{content.slice(offset, content.length)}</Text>
-              ) : null}
-            </Text>
-          );
-        }
-        return null;
-      })
-    : content;
+  const { fontSize, fontFamilyOrigin, fontFamilyTarget } = useSetTheme();
 
-  const jsonValue = useMemo(() => {
-    if (content) {
-      return JSON.stringify([
-        {
-          type: 'paragraph',
-          children: [
-            {
-              text: content,
-            },
-          ],
-        },
-      ]);
-    }
-  }, [content]);
   // TODO: refactor this code to sub components
   return (
     <Flex gap={4} flexDir='row' justifyContent='space-between'>
@@ -574,7 +468,9 @@ function TranlationWorkspace({
             <Heading size='sm'>Origin</Heading>
           </CardHeader>
           <CardBody>
-            <Text fontSize={'xl'}>{origin.content}</Text>
+            <Text fontSize={fontSize} fontFamily={fontFamilyOrigin}>
+              {origin.content}
+            </Text>
           </CardBody>
         </Card>
         <Card w='100%' background={'secondary.300'} borderRadius={12}>
@@ -599,26 +495,34 @@ function TranlationWorkspace({
             </ButtonGroup>
           </CardHeader>
           <CardBody>
-            <Text fontSize={'xl'}>{latestTranslation || translation}</Text>
+            <Text fontFamily={fontFamilyTarget} fontSize={fontSize}>
+              {latestTranslation || translation}
+            </Text>
           </CardBody>
         </Card>
-        <Card w='100%' background={'secondary.400'} borderRadius={12}>
-          <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
-            <Heading size='sm'>Cleary</Heading>
-            <ButtonGroup variant='outline' spacing='6'>
-              <IconButton
-                icon={<CopyIcon />}
-                aria-label='copy'
-                onClick={() => {
-                  setContent(reference.content);
-                }}
-              />
-            </ButtonGroup>
-          </CardHeader>
-          <CardBody>
-            <Text fontSize={'xl'}>{reference?.content ?? ''}</Text>
-          </CardBody>
-        </Card>
+        {reference?.content
+          ? JSON.parse(reference.content)?.map((reference: { name: string; content: string }) => (
+              <Card key={reference.content} w='100%' background={'secondary.400'} borderRadius={12}>
+                <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+                  <Heading size='sm'>{reference.name}</Heading>
+                  <ButtonGroup variant='outline' spacing='6'>
+                    <IconButton
+                      icon={<CopyIcon />}
+                      aria-label='copy'
+                      onClick={() => {
+                        setContent(reference.content);
+                      }}
+                    />
+                  </ButtonGroup>
+                </CardHeader>
+                <CardBody>
+                  <Text fontFamily={fontFamilyTarget} fontSize={fontSize}>
+                    {reference?.content ?? ''}
+                  </Text>
+                </CardBody>
+              </Card>
+            ))
+          : null}
         <Card background={'secondary.500'} w='100%' borderRadius={12}>
           <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
             <Heading size='sm'>Workspace</Heading>
@@ -643,24 +547,20 @@ function TranlationWorkspace({
                 marginLeft={'auto'}
                 onClick={handleSubmitTranslation}
                 colorScheme={'iconButton'}
-                disabled={!content}
                 isLoading={isSubmit && isFirst}
               >
                 Submit
               </Button>
             </ButtonGroup>
             {glossary ? <GlossaryModal /> : null}
-            <Form method='post' ref={textareaFormRef} style={{ height: '100%' }}>
-              <RTEditor key={content} json={jsonValue} />
-              <Input name='PK' value={origin.PK} hidden readOnly />
-              <Input name='SK' value={origin.SK} hidden readOnly />
-              <Input name='paragraphIndex' value={paragraphIndex} hidden readOnly />
-              <Input name='sentenceIndex' value={sentenceIndex} hidden readOnly />
-              <Input name='totalSentences' value={totalSentences} hidden readOnly />
-              <Input name='translation' value={content} hidden readOnly />
-              <Input name='footnotes' value={JSON.stringify(footnotes)} hidden readOnly />
-              <Input name='prevParagraph' value={loaderData?.paragraph?.content} hidden readOnly />
-              <Input name='intent' value={Intent.CREATE_TRANSLATION} hidden readOnly />
+            <Form method='post' style={{ height: '100%' }}>
+              <Textarea
+                height={'150px'}
+                fontFamily={fontFamilyTarget}
+                fontSize={fontSize}
+                value={text || content}
+                onChange={(e) => setText(e.target.value)}
+              />
             </Form>
           </CardBody>
         </Card>
@@ -829,7 +729,7 @@ const FootnoteModal = ({
     <>
       <Tooltip label='add footnote' openDelay={1000} closeDelay={1000}>
         <IconButton
-          disabled={!content}
+          disabled={true}
           onClick={onOpenFootnote}
           icon={<BiNote />}
           aria-label='footnote button'

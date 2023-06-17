@@ -16,6 +16,32 @@ export const createUserTable = async (stack: StackContext['stack']) => {
     },
   });
 };
+export const createHistoryTable = async (stack: StackContext['stack']) => {
+  return new Table(stack, 'HISTORY', {
+    fields: {
+      PK: 'string',
+      SK: 'string',
+      sutraId: 'string',
+      rollId: 'string',
+      paragraphId: 'string',
+    },
+    primaryIndex: {
+      partitionKey: 'PK',
+      sortKey: 'SK',
+    },
+    localIndexes: {
+      'sutraId-index': {
+        sortKey: 'sutraId',
+      },
+      'rollId-index': {
+        sortKey: 'rollId',
+      },
+      'paragraphId-index': {
+        sortKey: 'paragraphId',
+      },
+    },
+  });
+};
 /**
  * This table contains all the reference information, which includes
  * - comment

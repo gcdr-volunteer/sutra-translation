@@ -6,7 +6,12 @@ import {
   Topic,
   Function,
 } from '@serverless-stack/resources';
-import { createUserTable, createReferenceTable, createTranslationTable } from './database';
+import {
+  createUserTable,
+  createReferenceTable,
+  createTranslationTable,
+  createHistoryTable,
+} from './database';
 import { Domain, EngineVersion } from 'aws-cdk-lib/aws-opensearchservice';
 import { isProd } from '../utils';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -29,8 +34,8 @@ export async function ESStack({ stack }: StackContext) {
     ? new Domain(stack, 'Domain', {
         version: EngineVersion.ELASTICSEARCH_7_10,
         capacity: {
-          masterNodes: 3,
-          dataNodes: 2,
+          masterNodes: 1,
+          dataNodes: 1,
           dataNodeInstanceType: 't3.medium.search',
           masterNodeInstanceType: 't3.small.search',
         },
@@ -73,10 +78,12 @@ export async function TableStack({ stack }: StackContext) {
   const userTable = await createUserTable(stack);
   const commentTable = await createReferenceTable(stack, esfunc);
   const translationTable = await createTranslationTable(stack, esfunc);
+  const historyTable = await createHistoryTable(stack);
   return {
     userTable,
     commentTable,
     translationTable,
+    historyTable,
     esfunc,
   };
 }
@@ -107,7 +114,7 @@ export async function RemixStack({ stack }: StackContext) {
   const { domain } = use(ESStack);
   dependsOn(TableStack);
   dependsOn(SNSStack);
-  const { translationTable, userTable, commentTable } = use(TableStack);
+  const { translationTable, userTable, commentTable, historyTable } = use(TableStack);
   const { topic } = use(SNSStack);
   const site = new RemixSite(stack, 'Site', {
     path: 'remix-app/',
@@ -116,6 +123,7 @@ export async function RemixStack({ stack }: StackContext) {
       USER_TABLE: userTable.tableName,
       COMMENT_TABLE: commentTable.tableName,
       TRANSLATION_TABLE: translationTable.tableName,
+      HISTORY_TABLE: historyTable.tableName,
       REGION: process.env.REGION ?? '',
       ENV: process.env.ENV ?? '',
       DEEPL_AUTHKEY: process.env.DEEPL_AUTHKEY ?? '',
@@ -128,7 +136,14 @@ export async function RemixStack({ stack }: StackContext) {
     actions: ['es:Search', 'es:ESHttpPost', 'es:ESHttpGet'],
     resources: ['*'],
   });
-  site.attachPermissions([userTable, commentTable, translationTable, topic, esAccess]);
+  site.attachPermissions([
+    userTable,
+    commentTable,
+    translationTable,
+    historyTable,
+    topic,
+    esAccess,
+  ]);
   stack.addOutputs({
     URL: site.url,
   });

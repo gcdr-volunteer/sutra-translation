@@ -1,13 +1,44 @@
-import type { CreatedType, CreateType, Reference } from '~/types';
+import type { CreatedType, CreateType, Key, RefBook, Reference } from '~/types';
 import {
   dbGetByIndexAndKey,
+  dbGetByKey,
   dbGetByPartitionKey,
   dbGetBySortKeyBeginwith,
   dbInsert,
+  dbUpdate,
 } from './external_services/dynamodb';
+import { handleGetLatestReferenceIdByParagraphId } from '~/services/__app/reference/$sutraId/$rollId.staging';
 
 export const createReference = async (reference: CreateType<Reference>) => {
   return await dbInsert({ tableName: process.env.COMMENT_TABLE, doc: reference });
+};
+
+export const updateReference = async (reference: CreatedType<Reference>) => {
+  return await dbUpdate({ tableName: process.env.COMMENT_TABLE, doc: reference });
+};
+
+export const getReferenceByPrimaryKey = async (
+  key: Key
+): Promise<CreatedType<Reference> | undefined> => {
+  return await dbGetByKey({ key, tableName: process.env.COMMENT_TABLE });
+};
+
+export const upsertReference = async (reference: CreateType<Reference>) => {
+  const existingRef = await getReferenceByPrimaryKey({ PK: 'REFERENCE', SK: reference.SK });
+  if (existingRef) {
+    const newRef = {
+      ...existingRef,
+      content: reference.content,
+    };
+    return await updateReference(newRef);
+  }
+  const SK = await handleGetLatestReferenceIdByParagraphId(reference.paragraphId);
+  return await createReference({ ...reference, SK });
+};
+
+export const createRefBook = async (refBook: RefBook) => {
+  const newRefBook = { ...refBook, PK: 'REFBOOK', SK: refBook.bookname };
+  return await dbInsert({ tableName: process.env.COMMENT_TABLE, doc: newRefBook });
 };
 
 export const getReferencesByPartitionKey = async (
@@ -16,6 +47,13 @@ export const getReferencesByPartitionKey = async (
   return await dbGetByPartitionKey<CreatedType<Reference>>({
     tableName: process.env.COMMENT_TABLE,
     PK,
+  });
+};
+
+export const getAllRefBooks = async () => {
+  return await dbGetByPartitionKey<CreatedType<RefBook>>({
+    tableName: process.env.COMMENT_TABLE,
+    PK: 'REFBOOK',
   });
 };
 
@@ -49,6 +87,14 @@ export const getReferencesBySK = async (SK: string) => {
     return references;
   }
   return [];
+};
+
+export const getRefBookBySutraId = async (sutraId: string) => {
+  return dbGetByIndexAndKey<CreatedType<RefBook>>({
+    tableName: process.env.COMMENT_TABLE,
+    key: { PK: 'REFBOOK', sutraId },
+    indexName: 'sutraId-index',
+  });
 };
 
 export const getTargetReferencesByRollId = async (

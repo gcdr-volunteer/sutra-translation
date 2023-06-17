@@ -2,13 +2,13 @@ import type { Lang } from './lang';
 import type { Paragraph } from './paragraph';
 import type { Roll } from './roll';
 import type { Sutra } from './sutra';
-import type { Comment } from './comment';
+import type { Comment, Message } from './comment';
 import type { Glossary } from './glossary';
 import type { Team } from './team';
 import type { Role } from './role';
 import type { User } from './user';
 import type { Footnote } from './footnote';
-import type { Reference } from './reference';
+import type { RefBook, Reference } from './reference';
 
 export * from './comment';
 export * from './error';
@@ -50,4 +50,6 @@ export type Doc =
   | Omit<User, 'kind'>
   | Omit<Role, 'kind'>
   | Omit<Footnote, 'kind'>
-  | Omit<Reference, 'kind'>;
+  | Omit<Reference, 'kind'>
+  | Omit<Message, 'kind'>
+  | Omit<RefBook, 'kind'>;

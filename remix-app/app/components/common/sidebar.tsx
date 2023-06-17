@@ -13,13 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { NavLink } from '@remix-run/react';
 import { FiHome } from 'react-icons/fi';
-import {
-  AiOutlineBook,
-  AiOutlineTranslation,
-  AiOutlineSetting,
-  AiOutlineRead,
-  AiOutlineTable,
-} from 'react-icons/ai';
+import { AiOutlineBook, AiOutlineSetting, AiOutlineRead, AiOutlineTable } from 'react-icons/ai';
 import { MdOutlineManageAccounts } from 'react-icons/md';
 import { Can } from '~/authorisation';
 import { useContext } from 'react';
@@ -103,7 +97,7 @@ export const Sidebar = () => {
                 </NavLink>
               </Box>
             </Can>
-            <Box
+            {/* <Box
               px={6}
               py={2}
               _hover={{
@@ -123,7 +117,7 @@ export const Sidebar = () => {
                   </Text>
                 </HStack>
               </NavLink>
-            </Box>
+            </Box> */}
             <Box
               px={6}
               py={2}

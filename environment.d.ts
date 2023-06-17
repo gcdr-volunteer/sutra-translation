@@ -8,6 +8,7 @@ declare global {
       REGION: string;
       USER_TABLE: string;
       COMMENT_TABLE: string;
+      HISTORY_TABLE: string;
       TRANSLATION_TABLE: string;
       DEEPL_AUTHKEY: string;
       DEEPL_URL: string;

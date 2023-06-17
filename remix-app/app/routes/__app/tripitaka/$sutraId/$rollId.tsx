@@ -1,6 +1,6 @@
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { Footnote, Roll } from '~/types';
-import type { Comment } from '~/types/comment';
+import type { Comment, Message } from '~/types/comment';
 import type { MutableRefObject } from 'react';
 import { json } from '@remix-run/node';
 import { Outlet, useLoaderData, useLocation, useNavigate } from '@remix-run/react';
@@ -9,17 +9,21 @@ import { useEffect, useRef } from 'react';
 import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
 import { getOriginParagraphsByRollId, getTargetParagraphsByRollId } from '~/models/paragraph';
-import { getAllCommentsByParentId, getAllRootCommentsForRoll } from '~/models/comment';
-import { handleNewComment } from '~/services/__app/tripitaka/$sutraId/$rollId';
+import { getAllRootCommentsForRoll } from '~/models/comment';
+import {
+  handleNewComment,
+  handleNewMessage,
+  handleResolveComment,
+} from '~/services/__app/tripitaka/$sutraId/$rollId';
 import { assertAuthUser } from '~/auth.server';
 import { Intent } from '~/types/common';
 import { badRequest } from 'remix-utils';
-import { utcNow } from '~/utils';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { getFootnotesByPartitionKey } from '~/models/footnote';
 import { Can } from '~/authorisation';
+import { useSetTheme } from '~/hooks';
 export const loader = async ({ params }: LoaderArgs) => {
-  const { rollId, sutraId } = params;
+  const { sutraId, rollId } = params;
   if (rollId) {
     const roll = await getRollByPrimaryKey({ PK: sutraId ?? '', SK: rollId });
     const originParagraphs = await getOriginParagraphsByRollId(rollId);
@@ -27,13 +31,6 @@ export const loader = async ({ params }: LoaderArgs) => {
     const footnotes = await getFootnotesByPartitionKey(rollId.replace('ZH', 'EN'));
     // TODO: update language to match user's profile
     const rootComments = await getAllRootCommentsForRoll(rollId.replace('ZH', 'EN'));
-
-    const lastMessages = await Promise.all(
-      rootComments.map(async (comment) => {
-        const comments = await getAllCommentsByParentId(comment.id);
-        return comments.at(-1);
-      })
-    );
 
     const origins = originParagraphs?.map(({ PK, SK, category, content, num, finish }) => ({
       PK,
@@ -43,10 +40,22 @@ export const loader = async ({ params }: LoaderArgs) => {
       num,
       finish,
     }));
-    const targets = targetParagraphs?.map(({ category, content, num, SK, finish, json }) => {
+    const targets = targetParagraphs?.map(({ category, content, num, SK, finish }) => {
       const comments = rootComments.filter(
         (comment) => comment?.paragraphId === SK && !comment?.resolved
       );
+      comments.sort((a, b) => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        if (a.createdAt! < b.createdAt!) {
+          return -1;
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        } else if (a.createdAt! > b.createdAt!) {
+          return 1;
+        } else {
+          return 0;
+        }
+      });
+
       return {
         comments,
         category,
@@ -54,14 +63,12 @@ export const loader = async ({ params }: LoaderArgs) => {
         num,
         SK,
         finish,
-        json,
       };
     });
     return json({
       footnotes,
       origins,
       targets,
-      lastMessages,
       roll,
     });
   }
@@ -69,7 +76,8 @@ export const loader = async ({ params }: LoaderArgs) => {
   return badRequest({ errors: { error: 'rollId is not provided' } });
 };
 
-export const action = async ({ request }: ActionArgs) => {
+export const action = async ({ request, params }: ActionArgs) => {
+  const { sutraId = '', rollId = '' } = params;
   const user = await assertAuthUser(request);
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
@@ -81,9 +89,34 @@ export const action = async ({ request }: ActionArgs) => {
       createdBy: user?.SK,
       updatedBy: user?.SK,
       creatorAlias: user?.username ?? '',
-      lastMessage: utcNow(),
     };
     return await handleNewComment(newComment as unknown as Comment);
+  }
+  if (entryData?.intent === Intent.UPDATE_COMMENT) {
+    const paragraphId = (entryData?.paragraphId as unknown as string) || '';
+    const newComment = {
+      rollId,
+      paragraphId,
+      commentId: entryData.commentId as string,
+      before: entryData.before as string,
+      after: entryData.after as string,
+      createdBy: user?.email ?? '',
+      updatedBy: user?.email ?? '',
+    };
+    return await handleResolveComment(newComment);
+  }
+
+  if (entryData?.intent === Intent.CREATE_MESSAGE) {
+    const paragraphId = (entryData?.paragraphId as unknown as string) || '';
+    const newMessage = {
+      ...entryData,
+      sutraId,
+      rollId,
+      paragraphId,
+      createdBy: user?.email,
+      updatedBy: user?.email,
+    };
+    return await handleNewMessage(newMessage as unknown as Message);
   }
   return json({});
 };
@@ -104,6 +137,8 @@ export default function ParagraphRoute() {
     footnotes: Footnote[];
     roll?: Roll;
   }>();
+
+  const { fontSize, fontFamilyOrigin, fontFamilyTarget } = useSetTheme();
 
   const toast = useToast();
 
@@ -130,7 +165,7 @@ export default function ParagraphRoute() {
     const isMonotone = (arrays: string[]) => {
       const nums = arrays.map((element) => Number(element.slice(element.length - 4)));
       for (let i = 0; i < nums.length - 1; i++) {
-        if (nums[i] + 1 !== nums[i + 1]) {
+        if (nums[i] + 1 < nums[i + 1]) {
           return false;
         }
       }
@@ -143,6 +178,11 @@ export default function ParagraphRoute() {
       arrays.push(lastTarget.SK);
       arrays.sort();
       allowNavigate = isMonotone(arrays);
+    }
+    if (!targets.length) {
+      if (!urlParams.current.toString().includes(origins?.[0].SK)) {
+        allowNavigate = false;
+      }
     }
     allowNavigate
       ? navigate(`staging?${urlParams.current.toString()}`, {
@@ -162,7 +202,12 @@ export default function ParagraphRoute() {
     if (target && target?.finish) {
       return (
         <Box key={origin.SK} w='85%' ref={ref}>
-          <ParagraphPair origin={origin} target={target} footnotes={[]} />
+          <ParagraphPair
+            origin={origin}
+            target={target}
+            footnotes={[]}
+            font={{ fontSize, fontFamilyOrigin, fontFamilyTarget }}
+          />
         </Box>
       );
     }
@@ -172,8 +217,8 @@ export default function ParagraphRoute() {
         key={origin.SK}
         index={index}
         SK={origin.SK}
-        footnotes={[]}
         urlParams={urlParams}
+        font={{ fontSize, fontFamilyOrigin, fontFamilyTarget }}
       />
     );
   });
@@ -188,8 +233,16 @@ export default function ParagraphRoute() {
         mt={10}
       >
         <Outlet context={{ modal: true }} />
-        {roll?.title ? <Heading size={'lg'}>{roll.title}</Heading> : null}
-        {roll?.subtitle ? <Heading size={'md'}>{roll.subtitle}</Heading> : null}
+        {roll?.title ? (
+          <Heading size={'lg'} fontFamily={fontFamilyOrigin}>
+            {roll.title}
+          </Heading>
+        ) : null}
+        {roll?.subtitle ? (
+          <Heading size={'md'} fontFamily={fontFamilyOrigin}>
+            {roll.subtitle}
+          </Heading>
+        ) : null}
         {paragraphsComp}
         <Can I='Create' this='Paragraph'>
           <IconButton

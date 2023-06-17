@@ -1,5 +1,6 @@
-import type { Comment } from '~/types/comment';
-import type { QueryCommandInput, UpdateItemCommandInput } from '@aws-sdk/client-dynamodb';
+import type { Comment, Message } from '~/types/comment';
+import type { QueryCommandInput } from '@aws-sdk/client-dynamodb';
+import { TransactWriteItemsCommand } from '@aws-sdk/client-dynamodb';
 import { dbUpdate } from '~/models/external_services/dynamodb';
 import type { CreatedType, Key, UpdateType, User } from '~/types';
 import {
@@ -9,7 +10,7 @@ import {
   dbInsert,
 } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { QueryCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
+import { QueryCommand } from '@aws-sdk/client-dynamodb';
 import { utcNow } from '~/utils';
 
 export const getAllCommentsByParentId = async (parentId?: string): Promise<Comment[]> => {
@@ -45,11 +46,16 @@ export const createNewComment = async (comment: Comment) => {
 export const updateComment = async (comment: UpdateType<Comment>) => {
   return await dbUpdate({ tableName: process.env.COMMENT_TABLE, doc: comment });
 };
+
+export const createNewMessage = async (message: Message) => {
+  const newMessage = { ...message, PK: 'COMMENT', SK: `${message.paragraphId}-${utcNow()}` };
+  return await dbInsert({ tableName: process.env.COMMENT_TABLE, doc: newMessage });
+};
+
 export const getAllRootCommentsForRoll = async (rollId: string) => {
   const params: QueryCommandInput = {
     TableName: process.env.COMMENT_TABLE,
     KeyConditionExpression: 'PK = :comment AND rollId = :rollId',
-    FilterExpression: 'parentId = id',
     ExpressionAttributeValues: marshall({
       ':rollId': rollId,
       ':comment': 'COMMENT',
@@ -63,23 +69,99 @@ export const getAllRootCommentsForRoll = async (rollId: string) => {
   return [];
 };
 
-export const resolveComment = async (SK: string) => {
-  const params: UpdateItemCommandInput = {
+export const getAllMessageForComment = async (commentId: string) => {
+  const params: QueryCommandInput = {
     TableName: process.env.COMMENT_TABLE,
-    Key: marshall({
-      PK: 'COMMENT',
-      SK,
-    }),
-    ExpressionAttributeNames: {
-      '#resolved': 'resolved',
-    },
+    KeyConditionExpression: 'PK = :comment AND parentId = :parentId',
     ExpressionAttributeValues: marshall({
-      ':resolved': 1,
+      ':parentId': commentId,
+      ':comment': 'COMMENT',
     }),
-    UpdateExpression: 'Set #resolved = :resolved',
+    IndexName: 'parentId-index',
   };
+  const { Items } = await dbClient().send(new QueryCommand(params));
+  if (Items?.length) {
+    return Items.map((Item) => unmarshall(Item) as Comment);
+  }
+  return [];
+};
 
-  await dbClient().send(new UpdateItemCommand(params));
+export const resolveComment = async (props: {
+  rollId: string;
+  paragraphId: string;
+  before: string;
+  after: string;
+  commentId: string;
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}) => {
+  const {
+    rollId,
+    paragraphId,
+    before,
+    after,
+    commentId,
+    createdBy,
+    updatedBy,
+    createdAt,
+    updatedAt,
+  } = props;
+  return await dbClient().send(
+    new TransactWriteItemsCommand({
+      TransactItems: [
+        {
+          Put: {
+            TableName: process.env.HISTORY_TABLE,
+            Item: marshall({
+              PK: 'PARAGRAPH',
+              SK: paragraphId,
+              before,
+              after,
+              commentId,
+              createdBy,
+              updatedBy,
+              createdAt,
+              updatedAt,
+            }),
+          },
+        },
+        {
+          Update: {
+            TableName: process.env.COMMENT_TABLE,
+            Key: marshall({
+              PK: 'COMMENT',
+              SK: commentId,
+            }),
+            UpdateExpression: 'set #resolved = :resolved',
+            ExpressionAttributeNames: {
+              '#resolved': 'resolved',
+            },
+            ExpressionAttributeValues: marshall({
+              ':resolved': 1,
+            }),
+          },
+        },
+        {
+          Update: {
+            TableName: process.env.TRANSLATION_TABLE,
+            Key: marshall({
+              PK: rollId,
+              SK: paragraphId,
+            }),
+            UpdateExpression: 'set #content = :content',
+            ExpressionAttributeNames: {
+              '#content': 'content',
+            },
+            ExpressionAttributeValues: marshall({
+              ':content': after,
+            }),
+          },
+        },
+      ],
+    })
+  );
 };
 
 export const getAllCommentsByRollId = async (rollId: string) => {

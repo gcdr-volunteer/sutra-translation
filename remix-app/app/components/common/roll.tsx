@@ -17,6 +17,7 @@ import { Link, useActionData, useLocation } from '@remix-run/react';
 import { FormModal } from './modal';
 import { Intent } from '~/types/common';
 import { useEffect } from 'react';
+import { useSetTheme } from '~/hooks';
 export function Roll(props: RollProps) {
   const actionData = useActionData<{ intent: Intent; data: string }>();
   const location = useLocation();
@@ -32,6 +33,8 @@ export function Roll(props: RollProps) {
   const handleClick = () => {
     onOpen();
   };
+
+  const { fontFamilyOrigin } = useSetTheme();
   return (
     <LinkBox as='article' key={slug}>
       <Card
@@ -42,11 +45,13 @@ export function Roll(props: RollProps) {
         onClick={isOpenMetaModal ? handleClick : undefined}
       >
         <CardHeader>
-          <Heading size='lg'>{title}</Heading>
+          <Heading size='lg' fontFamily={fontFamilyOrigin}>
+            {title}
+          </Heading>
         </CardHeader>
         <CardBody>
           <LinkOverlay as={isOpenMetaModal ? Box : Link} to={slug}>
-            <Text>{subtitle}</Text>
+            <Text fontFamily={fontFamilyOrigin}>{subtitle}</Text>
           </LinkOverlay>
         </CardBody>
       </Card>

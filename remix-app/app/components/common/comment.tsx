@@ -7,7 +7,6 @@ type CommentProps = {
   paragraphId: string;
   start?: number;
   end?: number;
-  json: string;
 };
 export const Comment = (props: CommentProps) => {
   const { pathname } = useLocation();
@@ -15,7 +14,7 @@ export const Comment = (props: CommentProps) => {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, __, sutraId, rollId] = pathname?.split('/') ?? [];
-  const { selectedText, start, end, paragraphId, json } = props;
+  const { selectedText, start, end, paragraphId } = props;
   return (
     <VStack spacing={4} justifyContent={'flex-start'}>
       <Text>
@@ -41,7 +40,6 @@ export const Comment = (props: CommentProps) => {
       <Input hidden readOnly name='sutraId' value={sutraId} />
       <Input hidden readOnly name='rollId' value={rollId} />
       <Input hidden readOnly name='paragraphId' value={paragraphId} />
-      <Input hidden readOnly name='json' value={json} />
     </VStack>
   );
 };

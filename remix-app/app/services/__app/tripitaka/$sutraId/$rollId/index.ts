@@ -2,11 +2,11 @@ import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
 import { json } from '@remix-run/node';
 import { logger } from '~/utils';
-import { createNewComment, resolveComment } from '~/models/comment';
+import { createNewComment, createNewMessage, resolveComment } from '~/models/comment';
 import { nanoid } from 'nanoid';
 import { Intent } from '~/types/common';
 import { created } from 'remix-utils';
-import type { Comment } from '~/types/comment';
+import type { Comment, Message } from '~/types/comment';
 
 const newCommentSchema = () => {
   const baseSchema = initialSchema();
@@ -40,10 +40,56 @@ const newCommentSchema = () => {
     parentId: yup.string().default(id),
     createdBy: yup.string(),
     updatedBy: yup.string(),
-    json: yup.string(),
     kind: yup.mixed<'COMMENT'>().default('COMMENT'),
   });
   return translationSchema;
+};
+
+const newMessageSchema = () => {
+  const baseSchema = initialSchema();
+  const id = nanoid();
+  return baseSchema.noUnknown().shape({
+    comment: yup.string().trim().required('comment cannot be empty'),
+    sutraId: yup
+      .string()
+      .trim()
+      .required('the sutra id cannot be empty')
+      .transform((value) => value.replace('ZH', 'EN')),
+    rollId: yup
+      .string()
+      .trim()
+      .required('the roll id cannot be empty')
+      .transform((value) => value.replace('ZH', 'EN')),
+    paragraphId: yup
+      .string()
+      .trim()
+      .required('the paragraph id cannot be empty')
+      .transform((value) => value.replace('ZH', 'EN')),
+    creatorAlias: yup.string().default(''),
+    id: yup.string().default(id),
+    parentId: yup.string().required('parentId cannot be empty'),
+    createdBy: yup.string().default(''),
+    updatedBy: yup.string().default(''),
+  });
+};
+
+const updateCommentSchema = () => {
+  const baseSchema = initialSchema();
+  return baseSchema.noUnknown().shape({
+    before: yup.string().trim().required('previous content cannot be empty'),
+    after: yup.string().trim().required('modified content cannot be empty'),
+    rollId: yup
+      .string()
+      .trim()
+      .required('the roll id cannot be empty')
+      .transform((value) => value.replace('ZH', 'EN')),
+    paragraphId: yup
+      .string()
+      .trim()
+      .required('the paragraph id cannot be empty')
+      .transform((value) => value.replace('ZH', 'EN')),
+    commentId: yup.string().required('commentId cannot be empty'),
+  });
 };
 
 export const handleNewComment = async (newComment: Omit<Comment, 'kind'>) => {
@@ -64,11 +110,38 @@ export const handleNewComment = async (newComment: Omit<Comment, 'kind'>) => {
   }
 };
 
-export const handleResolveComment = async (SK: string) => {
+export const handleNewMessage = async (newMessage: Message) => {
   try {
-    logger.log(handleNewComment.name, 'SK', SK);
-    await resolveComment(SK);
-    return json({ data: {}, intent: Intent.CREATE_MESSAGE });
+    logger.log(handleNewMessage.name, 'newMessage', newMessage);
+    const result = await schemaValidator({
+      schema: newMessageSchema(),
+      obj: newMessage,
+    });
+    await createNewMessage(result);
+    return created({ data: {}, intent: Intent.CREATE_MESSAGE });
+  } catch (error) {
+    // TODO: handle failure case
+    logger.error(handleNewMessage.name, 'error', error);
+  }
+};
+
+export const handleResolveComment = async (newComment: {
+  rollId: string;
+  paragraphId: string;
+  before: string;
+  after: string;
+  commentId: string;
+  createdBy: string;
+  updatedBy: string;
+}) => {
+  try {
+    logger.log(handleResolveComment.name, 'new comment', newComment);
+    const result = await schemaValidator({
+      schema: updateCommentSchema(),
+      obj: newComment,
+    });
+    await resolveComment(result);
+    return json({ data: {}, intent: Intent.UPDATE_COMMENT });
   } catch (error) {
     // TODO: handle failure case
     logger.error(handleResolveComment.name, 'error', error);
