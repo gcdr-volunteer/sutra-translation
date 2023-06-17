@@ -35,7 +35,7 @@ export const UserForm = (props: UserFormProps) => {
     target_lang: LangCode.EN,
     first_login: false,
     password: '',
-    working_sutra: '',
+    working_sutra: user?.working_sutra,
   });
 
   const submit = useSubmit();
