@@ -1,6 +1,5 @@
 import { StackContext, Table } from '@serverless-stack/resources';
 import type { FunctionDefinition } from '@serverless-stack/resources';
-import { RemovalPolicy } from 'aws-cdk-lib';
 
 /**
  * This table contains all the user related information
