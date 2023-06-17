@@ -15,7 +15,7 @@ import { utcNow } from '~/utils';
 
 export const getAllCommentsByParentId = async (parentId?: string): Promise<Comment[]> => {
   const comments = await dbGetByIndexAndKey<Comment>({
-    tableName: process.env.COMMENT_TABLE,
+    tableName: process.env.REFERENCE_TABLE,
     key: { PK: 'COMMENT', parentId: parentId ?? '' },
     indexName: 'parentId-index',
   });
@@ -35,26 +35,26 @@ export const getAllCommentsByParentId = async (parentId?: string): Promise<Comme
 };
 
 export const getCommentByKey = async (key: Key): Promise<Comment | undefined> => {
-  return await dbGetByKey<Comment>({ tableName: process.env.COMMENT_TABLE, key });
+  return await dbGetByKey<Comment>({ tableName: process.env.REFERENCE_TABLE, key });
 };
 
 export const createNewComment = async (comment: Comment) => {
   const newComment = { ...comment, PK: 'COMMENT', SK: `${comment.paragraphId}-${utcNow()}` };
-  return await dbInsert({ tableName: process.env.COMMENT_TABLE, doc: newComment });
+  return await dbInsert({ tableName: process.env.REFERENCE_TABLE, doc: newComment });
 };
 
 export const updateComment = async (comment: UpdateType<Comment>) => {
-  return await dbUpdate({ tableName: process.env.COMMENT_TABLE, doc: comment });
+  return await dbUpdate({ tableName: process.env.REFERENCE_TABLE, doc: comment });
 };
 
 export const createNewMessage = async (message: Message) => {
   const newMessage = { ...message, PK: 'COMMENT', SK: `${message.paragraphId}-${utcNow()}` };
-  return await dbInsert({ tableName: process.env.COMMENT_TABLE, doc: newMessage });
+  return await dbInsert({ tableName: process.env.REFERENCE_TABLE, doc: newMessage });
 };
 
 export const getAllRootCommentsForRoll = async (rollId: string) => {
   const params: QueryCommandInput = {
-    TableName: process.env.COMMENT_TABLE,
+    TableName: process.env.REFERENCE_TABLE,
     KeyConditionExpression: 'PK = :comment AND rollId = :rollId',
     ExpressionAttributeValues: marshall({
       ':rollId': rollId,
@@ -71,7 +71,7 @@ export const getAllRootCommentsForRoll = async (rollId: string) => {
 
 export const getAllMessageForComment = async (commentId: string) => {
   const params: QueryCommandInput = {
-    TableName: process.env.COMMENT_TABLE,
+    TableName: process.env.REFERENCE_TABLE,
     KeyConditionExpression: 'PK = :comment AND parentId = :parentId',
     ExpressionAttributeValues: marshall({
       ':parentId': commentId,
@@ -129,7 +129,7 @@ export const resolveComment = async (props: {
         },
         {
           Update: {
-            TableName: process.env.COMMENT_TABLE,
+            TableName: process.env.REFERENCE_TABLE,
             Key: marshall({
               PK: 'COMMENT',
               SK: commentId,
@@ -166,7 +166,7 @@ export const resolveComment = async (props: {
 
 export const getAllCommentsByRollId = async (rollId: string) => {
   return await dbGetByIndexAndKey({
-    tableName: process.env.COMMENT_TABLE,
+    tableName: process.env.REFERENCE_TABLE,
     key: { PK: 'COMMENT', rollId },
     indexName: 'rollId-index',
   });
@@ -174,7 +174,7 @@ export const getAllCommentsByRollId = async (rollId: string) => {
 
 export const getAllNotResolvedCommentsForRoll = async (roll: string) => {
   const comments = await dbGetByIndexAndKey<CreatedType<Comment>>({
-    tableName: process.env.COMMENT_TABLE,
+    tableName: process.env.REFERENCE_TABLE,
     key: { PK: 'COMMENT', resolved: 0 },
     indexName: 'resolved-index',
   });
@@ -183,7 +183,7 @@ export const getAllNotResolvedCommentsForRoll = async (roll: string) => {
 
 export const getAllNotResolvedCommentsForMe = async (user?: User): Promise<Comment[]> => {
   const params: QueryCommandInput = {
-    TableName: process.env.COMMENT_TABLE,
+    TableName: process.env.REFERENCE_TABLE,
     FilterExpression: 'contains(#ping, :all) or contains(#ping, :me) and parentId = id',
     KeyConditionExpression: 'PK = :comment AND resolved = :resolved',
     ExpressionAttributeNames: {

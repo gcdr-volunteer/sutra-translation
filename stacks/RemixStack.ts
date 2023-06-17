@@ -58,7 +58,7 @@ export async function ESStack({ stack }: StackContext) {
         capacity: {
           dataNodes: 1,
           masterNodes: 0,
-          dataNodeInstanceType: 't2.micro.search',
+          dataNodeInstanceType: 't3.small.search',
         },
         removalPolicy: RemovalPolicy.DESTROY,
       });
@@ -78,12 +78,12 @@ export async function TableStack({ stack }: StackContext) {
   });
   esfunc.addToRolePolicy(esAccess);
   const userTable = await createUserTable(stack);
-  const commentTable = await createReferenceTable(stack, esfunc);
+  const referenceTable = await createReferenceTable(stack, esfunc);
   const translationTable = await createTranslationTable(stack, esfunc);
   const historyTable = await createHistoryTable(stack);
   return {
     userTable,
-    commentTable,
+    referenceTable,
     translationTable,
     historyTable,
     esfunc,
@@ -92,7 +92,7 @@ export async function TableStack({ stack }: StackContext) {
 
 export async function SNSStack({ stack }: StackContext) {
   dependsOn(TableStack);
-  const { translationTable, commentTable } = use(TableStack);
+  const { translationTable, referenceTable } = use(TableStack);
   const topic = new Topic(stack, 'SUTRA', {
     subscribers: {
       subscriber: {
@@ -101,9 +101,9 @@ export async function SNSStack({ stack }: StackContext) {
           handler: 'index.handler',
           environment: {
             TRANSLATION_TABLE: translationTable.tableName,
-            REFERENCE_TABLE: commentTable.tableName,
+            REFERENCE_TABLE: referenceTable.tableName,
           },
-          permissions: [translationTable, commentTable],
+          permissions: [translationTable, referenceTable],
         },
       },
     },
@@ -116,14 +116,14 @@ export async function RemixStack({ stack }: StackContext) {
   const { domain } = use(ESStack);
   dependsOn(TableStack);
   dependsOn(SNSStack);
-  const { translationTable, userTable, commentTable, historyTable } = use(TableStack);
+  const { translationTable, userTable, referenceTable, historyTable } = use(TableStack);
   const { topic } = use(SNSStack);
   const site = new RemixSite(stack, 'Site', {
     path: 'remix-app/',
     environment: {
       SESSION_SECRET: process.env.SESSION_SECRET ?? '',
       USER_TABLE: userTable.tableName,
-      COMMENT_TABLE: commentTable.tableName,
+      REFERENCE_TABLE: referenceTable.tableName,
       TRANSLATION_TABLE: translationTable.tableName,
       HISTORY_TABLE: historyTable.tableName,
       REGION: process.env.REGION ?? '',
@@ -140,7 +140,7 @@ export async function RemixStack({ stack }: StackContext) {
   });
   site.attachPermissions([
     userTable,
-    commentTable,
+    referenceTable,
     translationTable,
     historyTable,
     topic,

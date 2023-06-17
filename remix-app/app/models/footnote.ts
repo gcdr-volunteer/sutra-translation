@@ -8,27 +8,31 @@ import {
 } from '~/models/external_services/dynamodb';
 
 export const getFootnoteByPrimaryKey = async (key: Key): Promise<Footnote | undefined> => {
-  return await dbGetByKey({ tableName: process.env.COMMENT_TABLE, key });
+  return await dbGetByKey({ tableName: process.env.REFERENCE_TABLE, key });
 };
 
 export const getFootnotesByPartitionKey = async (key: string): Promise<CreatedType<Footnote>[]> => {
-  return await dbGetByPartitionKey({ tableName: process.env.COMMENT_TABLE, PK: key, sort: false });
+  return await dbGetByPartitionKey({
+    tableName: process.env.REFERENCE_TABLE,
+    PK: key,
+    sort: false,
+  });
 };
 
 export const getFootnotesByRollId = async (rollId: string): Promise<CreatedType<Footnote>[]> => {
   return await dbGetByIndexAndKey({
-    tableName: process.env.COMMENT_TABLE,
+    tableName: process.env.REFERENCE_TABLE,
     indexName: 'kind-index',
     key: { PK: rollId, kind: 'FOOTNOTE' },
   });
 };
 
 const createFootnote = async (footnote: CreateType<Footnote>) => {
-  return await dbInsert({ tableName: process.env.COMMENT_TABLE, doc: footnote });
+  return await dbInsert({ tableName: process.env.REFERENCE_TABLE, doc: footnote });
 };
 
 const updateFootnote = async (footnote: UpdateType<Footnote>) => {
-  return await dbUpdate({ tableName: process.env.COMMENT_TABLE, doc: footnote });
+  return await dbUpdate({ tableName: process.env.REFERENCE_TABLE, doc: footnote });
 };
 
 export const upsertFootnote = async (footnote: CreateType<Footnote> | UpdateType<Footnote>) => {

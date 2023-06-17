@@ -7,7 +7,7 @@ declare global {
       ENV: 'test' | 'dev' | 'prod' | 'sirius' | 'uat';
       REGION: string;
       USER_TABLE: string;
-      COMMENT_TABLE: string;
+      REFERENCE_TABLE: string;
       HISTORY_TABLE: string;
       TRANSLATION_TABLE: string;
       DEEPL_AUTHKEY: string;

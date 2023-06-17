@@ -10,7 +10,7 @@ export const createNewGlossary = async (glossary: Glossary) => {
   const { PK, SK, ...rest } = glossary;
   const sortKey = `GLOSSARY-${hash(`${glossary.origin}-${glossary.target}`)}`;
   const params: PutItemCommandInput = {
-    TableName: process.env.COMMENT_TABLE,
+    TableName: process.env.REFERENCE_TABLE,
     Item: marshall(
       {
         PK: 'GLOSSARY',
@@ -33,7 +33,7 @@ export const createNewGlossary = async (glossary: Glossary) => {
 
 export const getAllGlossary = async (): Promise<Glossary[]> => {
   const params: QueryCommandInput = {
-    TableName: process.env.COMMENT_TABLE,
+    TableName: process.env.REFERENCE_TABLE,
     KeyConditionExpression: 'PK = :pk',
     ExpressionAttributeValues: marshall({
       ':pk': 'GLOSSARY',
@@ -48,7 +48,7 @@ export const getAllGlossary = async (): Promise<Glossary[]> => {
 
 export const getGlossariesByTerm = async (term: string): Promise<Glossary[]> => {
   const params: QueryCommandInput = {
-    TableName: process.env.COMMENT_TABLE,
+    TableName: process.env.REFERENCE_TABLE,
     FilterExpression: 'contains(#content, :term)',
     KeyConditionExpression: 'PK = :pk',
     ExpressionAttributeNames: {
@@ -66,13 +66,13 @@ export const getGlossariesByTerm = async (term: string): Promise<Glossary[]> => 
   return [];
 };
 export const updateGlossary = async (doc: UpdateType<Glossary>) => {
-  return await dbUpdate({ tableName: process.env.COMMENT_TABLE, doc });
+  return await dbUpdate({ tableName: process.env.REFERENCE_TABLE, doc });
 };
 
 export const upsertGlossary = async (glossary: Glossary | UpdateType<Glossary>) => {
   if (glossary?.PK && glossary?.SK) {
     const prevGlossary = await dbGetByKey({
-      tableName: process.env.COMMENT_TABLE,
+      tableName: process.env.REFERENCE_TABLE,
       key: { PK: glossary.PK ?? '', SK: glossary.SK ?? '' },
     });
     if (prevGlossary) {
