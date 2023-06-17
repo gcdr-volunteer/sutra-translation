@@ -20,8 +20,9 @@ import bcrypt from 'bcryptjs';
 import { LangCode } from '~/types/lang';
 import * as role from '~/types/role';
 import { Kind } from '~/types/common';
-import { dbClient, dbUpdate } from '~/models/external_services/dynamodb';
+import { dbClient, dbGetByKey, dbUpdate } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { logger } from '~/utils';
 interface DBUser extends User {
   password: string;
 }
@@ -60,18 +61,9 @@ export const onlyCreateAdminUserWhenFirstSystemUp = async (): Promise<void> => {
 
 export const getUserByEmail = async (email: string): Promise<DBUser | undefined> => {
   const SK = composeSKForUser({ email });
-  const params: GetItemCommandInput = {
-    TableName: process.env.USER_TABLE,
-    Key: marshall({
-      PK: 'TEAM',
-      SK,
-    }),
-  };
-  const { Item } = await dbClient().send(new GetItemCommand(params));
-  if (Item) {
-    return unmarshall(Item) as DBUser;
-  }
-  return undefined;
+  const user = dbGetByKey<DBUser>({ key: { PK: 'TEAM', SK }, tableName: process.env.USER_TABLE });
+  logger.log(getUserByEmail.name, 'user', user);
+  return user;
 };
 
 export const updateUser = async (user: UpdateType<User>) => {
