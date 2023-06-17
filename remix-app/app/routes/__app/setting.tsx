@@ -9,7 +9,7 @@ import { useContext } from 'react';
 export async function action({ request }: ActionArgs) {
   await authenticator.logout(request, { redirectTo: '/login' });
 }
-export default function TranslationRoute() {
+export default function SettingRoute() {
   const { currentUser } = useContext(AppContext);
   const {
     fontSize,

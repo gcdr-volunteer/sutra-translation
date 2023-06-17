@@ -87,7 +87,7 @@ export const loader = async ({ request }: LoaderArgs) => {
   return json({ comments, teams, langs, sutraStats, tripitakaStats });
 };
 
-export default function TripitakaRoute() {
+export default function DashboardRoute() {
   const { comments, teams, langs, sutraStats, tripitakaStats } = useLoaderData<typeof loader>();
   const sutraMetric = sutraStats.map((entry) => {
     const result = Object.entries(entry.stats).reduce((acc, [key, value]) => {

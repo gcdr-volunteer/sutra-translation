@@ -1,5 +1,6 @@
 import { StackContext, Table } from '@serverless-stack/resources';
 import type { FunctionDefinition } from '@serverless-stack/resources';
+import { RemovalPolicy } from 'aws-cdk-lib';
 
 /**
  * This table contains all the user related information
@@ -16,6 +17,10 @@ export const createUserTable = async (stack: StackContext['stack']) => {
     },
   });
 };
+
+/**
+ * This table contains the change of sutras
+ */
 export const createHistoryTable = async (stack: StackContext['stack']) => {
   return new Table(stack, 'HISTORY', {
     fields: {

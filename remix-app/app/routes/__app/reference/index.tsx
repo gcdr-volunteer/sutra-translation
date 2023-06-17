@@ -24,7 +24,8 @@ export const loader = async ({ request }: LoaderArgs) => {
     sutras: [],
   });
 };
-export default function ReferenceTripitakaRoute() {
+
+export default function ReferenceRoute() {
   const { sutras } = useLoaderData<typeof loader>();
   const sutraComp = sutras.map((sutra) => <Sutra key={sutra.slug} {...sutra} />);
   return <VStack spacing={8}>{sutraComp}</VStack>;

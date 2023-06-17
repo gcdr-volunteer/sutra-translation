@@ -1,7 +1,7 @@
 import { Flex, Divider } from '@chakra-ui/react';
 import { Outlet } from '@remix-run/react';
 import { BreadCrumb } from '~/components/common';
-export default function SutraRoute() {
+export default function ReferenceRoute() {
   return (
     <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
       <BreadCrumb />

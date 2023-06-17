@@ -16,6 +16,7 @@ import { Domain, EngineVersion } from 'aws-cdk-lib/aws-opensearchservice';
 import { isProd } from '../utils';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { RemovalPolicy } from 'aws-cdk-lib';
+import { BlockPublicAccess, BucketAccessControl } from 'aws-cdk-lib/aws-s3/lib/bucket';
 
 const ddb_to_es = (stack: StackContext['stack'], url: string) => {
   return new Function(stack, 'Function', {
@@ -34,17 +35,13 @@ export async function ESStack({ stack }: StackContext) {
     ? new Domain(stack, 'Domain', {
         version: EngineVersion.ELASTICSEARCH_7_10,
         capacity: {
-          masterNodes: 1,
           dataNodes: 1,
-          dataNodeInstanceType: 't3.small.search',
-          masterNodeInstanceType: 't3.small.search',
+          masterNodes: 0,
+          dataNodeInstanceType: 't3.medium.search',
         },
         enforceHttps: true,
         ebs: {
           volumeSize: 20,
-        },
-        zoneAwareness: {
-          availabilityZoneCount: 2,
         },
         logging: {
           slowSearchLogEnabled: true,
@@ -132,6 +129,12 @@ export async function RemixStack({ stack }: StackContext) {
       TOPIC_ARN: topic.topicArn,
       ES_URL: domain.domainEndpoint,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
+    },
+    cdk: {
+      bucket: {
+        blockPublicAccess: BlockPublicAccess.BLOCK_ACLS,
+        accessControl: BucketAccessControl.BUCKET_OWNER_FULL_CONTROL,
+      },
     },
   });
   const esAccess = new iam.PolicyStatement({
