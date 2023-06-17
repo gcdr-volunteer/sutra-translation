@@ -36,7 +36,7 @@ export async function ESStack({ stack }: StackContext) {
         capacity: {
           masterNodes: 1,
           dataNodes: 1,
-          dataNodeInstanceType: 't3.medium.search',
+          dataNodeInstanceType: 't3.small.search',
           masterNodeInstanceType: 't3.small.search',
         },
         enforceHttps: true,
@@ -51,14 +51,15 @@ export async function ESStack({ stack }: StackContext) {
           appLogEnabled: true,
           slowIndexLogEnabled: true,
         },
+        removalPolicy: RemovalPolicy.RETAIN,
       })
     : new Domain(stack, `${process.env.ENV}-Domain`, {
         version: EngineVersion.ELASTICSEARCH_7_10,
         capacity: {
-          dataNodeInstanceType: 't3.small.search',
-          masterNodeInstanceType: 't3.small.search',
+          dataNodeInstanceType: 't2.micro.search',
+          masterNodeInstanceType: 't2.micro.search',
         },
-        removalPolicy: isProd() ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
+        removalPolicy: RemovalPolicy.DESTROY,
       });
   stack.addOutputs({
     ES_URL: domain.domainEndpoint,
