@@ -119,7 +119,7 @@ export const UserForm = (props: UserFormProps) => {
       <FormControl isInvalid={Boolean(errors?.origin_lang)}>
         <FormLabel>Source Language:</FormLabel>
         <Select
-          placeholder='Select your lang'
+          placeholder='Select the origin lang'
           value={formState.origin_lang}
           onChange={(e) => handleFormStateUpdate('origin_lang', e)}
           name='origin_lang'
@@ -136,6 +136,7 @@ export const UserForm = (props: UserFormProps) => {
       <FormControl isInvalid={Boolean(errors?.target_lang)}>
         <FormLabel>Target Language:</FormLabel>
         <Select
+          placeholder='Select the target lang'
           value={formState.target_lang}
           onChange={(e) => handleFormStateUpdate('target_lang', e)}
           name='target_lang'
@@ -152,6 +153,7 @@ export const UserForm = (props: UserFormProps) => {
       <FormControl isInvalid={Boolean(errors?.roles)}>
         <FormLabel>Role:</FormLabel>
         <Select
+          placeholder='Select the role'
           value={formState.roles[0]}
           onChange={(e) => handleFormStateUpdate('roles', e)}
           name='roles'
@@ -168,6 +170,7 @@ export const UserForm = (props: UserFormProps) => {
       <FormControl isInvalid={Boolean(errors?.roles)}>
         <FormLabel>Working Sutra:</FormLabel>
         <Select
+          placeholder='Select the working sutra'
           value={formState.working_sutra}
           onChange={(e) => handleFormStateUpdate('working_sutra', e)}
           name='working_sutra'

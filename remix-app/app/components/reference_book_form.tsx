@@ -71,6 +71,7 @@ export const ReferenceBookForm = (props: ReferenceBookFormProps) => {
       <FormControl isInvalid={Boolean(errors?.sutra)}>
         <FormLabel>Sutra:</FormLabel>
         <Select
+          placeholder='Select your sutra'
           value={formState.sutra}
           onChange={(e) => handleFormStateUpdate('sutra', e)}
           name='sutra'
