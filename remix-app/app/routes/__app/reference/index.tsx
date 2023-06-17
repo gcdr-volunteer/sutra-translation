@@ -5,10 +5,13 @@ import { useLoaderData } from '@remix-run/react';
 import { assertAuthUser } from '~/auth.server';
 import { Sutra } from '~/components/common/sutra';
 import { getSutraByPrimaryKey } from '~/models/sutra';
+import { logger } from '~/utils';
 
 export const loader = async ({ request }: LoaderArgs) => {
   const user = await assertAuthUser(request);
+  logger.info('reference', user);
   const sutra = await getSutraByPrimaryKey({ PK: 'TRIPITAKA', SK: user?.working_sutra ?? '' });
+  logger.info('reference', sutra);
   if (sutra) {
     return json({
       sutras: [
