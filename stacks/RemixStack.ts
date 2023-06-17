@@ -16,7 +16,7 @@ import { Domain, EngineVersion } from 'aws-cdk-lib/aws-opensearchservice';
 import { isProd } from '../utils';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { RemovalPolicy } from 'aws-cdk-lib';
-import { BlockPublicAccess, BucketAccessControl } from 'aws-cdk-lib/aws-s3/lib/bucket';
+import { BlockPublicAccess, BucketAccessControl } from 'aws-cdk-lib/aws-s3';
 
 const ddb_to_es = (stack: StackContext['stack'], url: string) => {
   return new Function(stack, 'Function', {
