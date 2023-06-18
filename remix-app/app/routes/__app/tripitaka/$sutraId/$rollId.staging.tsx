@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useMemo } from 'react';
+import { Can } from '~/authorisation';
 import type { ChangeEvent } from 'react';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { Paragraph, Glossary as TGlossary, CreatedType, Reference, Glossary } from '~/types';
@@ -523,47 +523,49 @@ function TranlationWorkspace({
               </Card>
             ))
           : null}
-        <Card background={'secondary.500'} w='100%' borderRadius={12}>
-          <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
-            <Heading size='sm'>Workspace</Heading>
-          </CardHeader>
-          <CardBody as={Flex} flexDir={'column'}>
-            <ButtonGroup colorScheme={'iconButton'} variant={'outline'} p={4} mb={2}>
-              <Tooltip label='open glossary' openDelay={1000}>
-                <IconButton
-                  onClick={setGlossary.toggle}
-                  icon={<BiTable />}
-                  aria-label='glossary button'
+        <Can I='Update' this='Paragraph'>
+          <Card background={'secondary.500'} w='100%' borderRadius={12}>
+            <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+              <Heading size='sm'>Workspace</Heading>
+            </CardHeader>
+            <CardBody as={Flex} flexDir={'column'}>
+              <ButtonGroup colorScheme={'iconButton'} variant={'outline'} p={4} mb={2}>
+                <Tooltip label='open glossary' openDelay={1000}>
+                  <IconButton
+                    onClick={setGlossary.toggle}
+                    icon={<BiTable />}
+                    aria-label='glossary button'
+                  />
+                </Tooltip>
+                <FootnoteModal
+                  setFootnotes={setFootnotes}
+                  paragraphId={origin.SK}
+                  content={content}
+                  cursorPos={cursorPos}
                 />
-              </Tooltip>
-              <FootnoteModal
-                setFootnotes={setFootnotes}
-                paragraphId={origin.SK}
-                content={content}
-                cursorPos={cursorPos}
-              />
-              <SearchModal />
-              <Button
-                marginLeft={'auto'}
-                onClick={handleSubmitTranslation}
-                colorScheme={'iconButton'}
-                isLoading={isSubmit && isFirst}
-              >
-                Submit
-              </Button>
-            </ButtonGroup>
-            {glossary ? <GlossaryModal /> : null}
-            <Form method='post' style={{ height: '100%' }}>
-              <Textarea
-                height={'150px'}
-                fontFamily={fontFamilyTarget}
-                fontSize={fontSize}
-                value={text || content}
-                onChange={(e) => setText(e.target.value)}
-              />
-            </Form>
-          </CardBody>
-        </Card>
+                <SearchModal />
+                <Button
+                  marginLeft={'auto'}
+                  onClick={handleSubmitTranslation}
+                  colorScheme={'iconButton'}
+                  isLoading={isSubmit && isFirst}
+                >
+                  Submit
+                </Button>
+              </ButtonGroup>
+              {glossary ? <GlossaryModal /> : null}
+              <Form method='post' style={{ height: '100%' }}>
+                <Textarea
+                  height={'150px'}
+                  fontFamily={fontFamilyTarget}
+                  fontSize={fontSize}
+                  value={text || content}
+                  onChange={(e) => setText(e.target.value)}
+                />
+              </Form>
+            </CardBody>
+          </Card>
+        </Can>
       </VStack>
     </Flex>
   );

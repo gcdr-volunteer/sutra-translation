@@ -57,10 +57,10 @@ export const FormModal = (props: FormModalProps) => {
   const { header, body, modalSize, isOpen, onClose, value } = props;
 
   useEffect(() => {
-    if (actionData?.data) {
+    if (actionData?.intent === props.value && !actionData?.errors) {
       onClose();
     }
-  }, [actionData?.data, onClose]);
+  }, [actionData, onClose, props]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     submit(e.currentTarget);

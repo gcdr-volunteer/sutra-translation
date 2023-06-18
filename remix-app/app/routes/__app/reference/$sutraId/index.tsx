@@ -1,11 +1,19 @@
-import type { LoaderArgs } from '@remix-run/node';
-import type { Roll as TRoll } from '~/types';
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { AsStr, Roll as TRoll } from '~/types';
 import { json } from '@remix-run/node';
 import { useCatch, useLoaderData } from '@remix-run/react';
-import { Box, Flex } from '@chakra-ui/react';
+import { Box, Flex, IconButton, useDisclosure } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
 import { Warning } from '~/components/common/errors';
 import { getRollsBySutraId } from '~/models/roll';
+import { Can } from '~/authorisation';
+import { FiBook } from 'react-icons/fi';
+import { FormModal } from '~/components/common';
+import { Intent } from '~/types/common';
+import { RollForm } from '~/components/roll_form';
+import { assertAuthUser } from '~/auth.server';
+import { unauthorized } from 'remix-utils';
+import { handleCreateNewRoll } from '~/services/__app/reference/$sutraId';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { sutraId } = params;
@@ -26,6 +34,24 @@ export const loader = async ({ params }: LoaderArgs) => {
   return json({ data: extractedRolls });
 };
 
+export const action = async ({ request, params }: ActionArgs) => {
+  const { sutraId = '' } = params;
+
+  const formData = await request.formData();
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return unauthorized({ message: 'you should login first' });
+  }
+  const entryData = Object.fromEntries(formData.entries());
+
+  if (entryData?.intent === Intent.CREATE_ROLL) {
+    const newRoll = { ...entryData, PK: sutraId } as AsStr<Partial<TRoll>>;
+    return await handleCreateNewRoll({ roll: newRoll, user: user });
+  }
+
+  return json({});
+};
+
 export interface RollProps extends TRoll {
   slug: string;
   firstTime: boolean;
@@ -34,18 +60,36 @@ export default function SutraRoute() {
   const { data } = useLoaderData<{
     data: RollProps[];
   }>();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const rollsComp = data?.map((roll) => <Roll key={roll.slug} {...roll} />);
-  if (data?.length) {
-    return (
-      <Box p={10}>
-        <Flex gap={8} flexWrap={'wrap'}>
-          {rollsComp}
-        </Flex>
-      </Box>
-    );
-  } else {
-    return <Box>We are processing rolls for this sutra</Box>;
-  }
+  return (
+    <Box p={10}>
+      <Flex gap={8} flexWrap={'wrap'}>
+        <Can I='Read' this='Management'>
+          <IconButton
+            borderRadius={'50%'}
+            w={12}
+            h={12}
+            pos={'fixed'}
+            top={24}
+            right={8}
+            icon={<FiBook />}
+            aria-label='edit roll'
+            colorScheme={'iconButton'}
+            onClick={() => onOpen()}
+          />
+        </Can>
+        {rollsComp}
+        <FormModal
+          header='Add new roll'
+          isOpen={isOpen}
+          onClose={onClose}
+          value={Intent.CREATE_ROLL}
+          body={<RollForm />}
+        />
+      </Flex>
+    </Box>
+  );
 }
 
 export function CatchBoundary() {

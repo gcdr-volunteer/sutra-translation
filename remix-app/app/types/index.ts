@@ -23,6 +23,10 @@ export * from './paragraph';
 export * from './footnote';
 export * from './reference';
 
+export type AsStr<T> = {
+  [K in keyof T]: string;
+};
+
 export type Key = {
   SK: string;
   PK: string;

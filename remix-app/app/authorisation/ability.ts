@@ -9,7 +9,8 @@ type Subjects =
   | 'Paragraph'
   | 'Reference'
   | 'Management'
-  | 'Translation';
+  | 'Translation'
+  | 'Comment';
 
 export const defineAbilityFor = (user: User) => {
   const { can, build } = new AbilityBuilder(PureAbility<[Actions, Subjects]>);
@@ -20,13 +21,14 @@ export const defineAbilityFor = (user: User) => {
   if (
     user.roles.includes(RoleType.Editor) ||
     user.roles.includes(RoleType.Admin) ||
-    user.roles.includes(RoleType.Manager) ||
     user.roles.includes(RoleType.Leader)
   ) {
     can('Read', 'Paragraph');
     can('Create', 'Paragraph');
     can('Update', 'Paragraph');
     can('Delete', 'Paragraph');
+    can('Create', 'Comment');
+    can('Update', 'Comment');
   }
   if (
     user.roles.includes(RoleType.Assistor) ||
@@ -34,12 +36,9 @@ export const defineAbilityFor = (user: User) => {
     user.roles.includes(RoleType.Manager)
   ) {
     can('Read', 'Reference');
+    can('Create', 'Paragraph');
   }
-  if (
-    user.roles.includes(RoleType.Leader) ||
-    user.roles.includes(RoleType.Admin) ||
-    user.roles.includes(RoleType.Manager)
-  ) {
+  if (user.roles.includes(RoleType.Admin) || user.roles.includes(RoleType.Manager)) {
     can('Read', 'Management');
   }
   if (

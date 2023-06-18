@@ -52,7 +52,7 @@ export const UserForm = (props: UserFormProps) => {
       newFormState = { ...formState, [type]: e.target.value };
     }
     setFormState(newFormState);
-
+    console.log('new form state', newFormState);
     // This means we are going to update user
     if (!isNew) {
       const newObj: Record<string, string> = {
@@ -167,7 +167,7 @@ export const UserForm = (props: UserFormProps) => {
         </Select>
         {errors?.roles ? <FormErrorMessage>{errors?.roles}</FormErrorMessage> : null}
       </FormControl>
-      <FormControl isInvalid={Boolean(errors?.roles)}>
+      <FormControl isInvalid={Boolean(errors?.working_sutra)}>
         <FormLabel>Working Sutra:</FormLabel>
         <Select
           placeholder='Select the working sutra'
@@ -182,7 +182,9 @@ export const UserForm = (props: UserFormProps) => {
             </option>
           ))}
         </Select>
-        {errors?.roles ? <FormErrorMessage>{errors?.roles}</FormErrorMessage> : null}
+        {errors?.working_sutra ? (
+          <FormErrorMessage>{errors?.working_sutra}</FormErrorMessage>
+        ) : null}
       </FormControl>
       <Input hidden readOnly name='PK' value={user?.PK} />
       <Input hidden readOnly name='SK' value={user?.SK} />

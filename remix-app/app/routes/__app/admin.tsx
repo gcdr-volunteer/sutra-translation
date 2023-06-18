@@ -64,6 +64,7 @@ type EntryData = {
   team: Team['name'];
   origin_lang: LangCode;
   target_lang: LangCode;
+  working_sutra: string;
   roles: Role['name'];
 };
 export const action = async ({ request }: ActionArgs) => {
@@ -82,11 +83,13 @@ export const action = async ({ request }: ActionArgs) => {
     roles,
     origin_lang,
     target_lang,
+    working_sutra,
   } = entryData as EntryData;
   if (intent && intent === Intent.CREATE_USER) {
     // TODO: we currently only support one selection of role, we will support
     // multiple roles in the future
     return await handleCreateNewUser({
+      working_sutra,
       username,
       email,
       password,

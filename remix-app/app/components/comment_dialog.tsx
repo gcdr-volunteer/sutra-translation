@@ -136,7 +136,7 @@ export const CommentDialog = (props: CommentDialogPayload) => {
         <DrawerHeader>Comment Workspace</DrawerHeader>
         <DrawerBody>
           <HStack>
-            <VStack flex={2}>
+            <VStack flex={2} alignItems={'start'}>
               {toggle ? (
                 <VStack>
                   <Box onMouseUp={(e) => e.stopPropagation()}>
@@ -183,7 +183,7 @@ export const CommentDialog = (props: CommentDialogPayload) => {
               {!toggle ? (
                 <Can I='Update' this='Paragraph'>
                   <FormControl display='flex' alignItems='center'>
-                    <FormLabel htmlFor='edit-paragraph' mb='0'>
+                    <FormLabel htmlFor='edit-paragraph' mb='0' p={4}>
                       Edit paragraph
                     </FormLabel>
                     <Switch
@@ -195,21 +195,23 @@ export const CommentDialog = (props: CommentDialogPayload) => {
                 </Can>
               ) : null}
             </VStack>
-            <Divider orientation='vertical' />
-            <VStack flex={1} flexDir={'column'} h={'40vh'}>
+            <Divider orientation='vertical' maxH={'40vh'} minH={'20vh'} />
+            <VStack flex={1} flexDir={'column'} maxH={'40vh'}>
               <Box flex={1} overflowY={'scroll'} w={'100%'}>
                 {comments?.map((comment, index) => (
                   <Conversation key={index} comment={comment} />
                 ))}
                 <Box ref={conversationRef} />
               </Box>
-              <Divider />
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleCreateNewMessage}
-                placeholder='you can press Enter to send your comment'
-              />
+              <Can I='Update' this='Comment'>
+                <Divider />
+                <Textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleCreateNewMessage}
+                  placeholder='you can press Enter to send your comment'
+                />
+              </Can>
             </VStack>
           </HStack>
         </DrawerBody>

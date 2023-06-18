@@ -32,6 +32,22 @@ export const getSutrasByLangAndVersion = async (
   return [];
 };
 
+export const getSutrasByLang = async (lang: LangCode): Promise<CreatedType<Sutra>[]> => {
+  const params: QueryCommandInput = {
+    TableName: process.env.TRANSLATION_TABLE,
+    KeyConditionExpression: 'PK = :PK AND begins_with(SK, :SK)',
+    ExpressionAttributeValues: marshall({
+      ':PK': 'TRIPITAKA',
+      ':SK': lang,
+    }),
+  };
+  const { Items } = await dbClient().send(new QueryCommand(params));
+  if (Items?.length) {
+    return Items.map((Item) => unmarshall(Item) as CreatedType<Sutra>);
+  }
+  return [];
+};
+
 export const getAllSutras = async (): Promise<CreatedType<Sutra>[]> => {
   return await dbGetByPartitionKey<CreatedType<Sutra>>({
     tableName: process.env.TRANSLATION_TABLE,

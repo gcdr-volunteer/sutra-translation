@@ -80,9 +80,11 @@ const newUserSchema = () => {
       }),
     origin_lang: langCodeValidator,
     target_lang: langCodeValidator,
+    working_sutra: yup.string().required('working sutra cannot be empty'),
     first_login: yup.boolean().default(true),
     email: yup.string().email().required(),
     kind: yup.mixed<'USER'>().default('USER'),
+    intent: yup.string().strip(),
   });
   return userSchema;
 };

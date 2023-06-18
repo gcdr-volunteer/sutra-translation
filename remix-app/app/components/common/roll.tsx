@@ -16,13 +16,20 @@ import {
 import { Link, useActionData, useLocation } from '@remix-run/react';
 import { FormModal } from './modal';
 import { Intent } from '~/types/common';
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { useSetTheme } from '~/hooks';
+import { AppContext } from '~/routes/__app';
+import { RoleType } from '~/types';
 export function Roll(props: RollProps) {
   const actionData = useActionData<{ intent: Intent; data: string }>();
+  const { currentUser } = useContext(AppContext);
   const location = useLocation();
   const { slug, subtitle, title, firstTime } = props;
-  const isOpenMetaModal = firstTime && location?.pathname.includes('tripitaka');
+  const isOpenMetaModal =
+    firstTime &&
+    !currentUser?.roles.includes(RoleType.Manager) &&
+    !currentUser?.roles.includes(RoleType.Assistor) &&
+    location?.pathname.includes('tripitaka');
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_SUTRA_META && actionData?.data) {
