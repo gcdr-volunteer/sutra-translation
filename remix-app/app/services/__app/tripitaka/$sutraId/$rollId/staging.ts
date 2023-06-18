@@ -234,6 +234,33 @@ export const handleCreateNewGlossary = async (newGlossary: Omit<Glossary, 'kind'
   }
 };
 
+export const handleUpdateGlossary = async (newGlossary: Omit<Glossary, 'kind'>) => {
+  logger.log(handleUpdateGlossary.name, 'newGlossary', newGlossary);
+  try {
+    const result = await schemaValidator({
+      schema: newGlossarySchema(),
+      obj: newGlossary,
+    });
+
+    logger.log(handleUpdateGlossary.name, 'result', result);
+    await upsertGlossary(result);
+
+    return created({
+      payload: { origin: result.origin, target: result.target },
+      intent: Intent.UPDATE_GLOSSARY,
+    });
+  } catch (errors) {
+    logger.error(handleUpdateGlossary.name, 'error', errors);
+    if (errors instanceof ConditionalCheckFailedException) {
+      return unprocessableEntity({
+        errors: { error: 'duplicated glossary' },
+        intent: Intent.UPDATE_GLOSSARY,
+      });
+    }
+    return serverError({ errors: { error: 'internal error' }, intent: Intent.UPDATE_GLOSSARY });
+  }
+};
+
 export const handleSearchByTerm = async (term: string) => {
   try {
     // TODO: this is just a stub function, refine it when you picking the

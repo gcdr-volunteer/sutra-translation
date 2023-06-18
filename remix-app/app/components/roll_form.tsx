@@ -24,7 +24,9 @@ export const RollForm = () => {
   return (
     <SimpleGrid spacing={4}>
       <FormControl isInvalid={Boolean(errors?.title)}>
-        <FormLabel>Roll Title:</FormLabel>
+        <FormLabel>
+          Roll Title:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='text'
           value={formState.title}
@@ -34,7 +36,9 @@ export const RollForm = () => {
         {errors?.title ? <FormErrorMessage>{errors?.title}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.subtitle)}>
-        <FormLabel>Roll Subtitle:</FormLabel>
+        <FormLabel>
+          Roll Subtitle:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='text'
           value={formState.subtitle}
@@ -44,7 +48,9 @@ export const RollForm = () => {
         {errors?.subtitle ? <FormErrorMessage>{errors?.subtitle}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.category)}>
-        <FormLabel>Category:</FormLabel>
+        <FormLabel>
+          Category:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='text'
           value={formState.category}

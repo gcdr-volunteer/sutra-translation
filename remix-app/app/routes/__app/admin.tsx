@@ -229,7 +229,7 @@ interface AdminActionButtonsProps {
   sutras: CreatedType<Sutra>[];
 }
 const AdminActionButtons = ({ teams, langs, sutras }: AdminActionButtonsProps) => {
-  const actionData = useActionData<{ errors: { name: string; alias: string } }>();
+  const actionData = useActionData<{ errors: { name: string; alias: string }; intent: Intent }>();
   const [errors, setErrors] = useState<{ name: string; alias: string } | undefined>();
   const { isOpen, onToggle } = useDisclosure();
   const { isOpen: isOpenNewUser, onOpen: onOpenNewUser, onClose: onCloseNewUser } = useDisclosure();
@@ -245,6 +245,15 @@ const AdminActionButtons = ({ teams, langs, sutras }: AdminActionButtonsProps) =
   useEffect(() => {
     if (actionData?.errors) {
       setErrors(actionData.errors);
+    }
+    if (actionData?.intent === Intent.CREATE_USER) {
+      onCloseNewUser();
+    }
+    if (actionData?.intent === Intent.CREATE_TEAM) {
+      onCloseNewTeam();
+    }
+    if (actionData?.intent === Intent.CREATE_LANG) {
+      onCloseNewLang();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData]);

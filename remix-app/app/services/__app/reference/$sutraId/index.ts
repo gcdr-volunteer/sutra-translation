@@ -41,7 +41,7 @@ export const handleCreateNewRoll = async ({
       const lastSK = allRolls[allRolls.length - 1].SK || '';
       const newRollId = parseInt(lastSK.slice(lastSK.length - 4)) + 1;
 
-      SK = composeIdForRoll({ sutraId: roll.SK || '', id: newRollId });
+      SK = composeIdForRoll({ sutraId: roll.PK || '', id: newRollId });
     }
     const result = await schemaValidator({
       schema: newRollSchema(user),

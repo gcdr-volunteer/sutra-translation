@@ -2,7 +2,7 @@ import { IconButton, VStack, useDisclosure } from '@chakra-ui/react';
 import type { ActionArgs } from '@remix-run/node';
 import { json } from '@remix-run/node';
 import type { LoaderArgs } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { useActionData, useLoaderData } from '@remix-run/react';
 import { FiBook } from 'react-icons/fi';
 import { unauthorized } from 'remix-utils';
 import { assertAuthUser } from '~/auth.server';
@@ -16,6 +16,7 @@ import { logger } from '~/utils';
 import type { AsStr, Sutra as TSutra } from '~/types';
 import { RoleType } from '~/types';
 import { Can } from '~/authorisation';
+import { useEffect } from 'react';
 
 export const loader = async ({ request }: LoaderArgs) => {
   const user = await assertAuthUser(request);
@@ -70,6 +71,12 @@ export const action = async ({ request, params }: ActionArgs) => {
 export default function ReferenceRoute() {
   const { sutras } = useLoaderData<typeof loader>();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const actionData = useActionData();
+  useEffect(() => {
+    if (actionData?.intent === Intent.CREATE_SUTRA) {
+      onClose();
+    }
+  }, [actionData, onClose]);
   const sutraComp = sutras.map((sutra) => <Sutra key={sutra.slug} {...sutra} />);
   return (
     <VStack spacing={8}>

@@ -19,7 +19,9 @@ interface ReferenceBookFormProps {
 export const ReferenceBookForm = (props: ReferenceBookFormProps) => {
   const { sutras, teams } = props || {};
   const { errors } =
-    useActionData<{ errors: { bookname: string; team: Team['name']; sutra: string } }>() || {};
+    useActionData<{
+      errors: { bookname: string; team: Team['name']; sutra: string };
+    }>() || {};
   const [formState, setFormState] = useState<{
     bookname: string;
     team: Team['name'];
@@ -41,7 +43,9 @@ export const ReferenceBookForm = (props: ReferenceBookFormProps) => {
   return (
     <SimpleGrid spacing={4}>
       <FormControl isInvalid={Boolean(errors?.bookname)}>
-        <FormLabel>Book Name:</FormLabel>
+        <FormLabel>
+          Book Name:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='text'
           value={formState.bookname}
@@ -52,7 +56,9 @@ export const ReferenceBookForm = (props: ReferenceBookFormProps) => {
         {errors?.bookname ? <FormErrorMessage>{errors?.bookname}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.team)}>
-        <FormLabel>Team:</FormLabel>
+        <FormLabel>
+          Team:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Select
           placeholder='Select your team'
           value={formState.team}
@@ -69,7 +75,9 @@ export const ReferenceBookForm = (props: ReferenceBookFormProps) => {
         {errors?.team ? <FormErrorMessage>{errors?.team}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.sutra)}>
-        <FormLabel>Sutra:</FormLabel>
+        <FormLabel>
+          Sutra:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Select
           placeholder='Select your sutra'
           value={formState.sutra}

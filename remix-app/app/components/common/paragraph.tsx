@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Text,
@@ -18,6 +18,7 @@ import { Intent } from '~/types/common';
 import { CommentDialog } from '../comment_dialog';
 import { AppContext } from '~/routes/__app';
 import { Can } from '~/authorisation';
+import { useActionData } from '@remix-run/react';
 type TextSelection = {
   start?: number;
   end?: number;
@@ -114,6 +115,13 @@ export const TextWithComment = ({
       .filter((comment) => comment.id === comment.parentId)
       .map((comment) => comment.content),
   });
+
+  const actionData = useActionData();
+  useEffect(() => {
+    if (actionData?.intent === Intent.CREATE_COMMENT) {
+      onNewCommentClose();
+    }
+  }, [actionData, onNewCommentClose]);
 
   return (
     <Box>

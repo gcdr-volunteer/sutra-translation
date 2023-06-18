@@ -25,7 +25,10 @@ import { useActionData, useLoaderData } from '@remix-run/react';
 import type { Glossary } from '~/types';
 import { AiOutlineEdit } from 'react-icons/ai';
 import { assertAuthUser } from '~/auth.server';
-import { handleCreateNewGlossary } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
+import {
+  handleCreateNewGlossary,
+  handleUpdateGlossary,
+} from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { serverError } from 'remix-utils';
 import { useEffect } from 'react';
 
@@ -58,6 +61,23 @@ export const action = async ({ request }: ActionArgs) => {
       creatorAlias: user?.username,
     });
   }
+  if (entryData?.intent === Intent.UPDATE_GLOSSARY) {
+    return await handleUpdateGlossary({
+      PK: entryData?.PK as string,
+      SK: entryData?.SK as string,
+      origin: entryData?.origin as string,
+      target: entryData?.target as string,
+      short_definition: entryData?.short_definition as string,
+      options: entryData?.options as string,
+      note: entryData?.note as string,
+      example_use: entryData?.example_use as string,
+      related_terms: entryData?.related_terms as string,
+      terms_to_avoid: entryData?.terms_to_avoid as string,
+      discussion: entryData?.discussion as string,
+      createdBy: user?.SK,
+      creatorAlias: user?.username,
+    });
+  }
   throw serverError({ message: 'unknown error' });
   // return json({});
 };
@@ -74,7 +94,7 @@ export default function GlossaryRoute() {
   ));
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
-    if (actionData?.intent) {
+    if (actionData?.intent === Intent.CREATE_GLOSSARY) {
       onClose();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,14 +106,16 @@ export default function GlossaryRoute() {
       </Heading>
       <Divider mt={4} mb={4} borderColor={'primary.300'} />
       {glossaryComp}
-      <FormModal
-        header='Add new glossary'
-        body={<GlossaryForm />}
-        isOpen={isOpen}
-        onClose={onClose}
-        value={Intent.CREATE_GLOSSARY}
-        modalSize='3xl'
-      />
+      {isOpen ? (
+        <FormModal
+          header='Add new glossary'
+          body={<GlossaryForm />}
+          isOpen={isOpen}
+          onClose={onClose}
+          value={Intent.CREATE_GLOSSARY}
+          modalSize='3xl'
+        />
+      ) : null}
       <IconButton
         borderRadius={'50%'}
         w={12}
@@ -144,7 +166,7 @@ const GlossaryDetailView = ({ glossary }: GlossaryDetailViewProps) => {
   const actionData = useActionData<typeof action>();
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
-    if (actionData?.intent) {
+    if (actionData?.intent === Intent.UPDATE_GLOSSARY) {
       onClose();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,7 +206,7 @@ const GlossaryDetailView = ({ glossary }: GlossaryDetailViewProps) => {
           body={<GlossaryForm props={glossary} />}
           isOpen={isOpen}
           onClose={onClose}
-          value={Intent.CREATE_GLOSSARY}
+          value={Intent.UPDATE_GLOSSARY}
           modalSize='3xl'
         />
       </SimpleGrid>

@@ -593,6 +593,7 @@ const GlossaryModal = () => {
         duration: 3000,
         position: 'top',
       });
+      onCloseNote();
     }
     if (actionData?.intent === Intent.CREATE_GLOSSARY && actionData.errors) {
       const { error } = actionData.errors;

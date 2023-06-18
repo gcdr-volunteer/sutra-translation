@@ -18,7 +18,6 @@ type NewSutraState = Pick<
 >;
 export const SutraForm = () => {
   const { errors } = useActionData<{ errors: NewSutraState }>() || {};
-  console.log('errors', errors);
   const [formState, setFormState] = useState<NewSutraState>({
     title: '',
     translator: '',
@@ -42,7 +41,9 @@ export const SutraForm = () => {
   return (
     <SimpleGrid spacing={4}>
       <FormControl isInvalid={Boolean(errors?.title)}>
-        <FormLabel>Sutra Name:</FormLabel>
+        <FormLabel>
+          Sutra Name:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='text'
           value={formState.title}
@@ -52,7 +53,9 @@ export const SutraForm = () => {
         {errors?.title ? <FormErrorMessage>{errors?.title}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.translator)}>
-        <FormLabel>Translator Name:</FormLabel>
+        <FormLabel>
+          Translator Name:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='text'
           value={formState.translator}
@@ -62,7 +65,9 @@ export const SutraForm = () => {
         {errors?.translator ? <FormErrorMessage>{errors?.translator}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.dynasty)}>
-        <FormLabel>Dynasty:</FormLabel>
+        <FormLabel>
+          Dynasty:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='text'
           value={formState.dynasty}
@@ -72,7 +77,9 @@ export const SutraForm = () => {
         {errors?.dynasty ? <FormErrorMessage>{errors?.dynasty}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.category)}>
-        <FormLabel>Category:</FormLabel>
+        <FormLabel>
+          Category:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='text'
           value={formState.category}
@@ -82,7 +89,9 @@ export const SutraForm = () => {
         {errors?.category ? <FormErrorMessage>{errors?.category}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.roll_count)}>
-        <FormLabel>Total Rolls:</FormLabel>
+        <FormLabel>
+          Total Rolls:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='number'
           value={formState.roll_count}
@@ -92,7 +101,9 @@ export const SutraForm = () => {
         {errors?.roll_count ? <FormErrorMessage>{errors?.roll_count}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.roll_start)}>
-        <FormLabel>Roll Start:</FormLabel>
+        <FormLabel>
+          Roll Start:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='number'
           value={formState.roll_start}
@@ -102,7 +113,9 @@ export const SutraForm = () => {
         {errors?.roll_start ? <FormErrorMessage>{errors?.roll_start}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.time_from)}>
-        <FormLabel>Year Start:</FormLabel>
+        <FormLabel>
+          Year Start:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='number'
           value={formState.time_from}
@@ -112,7 +125,9 @@ export const SutraForm = () => {
         {errors?.time_from ? <FormErrorMessage>{errors?.time_from}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.time_to)}>
-        <FormLabel>Year End:</FormLabel>
+        <FormLabel>
+          Year End:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='number'
           value={formState.time_to}
@@ -122,7 +137,9 @@ export const SutraForm = () => {
         {errors?.time_to ? <FormErrorMessage>{errors?.time_to}</FormErrorMessage> : null}
       </FormControl>
       <FormControl isInvalid={Boolean(errors?.num_chars)}>
-        <FormLabel>Total Characters:</FormLabel>
+        <FormLabel>
+          Total Characters:<span style={{ color: 'red' }}>*</span>
+        </FormLabel>
         <Input
           type='number'
           value={formState.num_chars}

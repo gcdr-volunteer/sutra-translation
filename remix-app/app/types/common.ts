@@ -33,6 +33,7 @@ export enum Intent {
   CREATE_TRANSLATION = 'create_translation',
   CREATE_REFERENCE = 'create_reference',
   CREATE_GLOSSARY = 'create_glossary',
+  UPDATE_GLOSSARY = 'update_glossary',
   CREATE_FOOTNOTE = 'create_footnote',
   CREATE_COMMENT = 'create_comment',
   UPDATE_COMMENT = 'update_comment',

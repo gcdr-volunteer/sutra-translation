@@ -47,7 +47,6 @@ export const handleCreateNewReference = async (newReference: {
     const totalSentenceIndexNum = totalSentences ? parseInt(totalSentences) : 0;
 
     const latestRef = await getLatestReference(paragraphId);
-    console.log(latestRef);
     const id = parseInt(latestRef?.SK.slice(latestRef.SK.length - 4) || '') + 1;
     let newSK = undefined;
     if (id) {

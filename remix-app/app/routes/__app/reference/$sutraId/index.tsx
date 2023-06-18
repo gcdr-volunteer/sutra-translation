@@ -1,7 +1,7 @@
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { AsStr, Roll as TRoll } from '~/types';
 import { json } from '@remix-run/node';
-import { useCatch, useLoaderData } from '@remix-run/react';
+import { useActionData, useCatch, useLoaderData } from '@remix-run/react';
 import { Box, Flex, IconButton, useDisclosure } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
 import { Warning } from '~/components/common/errors';
@@ -14,6 +14,7 @@ import { RollForm } from '~/components/roll_form';
 import { assertAuthUser } from '~/auth.server';
 import { unauthorized } from 'remix-utils';
 import { handleCreateNewRoll } from '~/services/__app/reference/$sutraId';
+import { useEffect } from 'react';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { sutraId } = params;
@@ -61,6 +62,12 @@ export default function SutraRoute() {
     data: RollProps[];
   }>();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const actionData = useActionData();
+  useEffect(() => {
+    if (actionData?.intent === Intent.CREATE_ROLL) {
+      onClose();
+    }
+  }, [actionData, onClose]);
   const rollsComp = data?.map((roll) => <Roll key={roll.slug} {...roll} />);
   return (
     <Box p={10}>

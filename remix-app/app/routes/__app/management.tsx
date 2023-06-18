@@ -19,10 +19,11 @@ import { FormModal } from '~/components/common';
 import { getLoaderData } from '~/services/__app/admin';
 import type { Team, Sutra, CreatedType, RefBook } from '~/types';
 import { getAllSutraThatFinished } from '~/models/sutra';
-import { useLoaderData } from '@remix-run/react';
+import { useActionData, useLoaderData } from '@remix-run/react';
 import { ReferenceBookForm } from '~/components/reference_book_form';
 import { handleCreateRefBook } from '~/services/__app/management';
 import { getAllRefBooks } from '~/models/reference';
+import { useEffect } from 'react';
 export async function loader({ request }: ActionArgs) {
   const { teams } = await getLoaderData();
   const sutras = await getAllSutraThatFinished();
@@ -62,6 +63,12 @@ export async function action({ request }: ActionArgs) {
 export default function ManagementRoute() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { teams, sutras, refBooks } = useLoaderData<typeof loader>();
+  const actionData = useActionData();
+  useEffect(() => {
+    if (actionData?.intent === Intent.CREATE_REF_BOOK) {
+      onClose();
+    }
+  }, [actionData, onClose]);
   return (
     <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
       <TableContainer>
