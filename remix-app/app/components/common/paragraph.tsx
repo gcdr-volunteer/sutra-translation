@@ -17,6 +17,7 @@ import type { Comment as TComment } from '~/types';
 import { Intent } from '~/types/common';
 import { CommentDialog } from '../comment_dialog';
 import { AppContext } from '~/routes/__app';
+import { Can } from '~/authorisation';
 type TextSelection = {
   start?: number;
   end?: number;
@@ -138,13 +139,15 @@ export const TextWithComment = ({
           );
         })}
       </Text>
-      <FormModal
-        value={Intent.CREATE_COMMENT}
-        header='Add comment'
-        body={<Comment paragraphId={paragraphId} {...selectedText} />}
-        isOpen={isNewCommentOpen}
-        onClose={onNewCommentClose}
-      />
+      <Can I='Create' this='Comment'>
+        <FormModal
+          value={Intent.CREATE_COMMENT}
+          header='Add comment'
+          body={<Comment paragraphId={paragraphId} {...selectedText} />}
+          isOpen={isNewCommentOpen}
+          onClose={onNewCommentClose}
+        />
+      </Can>
     </Box>
   );
 };
