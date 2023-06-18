@@ -85,8 +85,8 @@ export const getCounterFor = async (type: CounterType): Promise<{ counter: numbe
  * @param param0
  * @returns
  */
-export const composeIdForReference = ({ kind, id }: { kind: CounterType; id: number }) => {
-  return `${kind}-${id.toString().padStart(4, '0')}`;
+export const composeIdForReference = ({ paragraphId, id }: { paragraphId: string; id: number }) => {
+  return `${paragraphId}-R${id.toString().padStart(4, '0')}`;
 };
 
 /**

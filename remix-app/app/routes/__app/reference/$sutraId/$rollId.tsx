@@ -76,6 +76,7 @@ export const loader = async ({ params }: LoaderArgs) => {
         }
         return acc;
       }, {});
+
     const origins = originParagraphs?.map(({ PK, SK, category, content, num, finish }) => ({
       PK,
       SK,

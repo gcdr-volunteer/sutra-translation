@@ -5,6 +5,7 @@ import { created } from 'remix-utils';
 import { Intent } from '~/types/common';
 import { json } from '@remix-run/node';
 import { getLatestReference, upsertReference } from '~/models/reference';
+import { composeIdForReference } from '~/models/utils';
 const newReferenceSchema = () => {
   const baseSchema = initialSchema();
   // TODO: using strict().noUnknown() to stop unknown params
@@ -46,11 +47,17 @@ export const handleCreateNewReference = async (newReference: {
     const totalSentenceIndexNum = totalSentences ? parseInt(totalSentences) : 0;
 
     const latestRef = await getLatestReference(paragraphId);
+    console.log(latestRef);
+    const id = parseInt(latestRef?.SK.slice(latestRef.SK.length - 4) || '') + 1;
+    let newSK = undefined;
+    if (id) {
+      newSK = composeIdForReference({ paragraphId, id });
+    }
     const reference = {
       content: result.content ?? '',
       // TODO: this needs to be updated to match user profile language
       PK: 'REFERENCE',
-      SK: latestRef?.SK || `${paragraphId}-R0000`,
+      SK: newSK || `${paragraphId}-R0000`,
       sutraId,
       rollId,
       finish: sentenceIndexNum === totalSentenceIndexNum,
