@@ -4,7 +4,7 @@ import type { Comment, Message } from '~/types/comment';
 import type { MutableRefObject } from 'react';
 import { json } from '@remix-run/node';
 import { Outlet, useLoaderData, useLocation, useNavigate } from '@remix-run/react';
-import { IconButton, Flex, Box, Heading, useToast } from '@chakra-ui/react';
+import { IconButton, Flex, Box, Heading, useToast, Tooltip } from '@chakra-ui/react';
 import { useEffect, useRef } from 'react';
 import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
@@ -245,18 +245,20 @@ export default function ParagraphRoute() {
         ) : null}
         {paragraphsComp}
         <Can I='Create' this='Paragraph'>
-          <IconButton
-            borderRadius={'50%'}
-            w={12}
-            h={12}
-            pos={'fixed'}
-            bottom={8}
-            right={8}
-            icon={<FiEdit />}
-            aria-label='edit roll'
-            colorScheme={'iconButton'}
-            onClick={handleNavigate}
-          />
+          <Tooltip label='Click to translate'>
+            <IconButton
+              borderRadius={'50%'}
+              w={12}
+              h={12}
+              pos={'fixed'}
+              bottom={8}
+              right={8}
+              icon={<FiEdit />}
+              aria-label='edit roll'
+              colorScheme={'iconButton'}
+              onClick={handleNavigate}
+            />
+          </Tooltip>
         </Can>
       </Flex>
     );

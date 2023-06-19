@@ -1,4 +1,4 @@
-import { IconButton, VStack, useDisclosure } from '@chakra-ui/react';
+import { IconButton, Tooltip, VStack, useDisclosure } from '@chakra-ui/react';
 import type { ActionArgs } from '@remix-run/node';
 import { json } from '@remix-run/node';
 import type { LoaderArgs } from '@remix-run/node';
@@ -81,18 +81,20 @@ export default function ReferenceRoute() {
   return (
     <VStack spacing={8}>
       <Can I='Read' this='Management'>
-        <IconButton
-          borderRadius={'50%'}
-          w={12}
-          h={12}
-          pos={'fixed'}
-          top={24}
-          right={8}
-          icon={<FiBook />}
-          aria-label='edit roll'
-          colorScheme={'iconButton'}
-          onClick={() => onOpen()}
-        />
+        <Tooltip label='Add a new sutra'>
+          <IconButton
+            borderRadius={'50%'}
+            w={12}
+            h={12}
+            pos={'fixed'}
+            top={24}
+            right={8}
+            icon={<FiBook />}
+            aria-label='add new sutra'
+            colorScheme={'iconButton'}
+            onClick={() => onOpen()}
+          />
+        </Tooltip>
       </Can>
 
       {sutraComp}

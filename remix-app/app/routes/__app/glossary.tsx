@@ -31,6 +31,7 @@ import {
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { serverError } from 'remix-utils';
 import { useEffect } from 'react';
+import { Can } from '~/authorisation';
 
 export const loader = async () => {
   const glossaries = await getAllGlossary();
@@ -116,18 +117,20 @@ export default function GlossaryRoute() {
           modalSize='3xl'
         />
       ) : null}
-      <IconButton
-        borderRadius={'50%'}
-        w={12}
-        h={12}
-        pos={'fixed'}
-        bottom={8}
-        right={8}
-        icon={<AiOutlinePlus />}
-        aria-label='edit roll'
-        colorScheme={'iconButton'}
-        onClick={() => onOpen()}
-      />
+      <Can I='Create' this='Glossary'>
+        <IconButton
+          borderRadius={'50%'}
+          w={12}
+          h={12}
+          pos={'fixed'}
+          bottom={8}
+          right={8}
+          icon={<AiOutlinePlus />}
+          aria-label='edit roll'
+          colorScheme={'iconButton'}
+          onClick={() => onOpen()}
+        />
+      </Can>
     </Flex>
   );
 }
@@ -210,15 +213,17 @@ const GlossaryDetailView = ({ glossary }: GlossaryDetailViewProps) => {
           modalSize='3xl'
         />
       </SimpleGrid>
-      <IconButton
-        colorScheme={'iconButton'}
-        aria-label='update glossary'
-        onClick={onOpen}
-        icon={<AiOutlineEdit />}
-        alignSelf='end'
-      >
-        Update
-      </IconButton>
+      <Can I='Update' this='Glossary'>
+        <IconButton
+          colorScheme={'iconButton'}
+          aria-label='update glossary'
+          onClick={onOpen}
+          icon={<AiOutlineEdit />}
+          alignSelf='end'
+        >
+          Update
+        </IconButton>
+      </Can>
     </Flex>
   );
 };

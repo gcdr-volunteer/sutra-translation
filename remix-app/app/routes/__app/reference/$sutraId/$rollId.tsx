@@ -23,6 +23,7 @@ import {
   EditablePreview,
   EditableTextarea,
   Divider,
+  Tooltip,
 } from '@chakra-ui/react';
 import { useRef } from 'react';
 import { FiEdit, FiBook } from 'react-icons/fi';
@@ -204,37 +205,41 @@ export default function ReferenceRoute() {
         mt={10}
       >
         <Outlet context={{ modal: true }} />
-        <IconButton
-          borderRadius={'50%'}
-          w={12}
-          h={12}
-          pos={'fixed'}
-          top={24}
-          right={8}
-          icon={<FiBook />}
-          aria-label='edit roll'
-          colorScheme={'iconButton'}
-          onClick={() => onOpen()}
-        />
+        <Tooltip label='Add a new paragraph'>
+          <IconButton
+            borderRadius={'50%'}
+            w={12}
+            h={12}
+            pos={'fixed'}
+            top={24}
+            right={8}
+            icon={<FiBook />}
+            aria-label='add new paragraph'
+            colorScheme={'iconButton'}
+            onClick={() => onOpen()}
+          />
+        </Tooltip>
         {roll?.title ? <Heading size={'lg'}>{roll.title}</Heading> : null}
         {roll?.subtitle ? <Heading size={'md'}>{roll.subtitle}</Heading> : null}
         {paragraphsComp}
-        <IconButton
-          borderRadius={'50%'}
-          w={12}
-          h={12}
-          pos={'fixed'}
-          bottom={8}
-          right={8}
-          icon={<FiEdit />}
-          aria-label='edit roll'
-          colorScheme={'iconButton'}
-          onClick={() => {
-            navigate(`staging?${urlParams.current.toString()}`, {
-              replace: true,
-            });
-          }}
-        />
+        <Tooltip label='Add reference'>
+          <IconButton
+            borderRadius={'50%'}
+            w={12}
+            h={12}
+            pos={'fixed'}
+            bottom={8}
+            right={8}
+            icon={<FiEdit />}
+            aria-label='edit roll'
+            colorScheme={'iconButton'}
+            onClick={() => {
+              navigate(`staging?${urlParams.current.toString()}`, {
+                replace: true,
+              });
+            }}
+          />
+        </Tooltip>
         <NewParagraphModal onClose={onClose} isOpen={isOpen} startingIndex={getStartingIndex()} />
       </Flex>
     );

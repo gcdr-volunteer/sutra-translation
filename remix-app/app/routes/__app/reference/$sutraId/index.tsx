@@ -2,7 +2,7 @@ import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { AsStr, Roll as TRoll } from '~/types';
 import { json } from '@remix-run/node';
 import { useActionData, useCatch, useLoaderData } from '@remix-run/react';
-import { Box, Flex, IconButton, useDisclosure } from '@chakra-ui/react';
+import { Box, Flex, IconButton, Tooltip, useDisclosure } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
 import { Warning } from '~/components/common/errors';
 import { getRollsBySutraId } from '~/models/roll';
@@ -73,18 +73,20 @@ export default function SutraRoute() {
     <Box p={10}>
       <Flex gap={8} flexWrap={'wrap'}>
         <Can I='Read' this='Management'>
-          <IconButton
-            borderRadius={'50%'}
-            w={12}
-            h={12}
-            pos={'fixed'}
-            top={24}
-            right={8}
-            icon={<FiBook />}
-            aria-label='edit roll'
-            colorScheme={'iconButton'}
-            onClick={() => onOpen()}
-          />
+          <Tooltip label='Add a new roll'>
+            <IconButton
+              borderRadius={'50%'}
+              w={12}
+              h={12}
+              pos={'fixed'}
+              top={24}
+              right={8}
+              icon={<FiBook />}
+              aria-label='edit roll'
+              colorScheme={'iconButton'}
+              onClick={() => onOpen()}
+            />
+          </Tooltip>
         </Can>
         {rollsComp}
         <FormModal

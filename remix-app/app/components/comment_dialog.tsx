@@ -135,7 +135,7 @@ export const CommentDialog = (props: CommentDialogPayload) => {
         <DrawerCloseButton />
         <DrawerHeader>Comment Workspace</DrawerHeader>
         <DrawerBody>
-          <HStack>
+          <HStack alignItems={'flex-start'}>
             <VStack flex={2} alignItems={'start'}>
               {toggle ? (
                 <VStack>
@@ -195,8 +195,8 @@ export const CommentDialog = (props: CommentDialogPayload) => {
                 </Can>
               ) : null}
             </VStack>
-            <Divider orientation='vertical' maxH={'40vh'} minH={'20vh'} />
-            <VStack flex={1} flexDir={'column'} maxH={'40vh'}>
+            <Divider orientation='vertical' maxH={'40vh'} minH={'40vh'} />
+            <VStack flex={1} flexDir={'column'} maxH={'40vh'} minH={'40vh'}>
               <Box flex={1} overflowY={'scroll'} w={'100%'}>
                 {comments?.map((comment, index) => (
                   <Conversation key={index} comment={comment} />

@@ -10,13 +10,20 @@ type Subjects =
   | 'Reference'
   | 'Management'
   | 'Translation'
+  | 'Glossary'
   | 'Comment';
 
 export const defineAbilityFor = (user: User) => {
-  const { can, build } = new AbilityBuilder(PureAbility<[Actions, Subjects]>);
+  const { can, build, cannot } = new AbilityBuilder(PureAbility<[Actions, Subjects]>);
   if (user.roles.includes(RoleType.Admin)) {
     can('Read', 'Administration');
     can('Create', 'Sutra');
+  }
+  if (user.roles.includes(RoleType.Reviewer)) {
+    cannot('Create', 'Glossary');
+    cannot('Update', 'Glossary');
+    can('Update', 'Comment');
+    can('Create', 'Comment');
   }
   if (
     user.roles.includes(RoleType.Editor) ||
