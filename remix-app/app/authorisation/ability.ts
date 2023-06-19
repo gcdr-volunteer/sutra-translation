@@ -45,6 +45,7 @@ export const defineAbilityFor = (user: User) => {
     user.roles.includes(RoleType.Admin) ||
     user.roles.includes(RoleType.Editor) ||
     user.roles.includes(RoleType.Reviewer) ||
+    user.roles.includes(RoleType.Assistor) ||
     user.roles.includes(RoleType.Manager) ||
     user.roles.includes(RoleType.Leader)
   ) {
