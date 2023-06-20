@@ -20,6 +20,7 @@ import { useContext, useEffect } from 'react';
 import { useSetTheme } from '~/hooks';
 import { AppContext } from '~/routes/__app';
 import { RoleType } from '~/types';
+import { Can } from '~/authorisation';
 export function Roll(props: RollProps) {
   const actionData = useActionData<{ intent: Intent; data: string }>();
   const { currentUser } = useContext(AppContext);
@@ -32,7 +33,7 @@ export function Roll(props: RollProps) {
     location?.pathname.includes('tripitaka');
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
-    if (actionData?.intent === Intent.CREATE_SUTRA_META && actionData?.data) {
+    if (actionData?.intent === Intent.CREATE_ROLL_META && actionData?.data) {
       onClose();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -62,31 +63,33 @@ export function Roll(props: RollProps) {
           </LinkOverlay>
         </CardBody>
       </Card>
-      <FormModal
-        value={Intent.CREATE_ROLL_META}
-        isOpen={isOpen}
-        onClose={onClose}
-        header='Please translate following metaData first'
-        body={
-          <Box>
-            <FormControl>
-              <FormLabel>{props.title}</FormLabel>
-              <Input type='text' name='title' />
-            </FormControl>
-            <FormControl>
-              <FormLabel>{props.subtitle}</FormLabel>
-              <Input type='text' name='subtitle' />
-            </FormControl>
-            <FormControl>
-              <FormLabel>{props.category}</FormLabel>
-              <Input type='text' name='category' />
-            </FormControl>
-            <Input name='SK' value={props.SK} readOnly hidden />
-            <Input name='PK' value={props.PK} readOnly hidden />
-            <Input name='origin_rollId' value={props.SK} readOnly hidden />
-          </Box>
-        }
-      />
+      <Can I='Create' this='Paragraph'>
+        <FormModal
+          value={Intent.CREATE_ROLL_META}
+          isOpen={isOpen}
+          onClose={onClose}
+          header='Please translate following metaData first'
+          body={
+            <Box>
+              <FormControl>
+                <FormLabel>{props.title}</FormLabel>
+                <Input type='text' name='title' />
+              </FormControl>
+              <FormControl>
+                <FormLabel>{props.subtitle}</FormLabel>
+                <Input type='text' name='subtitle' />
+              </FormControl>
+              <FormControl>
+                <FormLabel>{props.category}</FormLabel>
+                <Input type='text' name='category' />
+              </FormControl>
+              <Input name='SK' value={props.SK} readOnly hidden />
+              <Input name='PK' value={props.PK} readOnly hidden />
+              <Input name='origin_rollId' value={props.SK} readOnly hidden />
+            </Box>
+          }
+        />
+      </Can>
     </LinkBox>
   );
 }
