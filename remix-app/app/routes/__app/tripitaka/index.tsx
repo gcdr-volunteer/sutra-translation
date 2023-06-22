@@ -1,6 +1,6 @@
 import type { SutraProps } from '~/components/common/sutra';
-import type { CreatedType, CreateType, Sutra as TSutra } from '~/types';
-import type { ActionArgs } from '@remix-run/node';
+import { CreatedType, CreateType, RoleType, Sutra as TSutra } from '~/types';
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import { VStack } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
@@ -11,8 +11,9 @@ import { Intent } from '~/types/common';
 import { created } from 'remix-utils';
 import { assertAuthUser } from '~/auth.server';
 
-export const loader = async () => {
+export const loader = async ({ request }: LoaderArgs) => {
   // TODO: use user profile, instead of hard code here
+  const user = await assertAuthUser(request);
   const sutras = await getSutrasByLangAndVersion(LangCode.ZH, 'V1');
   const targetSutras = await getSutrasByLangAndVersion(LangCode.EN, 'V1');
   const mapper = targetSutras.reduce((acc, cur) => {
@@ -22,11 +23,18 @@ export const loader = async () => {
     }
     return acc;
   }, {} as Record<string, boolean>);
-  const extractedSutras = sutras?.map((sutra) => ({
-    firstTime: mapper[sutra.SK ?? ''] ?? true,
-    ...sutra,
-    slug: sutra.SK,
-  }));
+  const extractedSutras = sutras
+    ?.filter((sutra) => {
+      if (user?.roles.includes(RoleType.Admin)) {
+        return true;
+      }
+      return sutra.SK === user?.working_sutra;
+    })
+    .map((sutra) => ({
+      firstTime: mapper[sutra.SK ?? ''] ?? true,
+      ...sutra,
+      slug: sutra.SK,
+    }));
   return json({ data: extractedSutras });
 };
 
