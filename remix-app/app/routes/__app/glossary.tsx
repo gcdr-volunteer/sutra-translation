@@ -1,6 +1,7 @@
-import type { ActionArgs } from '@remix-run/node';
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import { json } from '@remix-run/node';
-import { getAllGlossary } from '~/models/glossary';
+import { useRef } from 'react';
+import { getGlossaryByPage } from '~/models/glossary';
 import {
   Accordion,
   AccordionButton,
@@ -13,6 +14,7 @@ import {
   Heading,
   IconButton,
   SimpleGrid,
+  Spinner,
   Tag,
   Text,
   useDisclosure,
@@ -29,70 +31,60 @@ import {
   handleCreateNewGlossary,
   handleUpdateGlossary,
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
-import { serverError } from 'remix-utils';
+import { serverError, unauthorized } from 'remix-utils';
 import { useEffect } from 'react';
 import { Can } from '~/authorisation';
+import { useGlossary } from '~/hooks';
 
-export const loader = async () => {
-  const glossaries = await getAllGlossary();
+export const loader = async ({ request }: LoaderArgs) => {
+  const url = new URL(request.url);
+  const page = url.searchParams.get('page') || undefined;
+  const { items: glossaries, nextPage } = await getGlossaryByPage(page);
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  glossaries.sort((a, b) => a.createdAt!.localeCompare(b.createdAt!));
-  return json({ glossaries: glossaries.reverse() });
+  return json({ glossaries: glossaries, nextPage });
 };
 
 export const action = async ({ request }: ActionArgs) => {
   const user = await assertAuthUser(request);
   const formdata = await request.formData();
   const entryData = Object.fromEntries(formdata.entries());
+  if (!user) {
+    throw unauthorized({ message: 'you should login first' });
+  }
 
   if (entryData.intent === Intent.CREATE_GLOSSARY) {
     return await handleCreateNewGlossary({
-      PK: entryData?.PK as string,
-      SK: entryData?.SK as string,
-      origin: entryData?.origin as string,
-      target: entryData?.target as string,
-      short_definition: entryData?.short_definition as string,
-      options: entryData?.options as string,
-      note: entryData?.note as string,
-      example_use: entryData?.example_use as string,
-      related_terms: entryData?.related_terms as string,
-      terms_to_avoid: entryData?.terms_to_avoid as string,
-      discussion: entryData?.discussion as string,
-      createdBy: user?.SK,
-      creatorAlias: user?.username,
+      newGlossary: entryData,
+      user,
     });
   }
+
   if (entryData?.intent === Intent.UPDATE_GLOSSARY) {
     return await handleUpdateGlossary({
-      PK: entryData?.PK as string,
-      SK: entryData?.SK as string,
-      origin: entryData?.origin as string,
-      target: entryData?.target as string,
-      short_definition: entryData?.short_definition as string,
-      options: entryData?.options as string,
-      note: entryData?.note as string,
-      example_use: entryData?.example_use as string,
-      related_terms: entryData?.related_terms as string,
-      terms_to_avoid: entryData?.terms_to_avoid as string,
-      discussion: entryData?.discussion as string,
-      createdBy: user?.SK,
-      creatorAlias: user?.username,
+      newGlossary: entryData,
+      user,
     });
   }
   throw serverError({ message: 'unknown error' });
-  // return json({});
 };
 export default function GlossaryRoute() {
-  const { glossaries } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
-  const glossaryComp = glossaries.map((glossary) => (
-    <GlossaryView
-      key={glossary.SK}
-      glossary={glossary}
-      glossaryForm={<GlossaryDetailView glossary={glossary} />}
-    />
-  ));
+  const footRef = useRef<HTMLDivElement>(null);
+
+  const { glossaries, nextPage } = useLoaderData<typeof loader>();
+
+  const { gloss, isIntersecting } = useGlossary({ glossaries, footRef, nextPage });
+
+  const glossaryComp = gloss.length
+    ? gloss.map((glossary) => (
+        <GlossaryView
+          key={Math.random()}
+          glossary={glossary}
+          glossaryForm={<GlossaryDetailView glossary={glossary} />}
+        />
+      ))
+    : null;
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_GLOSSARY) {
@@ -107,6 +99,8 @@ export default function GlossaryRoute() {
       </Heading>
       <Divider mt={4} mb={4} borderColor={'primary.300'} />
       {glossaryComp}
+      <div ref={footRef} />
+      {isIntersecting && nextPage ? <Spinner /> : null}
       {isOpen ? (
         <FormModal
           header='Add new glossary'
@@ -141,7 +135,7 @@ type GlossaryViewProps = {
 };
 export const GlossaryView = ({ glossary, glossaryForm }: GlossaryViewProps) => {
   return (
-    <Box>
+    <Box w='97%'>
       <Accordion allowToggle>
         <AccordionItem>
           <h2>

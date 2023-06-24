@@ -58,8 +58,13 @@ export const defineAbilityFor = (user: User) => {
   ) {
     can('Read', 'Translation');
   }
-  if (user.roles.includes(RoleType.Assistor)) {
+  if (
+    user.roles.includes(RoleType.Assistor) ||
+    user.roles.includes(RoleType.Admin) ||
+    user.roles.includes(RoleType.Manager)
+  ) {
     can('Create', 'Glossary');
+    can('Update', 'Glossary');
   }
   return build();
 };

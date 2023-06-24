@@ -46,6 +46,33 @@ export const getAllGlossary = async (): Promise<Glossary[]> => {
   return [];
 };
 
+export const getGlossaryByPage = async (
+  nextPage?: string
+): Promise<{ items: Glossary[]; nextPage?: string }> => {
+  const params: QueryCommandInput = {
+    TableName: process.env.REFERENCE_TABLE,
+    KeyConditionExpression: 'PK = :pk',
+    Limit: 25,
+    ExpressionAttributeValues: marshall({
+      ':pk': 'GLOSSARY',
+    }),
+    ExclusiveStartKey: nextPage ? JSON.parse(nextPage) : nextPage,
+  };
+
+  const { Items, LastEvaluatedKey } = await dbClient().send(new QueryCommand(params));
+  if (Items?.length) {
+    const items = Items.map((Item) => unmarshall(Item) as Glossary);
+    return {
+      items,
+      nextPage: JSON.stringify(LastEvaluatedKey) || undefined,
+    };
+  }
+  return {
+    items: [],
+    nextPage: undefined,
+  };
+};
+
 export const getGlossariesByTerm = async (term: string): Promise<Glossary[]> => {
   const params: QueryCommandInput = {
     TableName: process.env.REFERENCE_TABLE,

@@ -1,4 +1,4 @@
-import type { Footnote, Glossary } from '~/types';
+import type { AsStr, Footnote, Glossary, User } from '~/types';
 import type { Paragraph } from '~/types/paragraph';
 import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
@@ -6,7 +6,12 @@ import { translateZH2EN } from '~/models/external_services/deepl';
 import { json } from '@remix-run/node';
 import { upsertParagraph, getParagraphByPrimaryKey } from '~/models/paragraph';
 import { logger } from '~/utils';
-import { getAllGlossary, getGlossariesByTerm, upsertGlossary } from '~/models/glossary';
+import {
+  getAllGlossary,
+  getGlossariesByTerm,
+  getGlossaryByPage,
+  upsertGlossary,
+} from '~/models/glossary';
 import { Intent } from '~/types/common';
 import { created, serverError, unprocessableEntity } from 'remix-utils';
 import { esClient } from '~/models/external_services/opensearch';
@@ -27,7 +32,7 @@ const newTranslationSchema = () => {
   return translationSchema;
 };
 
-const newGlossarySchema = () => {
+const newGlossarySchema = (user: User) => {
   const baseSchema = initialSchema();
   const glossarySchema = baseSchema.shape({
     note: yup.string().trim(),
@@ -36,7 +41,10 @@ const newGlossarySchema = () => {
     // TODO: use user profile language instead of hard coded
     origin_lang: yup.string().default('ZH'),
     target_lang: yup.string().default('EN'),
+    createdBy: yup.string().default(user.SK),
+    createdAlias: yup.string().default(user.username),
     kind: yup.mixed<'GLOSSARY'>().default('GLOSSARY'),
+    intent: yup.string().strip(),
   });
   return glossarySchema;
 };
@@ -207,11 +215,17 @@ export const replaceWithGlossary = async (
   return origins;
 };
 
-export const handleCreateNewGlossary = async (newGlossary: Omit<Glossary, 'kind'>) => {
+export const handleCreateNewGlossary = async ({
+  newGlossary,
+  user,
+}: {
+  newGlossary: AsStr<Partial<Glossary>>;
+  user: User;
+}) => {
   logger.log(handleCreateNewGlossary.name, 'newGlossary', newGlossary);
   try {
     const result = await schemaValidator({
-      schema: newGlossarySchema(),
+      schema: newGlossarySchema(user),
       obj: newGlossary,
     });
 
@@ -234,11 +248,17 @@ export const handleCreateNewGlossary = async (newGlossary: Omit<Glossary, 'kind'
   }
 };
 
-export const handleUpdateGlossary = async (newGlossary: Omit<Glossary, 'kind'>) => {
+export const handleUpdateGlossary = async ({
+  newGlossary,
+  user,
+}: {
+  newGlossary: AsStr<Partial<Glossary>>;
+  user: User;
+}) => {
   logger.log(handleUpdateGlossary.name, 'newGlossary', newGlossary);
   try {
     const result = await schemaValidator({
-      schema: newGlossarySchema(),
+      schema: newGlossarySchema(user),
       obj: newGlossary,
     });
 
@@ -258,6 +278,22 @@ export const handleUpdateGlossary = async (newGlossary: Omit<Glossary, 'kind'>) 
       });
     }
     return serverError({ errors: { error: 'internal error' }, intent: Intent.UPDATE_GLOSSARY });
+  }
+};
+
+export const handleGetGlossary = async (lastPage: string) => {
+  try {
+    const data = await getGlossaryByPage(lastPage);
+    return json({ data, intent: Intent.READ_GLOSSARY });
+  } catch (errors) {
+    logger.error(handleGetGlossary.name, 'error', errors);
+    if (errors instanceof ConditionalCheckFailedException) {
+      return unprocessableEntity({
+        errors: { error: 'cannot read glossary' },
+        intent: Intent.READ_GLOSSARY,
+      });
+    }
+    return serverError({ errors: { error: 'internal error' }, intent: Intent.READ_GLOSSARY });
   }
 };
 

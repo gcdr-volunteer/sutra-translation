@@ -72,6 +72,7 @@ import { getReferencesBySK } from '~/models/reference';
 import { GlossaryForm } from '~/components/common/glossary_form';
 import { getAllGlossary } from '~/models/glossary';
 import { translate } from '~/models/external_services/openai';
+import { unauthorized } from 'remix-utils';
 
 export const loader = async ({ params, request }: LoaderArgs) => {
   const { rollId } = params;
@@ -98,6 +99,9 @@ export const loader = async ({ params, request }: LoaderArgs) => {
 export const action = async ({ request, params }: ActionArgs) => {
   const { sutraId, rollId } = params;
   const user = await assertAuthUser(request);
+  if (!user) {
+    throw unauthorized({ message: 'you should login first' });
+  }
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
   if (entryData?.intent === Intent.READ_OPENAI) {
@@ -147,19 +151,7 @@ export const action = async ({ request, params }: ActionArgs) => {
   }
 
   if (entryData?.intent === Intent.CREATE_GLOSSARY) {
-    return await handleCreateNewGlossary({
-      origin: entryData?.origin as string,
-      target: entryData?.target as string,
-      short_definition: entryData?.short_definition as string,
-      options: entryData?.options as string,
-      note: entryData?.note as string,
-      example_use: entryData?.example_use as string,
-      related_terms: entryData?.related_terms as string,
-      terms_to_avoid: entryData?.terms_to_avoid as string,
-      discussion: entryData?.discussion as string,
-      createdBy: user?.SK,
-      creatorAlias: user?.username,
-    });
+    return await handleCreateNewGlossary({ newGlossary: entryData, user });
   }
   if (entryData?.intent === Intent.READ_OPENSEARCH) {
     logger.log('action', 'value', entryData);
