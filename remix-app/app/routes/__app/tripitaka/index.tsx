@@ -1,6 +1,7 @@
 import type { SutraProps } from '~/components/common/sutra';
-import { CreatedType, CreateType, RoleType, Sutra as TSutra } from '~/types';
+import type { CreatedType, CreateType, Sutra as TSutra } from '~/types';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import { RoleType } from '~/types';
 import { VStack } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';

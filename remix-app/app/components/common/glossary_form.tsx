@@ -6,35 +6,53 @@ import {
   FormHelperText,
   HStack,
   VStack,
+  FormErrorMessage,
+  useToast,
 } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type { Glossary } from '~/types';
 
 type GlossaryProps = {
-  props?: Omit<Glossary, 'kind'>;
+  glossary?: Omit<Glossary, 'kind'>;
+  errors?: { origin: string; target: string; unknown: string };
 };
-export const GlossaryForm = ({ props }: GlossaryProps) => {
+export const GlossaryForm = ({ glossary, errors }: GlossaryProps) => {
   const [state, setState] = useState<Omit<Glossary, 'kind'>>({
-    origin: props?.origin ?? '',
-    target: props?.target ?? '',
-    short_definition: props?.short_definition ?? '',
-    options: props?.options ?? '',
-    note: props?.note ?? '',
-    example_use: props?.example_use ?? '',
-    related_terms: props?.related_terms ?? '',
-    terms_to_avoid: props?.terms_to_avoid ?? '',
-    discussion: props?.discussion ?? '',
+    origin: glossary?.origin ?? '',
+    target: glossary?.target ?? '',
+    short_definition: glossary?.short_definition ?? '',
+    options: glossary?.options ?? '',
+    note: glossary?.note ?? '',
+    example_use: glossary?.example_use ?? '',
+    related_terms: glossary?.related_terms ?? '',
+    terms_to_avoid: glossary?.terms_to_avoid ?? '',
+    discussion: glossary?.discussion ?? '',
   });
+
+  const toast = useToast();
+  useEffect(() => {
+    if (errors?.unknown) {
+      toast({
+        title: 'Glossary creation failed',
+        description: `Oops, ${errors.unknown}`,
+        status: 'warning',
+        duration: 4000,
+        position: 'top',
+      });
+    }
+  }, [errors, toast]);
+
   const handleChange = (type: string, e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (e.target) {
       setState((prev) => ({ ...prev, [type]: e.target.value }));
     }
   };
+
   return (
     <VStack spacing={4} flexDir='column'>
       <HStack w='100%'>
-        <FormControl>
+        <FormControl isInvalid={Boolean(errors?.origin)}>
           <FormLabel>
             Origin<span style={{ color: 'red' }}>*</span>
           </FormLabel>
@@ -44,9 +62,13 @@ export const GlossaryForm = ({ props }: GlossaryProps) => {
             value={state.origin}
             onChange={(e) => handleChange('origin', e)}
           />
-          <FormHelperText>The origin term of the glossary</FormHelperText>
+          {errors?.origin ? (
+            <FormErrorMessage>{errors?.origin}</FormErrorMessage>
+          ) : (
+            <FormHelperText>The original term of the glossary</FormHelperText>
+          )}
         </FormControl>
-        <FormControl>
+        <FormControl isInvalid={Boolean(errors?.target)}>
           <FormLabel>
             Target<span style={{ color: 'red' }}>*</span>
           </FormLabel>
@@ -56,7 +78,11 @@ export const GlossaryForm = ({ props }: GlossaryProps) => {
             value={state.target}
             onChange={(e) => handleChange('target', e)}
           />
-          <FormHelperText>The target term of the glossary</FormHelperText>
+          {errors?.target ? (
+            <FormErrorMessage>{errors?.target}</FormErrorMessage>
+          ) : (
+            <FormHelperText>The target term of the glossary</FormHelperText>
+          )}
         </FormControl>
       </HStack>
       <HStack w='100%'>
@@ -124,8 +150,8 @@ export const GlossaryForm = ({ props }: GlossaryProps) => {
         />
         <FormHelperText>Extra comments on this glossary</FormHelperText>
       </FormControl>
-      <Input hidden readOnly name='PK' value={props?.PK} />
-      <Input hidden readOnly name='SK' value={props?.SK} />
+      <Input hidden readOnly name='PK' value={glossary?.PK} />
+      <Input hidden readOnly name='SK' value={glossary?.SK} />
     </VStack>
   );
 };

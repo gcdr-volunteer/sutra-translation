@@ -13,7 +13,7 @@ import {
   upsertGlossary,
 } from '~/models/glossary';
 import { Intent } from '~/types/common';
-import { created, serverError, unprocessableEntity } from 'remix-utils';
+import { badRequest, created, serverError, unprocessableEntity } from 'remix-utils';
 import { esClient } from '~/models/external_services/opensearch';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
@@ -240,11 +240,14 @@ export const handleCreateNewGlossary = async ({
     logger.error(handleCreateNewGlossary.name, 'error', errors);
     if (errors instanceof ConditionalCheckFailedException) {
       return unprocessableEntity({
-        errors: { error: 'duplicated glossary' },
+        errors: { unknown: 'this is a duplicated glossary, please check if it already exists' },
         intent: Intent.CREATE_GLOSSARY,
       });
     }
-    return serverError({ errors: { error: 'internal error' }, intent: Intent.CREATE_GLOSSARY });
+    return badRequest({
+      errors,
+      intent: Intent.CREATE_GLOSSARY,
+    });
   }
 };
 
@@ -273,11 +276,14 @@ export const handleUpdateGlossary = async ({
     logger.error(handleUpdateGlossary.name, 'error', errors);
     if (errors instanceof ConditionalCheckFailedException) {
       return unprocessableEntity({
-        errors: { error: 'duplicated glossary' },
+        errors: { unknown: 'this is a duplicated glossary, please check if it already exists' },
         intent: Intent.UPDATE_GLOSSARY,
       });
     }
-    return serverError({ errors: { error: 'internal error' }, intent: Intent.UPDATE_GLOSSARY });
+    return badRequest({
+      errors,
+      intent: Intent.UPDATE_GLOSSARY,
+    });
   }
 };
 

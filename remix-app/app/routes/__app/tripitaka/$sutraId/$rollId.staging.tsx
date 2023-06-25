@@ -73,6 +73,7 @@ import { GlossaryForm } from '~/components/common/glossary_form';
 import { getAllGlossary } from '~/models/glossary';
 import { translate } from '~/models/external_services/openai';
 import { unauthorized } from 'remix-utils';
+import { useModalErrors } from '~/hooks/useError';
 
 export const loader = async ({ params, request }: LoaderArgs) => {
   const { rollId } = params;
@@ -567,11 +568,13 @@ const GlossaryModal = () => {
   const actionData = useActionData<{
     intent: Intent;
     payload: { origin: string; target: string };
-    errors: { error: string };
+    errors?: { origin: string; target: string; unknown: string };
   }>();
   const toast = useToast();
   const [origin, setOrigin] = useState('');
   const [target, setTarget] = useState('');
+
+  const { errors } = useModalErrors({ modalErrors: actionData?.errors, isOpen: isOpenNote });
 
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_GLOSSARY && actionData.payload) {
@@ -588,12 +591,12 @@ const GlossaryModal = () => {
       onCloseNote();
     }
     if (actionData?.intent === Intent.CREATE_GLOSSARY && actionData.errors) {
-      const { error } = actionData.errors;
+      const { unknown, origin, target } = actionData.errors;
       setOrigin('');
       setTarget('');
       toast({
         title: 'Glossary creation failed',
-        description: `${error}, we already have this glossary stored`,
+        description: `Oops, ${unknown ?? origin ?? target}`,
         status: 'warning',
         duration: 3000,
         position: 'top',
@@ -647,7 +650,7 @@ const GlossaryModal = () => {
       </Form>
       <FormModal
         header='Add note to glossary'
-        body={<GlossaryForm props={{ origin, target }} />}
+        body={<GlossaryForm glossary={{ origin, target }} errors={errors} />}
         value={Intent.CREATE_GLOSSARY}
         isOpen={isOpenNote}
         onClose={onCloseNote}

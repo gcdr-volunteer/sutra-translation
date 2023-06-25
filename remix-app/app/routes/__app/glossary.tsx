@@ -35,6 +35,8 @@ import { serverError, unauthorized } from 'remix-utils';
 import { useEffect } from 'react';
 import { Can } from '~/authorisation';
 import { useGlossary } from '~/hooks';
+import { logger } from '~/utils';
+import { useModalErrors } from '~/hooks/useError';
 
 export const loader = async ({ request }: LoaderArgs) => {
   const url = new URL(request.url);
@@ -45,30 +47,37 @@ export const loader = async ({ request }: LoaderArgs) => {
 };
 
 export const action = async ({ request }: ActionArgs) => {
-  const user = await assertAuthUser(request);
-  const formdata = await request.formData();
-  const entryData = Object.fromEntries(formdata.entries());
-  if (!user) {
-    throw unauthorized({ message: 'you should login first' });
-  }
+  try {
+    const user = await assertAuthUser(request);
+    const formdata = await request.formData();
+    const entryData = Object.fromEntries(formdata.entries());
+    if (!user) {
+      throw unauthorized({ message: 'you should login first' });
+    }
 
-  if (entryData.intent === Intent.CREATE_GLOSSARY) {
-    return await handleCreateNewGlossary({
-      newGlossary: entryData,
-      user,
-    });
-  }
+    if (entryData.intent === Intent.CREATE_GLOSSARY) {
+      return await handleCreateNewGlossary({
+        newGlossary: entryData,
+        user,
+      });
+    }
 
-  if (entryData?.intent === Intent.UPDATE_GLOSSARY) {
-    return await handleUpdateGlossary({
-      newGlossary: entryData,
-      user,
-    });
+    if (entryData?.intent === Intent.UPDATE_GLOSSARY) {
+      return await handleUpdateGlossary({
+        newGlossary: entryData,
+        user,
+      });
+    }
+  } catch (error) {
+    logger.error('glossary action', 'unknown error', error);
+    throw serverError({ message: 'unknown error' });
   }
-  throw serverError({ message: 'unknown error' });
 };
 export default function GlossaryRoute() {
-  const actionData = useActionData<typeof action>();
+  const actionData = useActionData<{
+    intent: Intent;
+    errors: { origin: string; target: string; unknown: string };
+  }>();
 
   const footRef = useRef<HTMLDivElement>(null);
 
@@ -76,22 +85,27 @@ export default function GlossaryRoute() {
 
   const { gloss, isIntersecting } = useGlossary({ glossaries, footRef, nextPage });
 
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { errors } = useModalErrors({ modalErrors: actionData?.errors, isOpen });
+
   const glossaryComp = gloss.length
     ? gloss.map((glossary) => (
         <GlossaryView
           key={Math.random()}
           glossary={glossary}
-          glossaryForm={<GlossaryDetailView glossary={glossary} />}
+          glossaryForm={
+            <GlossaryDetailView intent={actionData?.intent} glossary={glossary} errors={errors} />
+          }
         />
       ))
     : null;
-  const { isOpen, onOpen, onClose } = useDisclosure();
+
   useEffect(() => {
-    if (actionData?.intent === Intent.CREATE_GLOSSARY) {
+    if (actionData?.intent === Intent.CREATE_GLOSSARY && !actionData?.errors) {
       onClose();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actionData]);
+  }, [actionData, onClose]);
+
   return (
     <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
       <Heading as='h5' size={'md'}>
@@ -104,7 +118,7 @@ export default function GlossaryRoute() {
       {isOpen ? (
         <FormModal
           header='Add new glossary'
-          body={<GlossaryForm />}
+          body={<GlossaryForm errors={errors} />}
           isOpen={isOpen}
           onClose={onClose}
           value={Intent.CREATE_GLOSSARY}
@@ -158,12 +172,14 @@ export const GlossaryView = ({ glossary, glossaryForm }: GlossaryViewProps) => {
 
 type GlossaryDetailViewProps = {
   glossary: Glossary;
+  intent?: Intent;
+  errors?: { origin: string; target: string; unknown: string };
 };
-const GlossaryDetailView = ({ glossary }: GlossaryDetailViewProps) => {
+const GlossaryDetailView = ({ glossary, intent, errors }: GlossaryDetailViewProps) => {
   const actionData = useActionData<typeof action>();
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
-    if (actionData?.intent === Intent.UPDATE_GLOSSARY) {
+    if (intent === Intent.UPDATE_GLOSSARY && !errors) {
       onClose();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -200,7 +216,7 @@ const GlossaryDetailView = ({ glossary }: GlossaryDetailViewProps) => {
         {comp}
         <FormModal
           header='update glossary'
-          body={<GlossaryForm props={glossary} />}
+          body={<GlossaryForm glossary={glossary} errors={errors} />}
           isOpen={isOpen}
           onClose={onClose}
           value={Intent.UPDATE_GLOSSARY}
