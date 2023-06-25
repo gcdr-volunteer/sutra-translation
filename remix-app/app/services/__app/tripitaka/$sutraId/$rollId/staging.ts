@@ -38,9 +38,16 @@ const newGlossarySchema = (user: User) => {
     note: yup.string().trim(),
     origin: yup.string().trim().required(),
     target: yup.string().trim().required(),
+    short_definition: yup.string().trim(),
+    options: yup.string().trim(),
+    example_use: yup.string().trim(),
+    related_terms: yup.string().trim(),
+    terms_to_avoid: yup.string().trim(),
+    discussion: yup.string().trim(),
     // TODO: use user profile language instead of hard coded
     origin_lang: yup.string().default('ZH'),
     target_lang: yup.string().default('EN'),
+    updatedBy: yup.string().default(user.SK),
     createdBy: yup.string().default(user.SK),
     createdAlias: yup.string().default(user.username),
     kind: yup.mixed<'GLOSSARY'>().default('GLOSSARY'),
@@ -230,7 +237,22 @@ export const handleCreateNewGlossary = async ({
     });
 
     logger.log(handleCreateNewGlossary.name, 'result', result);
-    await upsertGlossary(result);
+    const composeContent = () => {
+      const {
+        origin,
+        target,
+        short_definition,
+        note,
+        options,
+        example_use,
+        related_terms,
+        terms_to_avoid,
+        discussion,
+      } = result;
+      return `${origin?.toLocaleLowerCase()}-${target?.toLocaleLowerCase()}-${short_definition?.toLocaleLowerCase()}-${options?.toLocaleLowerCase()}-${note?.toLocaleLowerCase()}-${example_use?.toLocaleLowerCase()}-${related_terms?.toLocaleLowerCase()}-${terms_to_avoid?.toLocaleLowerCase()}-${discussion?.toLocaleLowerCase()}`;
+    };
+    const resultWithContent = { ...result, content: composeContent() };
+    await upsertGlossary(resultWithContent);
 
     return created({
       payload: { origin: result.origin, target: result.target },
@@ -266,7 +288,22 @@ export const handleUpdateGlossary = async ({
     });
 
     logger.log(handleUpdateGlossary.name, 'result', result);
-    await upsertGlossary(result);
+    const composeContent = () => {
+      const {
+        origin,
+        target,
+        short_definition,
+        note,
+        options,
+        example_use,
+        related_terms,
+        terms_to_avoid,
+        discussion,
+      } = result;
+      return `${origin?.toLocaleLowerCase()}-${target?.toLocaleLowerCase()}-${short_definition?.toLocaleLowerCase()}-${options?.toLocaleLowerCase()}-${note?.toLocaleLowerCase()}-${example_use?.toLocaleLowerCase()}-${related_terms?.toLocaleLowerCase()}-${terms_to_avoid?.toLocaleLowerCase()}-${discussion?.toLocaleLowerCase()}`;
+    };
+    const resultWithContent = { ...result, content: composeContent() };
+    await upsertGlossary(resultWithContent);
 
     return created({
       payload: { origin: result.origin, target: result.target },
@@ -353,16 +390,18 @@ export const handleSearchByTerm = async (term: string) => {
   }
 };
 
-export const handleSearchGlossary = async (text: string) => {
+export const handleSearchGlossary = async ({ text, filter }: { text: string; filter: string }) => {
   try {
-    const glossaries = await getGlossariesByTerm(text?.toLowerCase());
+    logger.log(handleSearchGlossary.name, 'params', { text, filter });
+    const glossaries = await getGlossariesByTerm({ term: text?.toLowerCase() });
+    logger.log(handleSearchGlossary.name, 'glossaries', glossaries);
     return json({
       payload: glossaries as (Paragraph | Glossary)[],
       intent: Intent.READ_OPENSEARCH,
     });
   } catch (error) {
     // TODO: handle this error in frontend?
-    logger.warn(handleSearchByTerm.name, 'warn', error);
+    logger.warn(handleSearchGlossary.name, 'warn', error);
     return json({ payload: [] as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
   }
 };

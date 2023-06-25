@@ -34,6 +34,7 @@ export enum Intent {
   CREATE_REFERENCE = 'create_reference',
   CREATE_GLOSSARY = 'create_glossary',
   READ_GLOSSARY = 'read_glossary',
+  SEARCH_GLOSSARY = 'search_glossary',
   UPDATE_GLOSSARY = 'update_glossary',
   CREATE_FOOTNOTE = 'create_footnote',
   CREATE_COMMENT = 'create_comment',

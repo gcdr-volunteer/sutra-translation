@@ -1,6 +1,6 @@
 import { PutItemCommand, QueryCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { hash } from '~/utils';
+import { utcNow } from '~/utils';
 import { dbClient, dbGetByKey, dbUpdate } from './external_services/dynamodb';
 import type { PutItemCommandInput, QueryCommandInput } from '@aws-sdk/client-dynamodb';
 import type { Glossary } from '~/types/glossary';
@@ -8,7 +8,7 @@ import type { UpdateType } from '~/types';
 
 export const createNewGlossary = async (glossary: Glossary) => {
   const { PK, SK, ...rest } = glossary;
-  const sortKey = `GLOSSARY-${hash(`${glossary.origin}-${glossary.target}`)}`;
+  const sortKey = `GLOSSARY-${utcNow()}`;
   const params: PutItemCommandInput = {
     TableName: process.env.REFERENCE_TABLE,
     Item: marshall(
@@ -16,7 +16,6 @@ export const createNewGlossary = async (glossary: Glossary) => {
         PK: 'GLOSSARY',
         SK: sortKey,
         ...rest,
-        content: `${glossary.origin?.toLowerCase()}-${glossary.target?.toLowerCase()}`,
       },
       {
         removeUndefinedValues: true,
@@ -57,6 +56,7 @@ export const getGlossaryByPage = async (
       ':pk': 'GLOSSARY',
     }),
     ExclusiveStartKey: nextPage ? JSON.parse(nextPage) : nextPage,
+    ScanIndexForward: false,
   };
 
   const { Items, LastEvaluatedKey } = await dbClient().send(new QueryCommand(params));
@@ -73,10 +73,10 @@ export const getGlossaryByPage = async (
   };
 };
 
-export const getGlossariesByTerm = async (term: string): Promise<Glossary[]> => {
+export const getGlossariesByTerm = async ({ term }: { term: string }): Promise<Glossary[]> => {
   const params: QueryCommandInput = {
     TableName: process.env.REFERENCE_TABLE,
-    FilterExpression: 'contains(#content, :term)',
+    FilterExpression: `contains(#content, :term)`,
     KeyConditionExpression: 'PK = :pk',
     ExpressionAttributeNames: {
       '#content': 'content',

@@ -158,7 +158,7 @@ export const action = async ({ request, params }: ActionArgs) => {
     logger.log('action', 'value', entryData);
     if (entryData?.value) {
       if (entryData?.glossary_only === 'true') {
-        return await handleSearchGlossary(entryData?.value as string);
+        return await handleSearchGlossary({ text: entryData?.value as string, filter: 'origin' });
       }
       return await handleSearchByTerm(entryData.value as string);
     }

@@ -52,7 +52,6 @@ export const UserForm = (props: UserFormProps) => {
       newFormState = { ...formState, [type]: e.target.value };
     }
     setFormState(newFormState);
-    console.log('new form state', newFormState);
     // This means we are going to update user
     if (!isNew) {
       const newObj: Record<string, string> = {

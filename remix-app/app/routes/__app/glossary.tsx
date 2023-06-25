@@ -1,7 +1,7 @@
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import { json } from '@remix-run/node';
 import { useRef } from 'react';
-import { getGlossaryByPage } from '~/models/glossary';
+import { getGlossariesByTerm, getGlossaryByPage } from '~/models/glossary';
 import {
   Accordion,
   AccordionButton,
@@ -9,10 +9,14 @@ import {
   AccordionItem,
   AccordionPanel,
   Box,
+  Button,
   Divider,
   Flex,
   Heading,
   IconButton,
+  Input,
+  InputGroup,
+  InputRightElement,
   SimpleGrid,
   Spinner,
   Tag,
@@ -34,16 +38,20 @@ import {
 import { serverError, unauthorized } from 'remix-utils';
 import { useEffect } from 'react';
 import { Can } from '~/authorisation';
-import { useGlossary } from '~/hooks';
+import { useGlossary, useGlossarySearch } from '~/hooks';
 import { logger } from '~/utils';
 import { useModalErrors } from '~/hooks/useError';
 
 export const loader = async ({ request }: LoaderArgs) => {
   const url = new URL(request.url);
   const page = url.searchParams.get('page') || undefined;
+  const search = url.searchParams.get('search') || undefined;
+  if (search) {
+    const glossaries = await getGlossariesByTerm({ term: search });
+    return json({ glossaries, nextPage: undefined, intent: Intent.SEARCH_GLOSSARY });
+  }
   const { items: glossaries, nextPage } = await getGlossaryByPage(page);
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return json({ glossaries: glossaries, nextPage });
+  return json({ glossaries: glossaries, nextPage, intent: Intent.READ_GLOSSARY });
 };
 
 export const action = async ({ request }: ActionArgs) => {
@@ -73,6 +81,7 @@ export const action = async ({ request }: ActionArgs) => {
     throw serverError({ message: 'unknown error' });
   }
 };
+
 export default function GlossaryRoute() {
   const actionData = useActionData<{
     intent: Intent;
@@ -81,9 +90,15 @@ export default function GlossaryRoute() {
 
   const footRef = useRef<HTMLDivElement>(null);
 
-  const { glossaries, nextPage } = useLoaderData<typeof loader>();
+  const { glossaries, nextPage, intent } = useLoaderData<typeof loader>();
 
-  const { gloss, isIntersecting } = useGlossary({ glossaries, footRef, nextPage });
+  const glossarySearch = useGlossarySearch();
+  const { gloss, isIntersecting } = useGlossary({
+    glossaries,
+    footRef,
+    nextPage,
+    intent,
+  });
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { errors } = useModalErrors({ modalErrors: actionData?.errors, isOpen });
@@ -112,6 +127,7 @@ export default function GlossaryRoute() {
         Glossary
       </Heading>
       <Divider mt={4} mb={4} borderColor={'primary.300'} />
+      <GlossarySearch {...glossarySearch} />
       {glossaryComp}
       <div ref={footRef} />
       {isIntersecting && nextPage ? <Spinner /> : null}
@@ -142,6 +158,26 @@ export default function GlossaryRoute() {
     </Flex>
   );
 }
+type GlossarySearchProps = ReturnType<typeof useGlossarySearch>;
+export const GlossarySearch = (props: GlossarySearchProps) => {
+  const { input, setInput, handleGlossarySearch } = props;
+  return (
+    <InputGroup size='md' w='97%' mb={4}>
+      <Input
+        pr='4.5rem'
+        type={'text'}
+        placeholder='Search Glossary'
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+      />
+      <InputRightElement width='5rem'>
+        <Button ml={2} h='100%' colorScheme='iconButton' size='sm' onClick={handleGlossarySearch}>
+          Search
+        </Button>
+      </InputRightElement>
+    </InputGroup>
+  );
+};
 
 type GlossaryViewProps = {
   glossary: Glossary;

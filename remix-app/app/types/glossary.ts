@@ -49,5 +49,9 @@ export interface Glossary extends CommonMeta {
    * The name of the creator, not email
    */
   creatorAlias?: string;
+  /**
+   * This is only for search purpose
+   */
+  content?: string;
   kind: 'GLOSSARY';
 }

@@ -49,7 +49,6 @@ export async function action({ request }: ActionArgs) {
   const formdata = await request.formData();
   const entryData = Object.fromEntries(formdata.entries());
   if (entryData?.intent === Intent.CREATE_REF_BOOK) {
-    console.log(entryData);
     const refBook: RefBook = {
       bookname: entryData?.bookname as string,
       sutraId: entryData?.sutra as string,
