@@ -183,7 +183,7 @@ export default function ParagraphStagingRoute() {
   useEffect(() => {
     paragraphs?.reduce(
       (acc, cur, i) => {
-        const sentences = cur?.content.trim().split(/(?<=。|！|？|；)/g) || [];
+        const sentences = cur?.content.trim().split(/(?<=。|！|？|；|：)/g) || [];
         if (sentences.length > 1) {
           sentences.reduce(
             (accu, curr, j) => {
@@ -242,7 +242,7 @@ export default function ParagraphStagingRoute() {
   const { fontFamilyOrigin, fontFamilyTarget, fontSize } = useSetTheme();
 
   const paragraphsComp = ref.current?.map((paragraph, i, arr) => {
-    const sentences = paragraph?.content.trim().split(/(?<=。|！|？|；)/g) || [];
+    const sentences = paragraph?.content.trim().split(/(?<=。|！|？|；|：)/g) || [];
     // const paragraphIndex = actionData?.data?.paragraphIndex ?? 0;
     if (sentences.length >= 2) {
       return (

@@ -3,8 +3,9 @@ import type {
   GetItemCommandInput,
   UpdateItemCommandInput,
   QueryCommandInput,
+  BatchWriteItemCommandInput,
 } from '@aws-sdk/client-dynamodb';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { BatchWriteItemCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   PutItemCommand,
   ReturnValue,
@@ -184,4 +185,32 @@ export const dbUpdate = async ({ tableName, doc }: { doc: UpdateType<Doc>; table
     ReturnValues: ReturnValue.ALL_NEW,
   };
   return await dbClient().send(new UpdateItemCommand(params));
+};
+
+export const dbBulkInsert = async ({
+  tableName,
+  docs,
+}: {
+  docs: CreateType<Doc>[];
+  tableName: string;
+}) => {
+  const params: BatchWriteItemCommandInput = {
+    RequestItems: {
+      [tableName]: [
+        ...docs.map((doc) => {
+          return {
+            PutRequest: {
+              Item: marshall(
+                {
+                  ...doc,
+                },
+                { removeUndefinedValues: true }
+              ),
+            },
+          };
+        }),
+      ],
+    },
+  };
+  return await dbClient().send(new BatchWriteItemCommand(params));
 };

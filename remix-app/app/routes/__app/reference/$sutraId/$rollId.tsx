@@ -35,7 +35,10 @@ import { getRollByPrimaryKey } from '~/models/roll';
 import { getTargetReferencesByRollId } from '~/models/reference';
 import { OriginReference, ReferencePair } from '~/components/common/reference';
 import { BiPlus } from 'react-icons/bi';
-import { handleCreateBulkParagraph } from '~/services/__app/reference/$sutraId/$rollId';
+import {
+  handleCreateBulkParagraph,
+  handleGetLatestParagraphSK,
+} from '~/services/__app/reference/$sutraId/$rollId';
 import { composeIdForParagraph } from '~/models/utils';
 import { utcNow } from '~/utils';
 import { handleCreateNewReference } from '~/services/__app/reference/$sutraId/$rollId.staging';
@@ -102,22 +105,21 @@ export const action = async ({ request, params }: ActionArgs) => {
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
   if (entryData?.intent === Intent.CREATE_BULK_PARAGRAPH) {
-    const sutra = entryData.sutra as string;
-    const roll = entryData.roll as string;
     const rawParagraphs = JSON.parse(entryData.paragraphs as string) as {
       num: number;
       value: string;
     }[];
+    const latestSK = await handleGetLatestParagraphSK(rollId);
     const paragraphs: CreateType<Paragraph>[] = rawParagraphs
       ?.filter((paragraph) => paragraph.value)
-      .map((paragraph) => ({
+      .map((paragraph, index) => ({
         PK: rollId,
-        SK: composeIdForParagraph({ rollId, id: paragraph.num }),
-        num: paragraph.num,
+        SK: composeIdForParagraph({ rollId, id: latestSK + index + 1 }),
+        num: latestSK + index + 1,
         content: paragraph.value,
         category: 'NORMAL',
-        sutra,
-        roll,
+        sutra: sutraId,
+        roll: rollId,
         finish: true,
         kind: 'PARAGRAPH',
         createdAt: utcNow(),
@@ -310,11 +312,10 @@ export const NewParagraphModal = ({
       {
         intent: Intent.CREATE_BULK_PARAGRAPH,
         paragraphs: JSON.stringify(inputs),
-        sutra: '',
-        roll: '',
       },
       { method: 'post' }
     );
+    setInputs([{ id: Math.random().toString(36).substring(7), value: '', num: startingIndex }]);
   };
 
   useEffect(() => {
