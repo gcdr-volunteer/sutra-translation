@@ -232,6 +232,7 @@ export const CsvUpload = () => {
         });
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [submit]
   );
 
