@@ -74,7 +74,7 @@ export default function ReferenceStagingRoute() {
   }, [actionData]);
 
   const paragraphsComp = loaderData?.paragraphs?.map((paragraph, i, arr) => {
-    const sentences = paragraph?.content.trim().split(/(?<=。|！|？|；)/g) || [];
+    const sentences = paragraph?.content.trim().split(/(?<=。|！|？|；|：)/g) || [];
     if (sentences?.length >= 2) {
       return (
         <Box key={i}>
