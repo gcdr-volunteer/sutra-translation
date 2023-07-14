@@ -73,7 +73,7 @@ export default function SutraRoute() {
     <Box p={10}>
       <Flex gap={8} flexWrap={'wrap'}>
         <Can I='Read' this='Management'>
-          <Tooltip label='Add a new roll'>
+          <Tooltip placement='left' label='Add a new roll'>
             <IconButton
               borderRadius={'50%'}
               w={12}

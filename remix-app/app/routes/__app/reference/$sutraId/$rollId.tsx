@@ -209,7 +209,7 @@ export default function ReferenceRoute() {
         mt={10}
       >
         <Outlet context={{ modal: true }} />
-        <Tooltip label='Add a new paragraph'>
+        <Tooltip placement='left' label='Add a new paragraph'>
           <IconButton
             borderRadius={'50%'}
             w={12}
@@ -226,7 +226,7 @@ export default function ReferenceRoute() {
         {roll?.title ? <Heading size={'lg'}>{roll.title}</Heading> : null}
         {roll?.subtitle ? <Heading size={'md'}>{roll.subtitle}</Heading> : null}
         {paragraphsComp}
-        <Tooltip label='Add reference'>
+        <Tooltip placement='left' label='Add reference'>
           <IconButton
             borderRadius={'50%'}
             w={12}
