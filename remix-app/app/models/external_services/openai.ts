@@ -1,4 +1,5 @@
 import { Configuration, OpenAIApi } from 'openai';
+import type { ChatCompletionRequestMessage } from 'openai';
 import { logger } from '~/utils';
 import type { AxiosError } from 'axios';
 
@@ -14,31 +15,40 @@ export const translate = async (
   },
   glossaries: Record<string, string>
 ): Promise<string> => {
-  let glossary = '';
+  let glossary = [] as { role: 'system' | 'assistant' | 'user'; content: string }[];
   if (Object.entries(glossaries).length) {
-    glossary = Object.entries(glossaries).reduce((acc, [key, value], index, arr) => {
-      acc += `${key}:${value}${index === arr.length - 1 ? '' : ';'}`;
-      return acc;
-    }, '');
-  }
-  const prefix = glossary ? `Using this glossary '${glossary}' to translate` : 'Please translate';
-  const postfix = input?.category === 'VERSE' ? ' like a verse' : '';
-  const prompt = `${prefix} following text into English in Buddhist sutra style \n${input.text.trim()}\n ${postfix}`;
-  logger.log(translate.name, 'prompt', prompt);
-  try {
-    const completion = await openai().createChatCompletion({
-      model: 'gpt-3.5-turbo-16k-0613',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a Chinese-English translator, remember you cannot contain any Chinese in translated text',
-        },
+    glossary = Object.entries(glossaries).reduce<
+      { role: 'user' | 'assistant' | 'system'; content: string }[]
+    >((acc, [key, value]) => {
+      return [
+        ...acc,
         {
           role: 'user',
-          content: `${prompt}`,
+          content: key,
         },
-      ],
+        {
+          role: 'assistant',
+          content: value,
+        },
+      ];
+    }, []);
+  }
+  const messages = [
+    {
+      role: 'system',
+      content: 'You are a professional Chinese to English translator',
+    },
+    ...glossary,
+    {
+      role: 'user',
+      content: `${input.text}`,
+    },
+  ] as ChatCompletionRequestMessage[];
+  logger.log(translate.name, 'prompt', messages);
+  try {
+    const completion = await openai().createChatCompletion({
+      model: 'gpt-4-0613',
+      messages,
     });
     const result =
       completion?.data?.choices[0].message?.content

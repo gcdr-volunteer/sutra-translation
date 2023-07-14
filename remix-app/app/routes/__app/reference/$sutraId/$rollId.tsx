@@ -108,21 +108,23 @@ export const action = async ({ request, params }: ActionArgs) => {
       num: number;
       value: string;
     }[];
-    const paragraphs: CreateType<Paragraph>[] = rawParagraphs?.map((paragraph) => ({
-      PK: rollId,
-      SK: composeIdForParagraph({ rollId, id: paragraph.num }),
-      num: paragraph.num,
-      content: paragraph.value,
-      category: 'NORMAL',
-      sutra,
-      roll,
-      finish: true,
-      kind: 'PARAGRAPH',
-      createdAt: utcNow(),
-      updatedAt: utcNow(),
-      updatedBy: user?.email,
-      createdBy: user?.email,
-    }));
+    const paragraphs: CreateType<Paragraph>[] = rawParagraphs
+      ?.filter((paragraph) => paragraph.value)
+      .map((paragraph) => ({
+        PK: rollId,
+        SK: composeIdForParagraph({ rollId, id: paragraph.num }),
+        num: paragraph.num,
+        content: paragraph.value,
+        category: 'NORMAL',
+        sutra,
+        roll,
+        finish: true,
+        kind: 'PARAGRAPH',
+        createdAt: utcNow(),
+        updatedAt: utcNow(),
+        updatedBy: user?.email,
+        createdBy: user?.email,
+      }));
     return await handleCreateBulkParagraph(paragraphs);
   }
   if (entryData?.intent === Intent.CREATE_REFERENCE) {
@@ -281,7 +283,7 @@ export const NewParagraphModal = ({
   startingIndex: number;
 }) => {
   const [inputs, setInputs] = useState<InputState[]>([
-    { id: Math.random().toString(36).substring(7), value: 'click to edit', num: startingIndex },
+    { id: Math.random().toString(36).substring(7), value: '', num: startingIndex },
   ]);
 
   const actionData = useActionData<{ intent: Intent }>();
@@ -296,7 +298,7 @@ export const NewParagraphModal = ({
   const handleAddClick = () => {
     const newInput = {
       id: Math.random().toString(36).substring(7),
-      value: 'click to edit',
+      value: '',
       num: inputs[inputs.length - 1].num + 1,
     };
     setInputs([...inputs, newInput]);
@@ -330,7 +332,7 @@ export const NewParagraphModal = ({
         <ModalCloseButton />
         <ModalBody>
           {inputs.map(({ id, value }) => (
-            <Editable key={id} defaultValue={'click to edit'} mb={2}>
+            <Editable key={id} placeholder='click to edit' mb={2}>
               <EditablePreview bg={'secondary.300'} p={2} display={'block'} />
               <EditableTextarea id={id} onChange={(e) => handleInputChange(id, e)} value={value} />
             </Editable>
