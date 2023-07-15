@@ -1,7 +1,7 @@
 import { PutItemCommand, QueryCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { utcNow } from '~/utils';
-import { dbClient, dbGetByKey, dbUpdate } from './external_services/dynamodb';
+import { rawUtc, utcNow } from '~/utils';
+import { dbBulkInsert, dbClient, dbGetByKey, dbUpdate } from './external_services/dynamodb';
 import type { PutItemCommandInput, QueryCommandInput } from '@aws-sdk/client-dynamodb';
 import type { Glossary } from '~/types/glossary';
 import type { UpdateType } from '~/types';
@@ -92,8 +92,29 @@ export const getGlossariesByTerm = async ({ term }: { term: string }): Promise<G
   }
   return [];
 };
+
 export const updateGlossary = async (doc: UpdateType<Glossary>) => {
   return await dbUpdate({ tableName: process.env.REFERENCE_TABLE, doc });
+};
+
+export const isOriginTermExist = async ({ term }: { term: string }): Promise<boolean> => {
+  const params: QueryCommandInput = {
+    TableName: process.env.REFERENCE_TABLE,
+    FilterExpression: `#origin = :origin`,
+    KeyConditionExpression: 'PK = :pk',
+    ExpressionAttributeNames: {
+      '#origin': 'origin',
+    },
+    ExpressionAttributeValues: marshall({
+      ':origin': term,
+      ':pk': 'GLOSSARY',
+    }),
+  };
+  const { Items } = await dbClient().send(new QueryCommand(params));
+  if (Items?.length) {
+    return true;
+  }
+  return false;
 };
 
 export const upsertGlossary = async (glossary: Glossary | UpdateType<Glossary>) => {
@@ -111,4 +132,19 @@ export const upsertGlossary = async (glossary: Glossary | UpdateType<Glossary>) 
     }
   }
   return await createNewGlossary(glossary as Glossary);
+};
+
+export const insertBulkGlossary = async (glossaries: Glossary[]) => {
+  const now = rawUtc();
+  if (glossaries.length) {
+    return await dbBulkInsert({
+      tableName: process.env.REFERENCE_TABLE,
+      docs: glossaries.map((glossary, index) => ({
+        PK: 'GLOSSARY',
+        SK: `GLOSSARY-${now.add(index, 'second').format()}`,
+        ...glossary,
+      })),
+    });
+  }
+  return;
 };

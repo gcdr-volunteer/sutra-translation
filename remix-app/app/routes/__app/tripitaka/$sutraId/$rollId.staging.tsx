@@ -65,7 +65,7 @@ import {
 import { Intent } from '~/types/common';
 import { assertAuthUser } from '~/auth.server';
 import { useDebounce, useKeyPress, useSetTheme } from '~/hooks';
-import { logger } from '~/utils';
+import { logger, splitParagraph } from '~/utils';
 import { getParagraphByPrimaryKey, getParagraphsByRollId } from '~/models/paragraph';
 import { getFootnotesByPartitionKey } from '~/models/footnote';
 import { getReferencesBySK } from '~/models/reference';
@@ -183,7 +183,7 @@ export default function ParagraphStagingRoute() {
   useEffect(() => {
     paragraphs?.reduce(
       (acc, cur, i) => {
-        const sentences = cur?.content.trim().split(/(?<=。|！|？|；|：)/g) || [];
+        const sentences = splitParagraph(cur);
         if (sentences.length > 1) {
           sentences.reduce(
             (accu, curr, j) => {
@@ -242,7 +242,7 @@ export default function ParagraphStagingRoute() {
   const { fontFamilyOrigin, fontFamilyTarget, fontSize } = useSetTheme();
 
   const paragraphsComp = ref.current?.map((paragraph, i, arr) => {
-    const sentences = paragraph?.content.trim().split(/(?<=。|！|？|；|：)/g) || [];
+    const sentences = splitParagraph(paragraph);
     // const paragraphIndex = actionData?.data?.paragraphIndex ?? 0;
     if (sentences.length >= 2) {
       return (

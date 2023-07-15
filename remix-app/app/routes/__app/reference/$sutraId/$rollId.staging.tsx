@@ -10,6 +10,7 @@ import { handleCreateNewReference } from '~/services/__app/reference/$sutraId/$r
 import { getRefBookBySutraId } from '~/models/reference';
 import { ReferencePair } from '~/components/common/reference';
 import { useParagraphIds } from '~/hooks';
+import { splitParagraph } from '../../../../utils';
 
 export const loader = async ({ params, request }: LoaderArgs) => {
   const { rollId, sutraId } = params;
@@ -74,7 +75,7 @@ export default function ReferenceStagingRoute() {
   }, [actionData]);
 
   const paragraphsComp = loaderData?.paragraphs?.map((paragraph, i, arr) => {
-    const sentences = paragraph?.content.trim().split(/(?<=。|！|？|；|：)/g) || [];
+    const sentences = splitParagraph(paragraph);
     if (sentences?.length >= 2) {
       return (
         <Box key={i}>

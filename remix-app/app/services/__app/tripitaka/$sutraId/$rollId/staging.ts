@@ -10,6 +10,8 @@ import {
   getAllGlossary,
   getGlossariesByTerm,
   getGlossaryByPage,
+  insertBulkGlossary,
+  isOriginTermExist,
   upsertGlossary,
 } from '~/models/glossary';
 import { Intent } from '~/types/common';
@@ -35,15 +37,15 @@ const newTranslationSchema = () => {
 const newGlossarySchema = (user: User) => {
   const baseSchema = initialSchema();
   const glossarySchema = baseSchema.shape({
-    note: yup.string().trim(),
+    note: yup.string().trim().default(''),
     origin: yup.string().trim().required(),
     target: yup.string().trim().required(),
-    short_definition: yup.string().trim(),
-    options: yup.string().trim(),
-    example_use: yup.string().trim(),
-    related_terms: yup.string().trim(),
-    terms_to_avoid: yup.string().trim(),
-    discussion: yup.string().trim(),
+    short_definition: yup.string().trim().default(''),
+    options: yup.string().trim().default(''),
+    example_use: yup.string().trim().default(''),
+    related_terms: yup.string().trim().default(''),
+    terms_to_avoid: yup.string().trim().default(''),
+    discussion: yup.string().trim().default(''),
     // TODO: use user profile language instead of hard coded
     origin_lang: yup.string().default('ZH'),
     target_lang: yup.string().default('EN'),
@@ -222,6 +224,21 @@ export const replaceWithGlossary = async (
   return origins;
 };
 
+const composeContent = (result: any) => {
+  const {
+    origin,
+    target,
+    short_definition,
+    note,
+    options,
+    example_use,
+    related_terms,
+    terms_to_avoid,
+    discussion,
+  } = result;
+  return `${origin?.toLocaleLowerCase()}-${target?.toLocaleLowerCase()}-${short_definition?.toLocaleLowerCase()}-${options?.toLocaleLowerCase()}-${note?.toLocaleLowerCase()}-${example_use?.toLocaleLowerCase()}-${related_terms?.toLocaleLowerCase()}-${terms_to_avoid?.toLocaleLowerCase()}-${discussion?.toLocaleLowerCase()}`;
+};
+
 export const handleCreateNewGlossary = async ({
   newGlossary,
   user,
@@ -237,21 +254,7 @@ export const handleCreateNewGlossary = async ({
     });
 
     logger.log(handleCreateNewGlossary.name, 'result', result);
-    const composeContent = () => {
-      const {
-        origin,
-        target,
-        short_definition,
-        note,
-        options,
-        example_use,
-        related_terms,
-        terms_to_avoid,
-        discussion,
-      } = result;
-      return `${origin?.toLocaleLowerCase()}-${target?.toLocaleLowerCase()}-${short_definition?.toLocaleLowerCase()}-${options?.toLocaleLowerCase()}-${note?.toLocaleLowerCase()}-${example_use?.toLocaleLowerCase()}-${related_terms?.toLocaleLowerCase()}-${terms_to_avoid?.toLocaleLowerCase()}-${discussion?.toLocaleLowerCase()}`;
-    };
-    const resultWithContent = { ...result, content: composeContent() };
+    const resultWithContent = { ...result, content: composeContent(result) };
     await upsertGlossary(resultWithContent);
 
     return created({
@@ -273,6 +276,46 @@ export const handleCreateNewGlossary = async ({
   }
 };
 
+export const handleCreateBulkGlossary = async ({
+  glossaries,
+  user,
+}: {
+  glossaries: AsStr<Partial<Glossary>>[];
+  user: User;
+}) => {
+  try {
+    const newGlossaries = await Promise.all(
+      glossaries.map((glossary) =>
+        schemaValidator({
+          schema: newGlossarySchema(user),
+          obj: glossary,
+        })
+      )
+    );
+
+    console.log({ newGlossaries });
+    const glossariesToInsert = [];
+    const glossariesDuplicated = [];
+    for await (const glossary of newGlossaries) {
+      const isExist = await isOriginTermExist({ term: glossary.origin });
+      if (isExist) {
+        glossariesDuplicated.push(glossary);
+      } else {
+        const content = composeContent(glossary);
+        const newGloss = { ...glossary, content };
+        glossariesToInsert.push(newGloss);
+      }
+    }
+    await insertBulkGlossary(glossariesToInsert);
+    return created({
+      payload: { report: glossariesDuplicated.map((glossary) => glossary.origin) },
+      intent: Intent.BULK_CREATE_GLOSSARY,
+    });
+  } catch (errors) {
+    console.log(errors);
+  }
+};
+
 export const handleUpdateGlossary = async ({
   newGlossary,
   user,
@@ -288,21 +331,7 @@ export const handleUpdateGlossary = async ({
     });
 
     logger.log(handleUpdateGlossary.name, 'result', result);
-    const composeContent = () => {
-      const {
-        origin,
-        target,
-        short_definition,
-        note,
-        options,
-        example_use,
-        related_terms,
-        terms_to_avoid,
-        discussion,
-      } = result;
-      return `${origin?.toLocaleLowerCase()}-${target?.toLocaleLowerCase()}-${short_definition?.toLocaleLowerCase()}-${options?.toLocaleLowerCase()}-${note?.toLocaleLowerCase()}-${example_use?.toLocaleLowerCase()}-${related_terms?.toLocaleLowerCase()}-${terms_to_avoid?.toLocaleLowerCase()}-${discussion?.toLocaleLowerCase()}`;
-    };
-    const resultWithContent = { ...result, content: composeContent() };
+    const resultWithContent = { ...result, content: composeContent(result) };
     await upsertGlossary(resultWithContent);
 
     return created({

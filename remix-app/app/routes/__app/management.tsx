@@ -17,6 +17,9 @@ import {
   HStack,
   Text,
   Input,
+  useToast,
+  ListItem,
+  UnorderedList,
 } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
 import type { ActionArgs } from '@remix-run/node';
@@ -35,6 +38,10 @@ import { BsBook, BsFillCloudUploadFill, BsCloudUpload } from 'react-icons/bs';
 import { FaBook } from 'react-icons/fa';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
+import { handleCreateBulkGlossary } from '../../services/__app/tripitaka/$sutraId/$rollId/staging';
+import { assertAuthUser } from '../../auth.server';
+import { unauthorized } from 'remix-utils';
+import { CopyIcon } from '@chakra-ui/icons';
 export async function loader({ request }: ActionArgs) {
   const { teams } = await getLoaderData();
   const sutras = await getAllSutraThatFinished();
@@ -59,6 +66,10 @@ export async function loader({ request }: ActionArgs) {
 export async function action({ request }: ActionArgs) {
   const formdata = await request.formData();
   const entryData = Object.fromEntries(formdata.entries());
+  const user = await assertAuthUser(request);
+  if (!user) {
+    throw unauthorized({ message: 'you should login first' });
+  }
   if (entryData?.intent === Intent.CREATE_REF_BOOK) {
     const refBook: RefBook = {
       bookname: entryData?.bookname as string,
@@ -69,7 +80,7 @@ export async function action({ request }: ActionArgs) {
   }
   if (entryData?.intent === Intent.BULK_CREATE_GLOSSARY) {
     const glossaries = JSON.parse(entryData.glossaries as string) as Glossary[];
-    console.log(glossaries);
+    return await handleCreateBulkGlossary({ glossaries, user });
   }
   return json({});
 }
@@ -116,11 +127,48 @@ export const ManagementButtons = ({ teams, sutras }: ManagementButtonsProps) => 
   } = useDisclosure();
   const { isOpen: isUploadOpen, onClose: onUploadClose, onOpen: onUploadOpen } = useDisclosure();
   const actionData = useActionData();
+  const toast = useToast();
+
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_REF_BOOK) {
       onReferenceBookClose();
     }
-  }, [actionData, onReferenceBookClose]);
+    if (actionData?.intent === Intent.BULK_CREATE_GLOSSARY) {
+      onUploadClose();
+      const report = actionData?.payload?.report;
+      if (report.length) {
+        const copyTextToClipboard = () => {
+          try {
+            navigator.clipboard.writeText(report);
+          } catch (error) {
+            console.log(error);
+          }
+        };
+        toast({
+          position: 'top',
+          status: 'warning',
+          title: 'Duplicated Glossary',
+          duration: 5000,
+          description: (
+            <Box p={2}>
+              <CopyIcon
+                cursor={'pointer'}
+                pos={'absolute'}
+                top={4}
+                right={4}
+                onClick={copyTextToClipboard}
+              />
+              <UnorderedList>
+                {report.map((term: string) => (
+                  <ListItem key={term}>{term}</ListItem>
+                ))}
+              </UnorderedList>
+            </Box>
+          ),
+        });
+      }
+    }
+  }, [actionData, onReferenceBookClose, toast, onUploadClose]);
   return (
     <Box pos={'fixed'} right={8} bottom={8}>
       <Fade in={isOpen}>
@@ -186,7 +234,7 @@ interface DataRow {
 export const CsvUpload = () => {
   const [dropped, setDropped] = useState(false);
   const [errors, setErrors] = useState('');
-  const glossaries: Glossary[] = [];
+  const [glossaries, setGlossaries] = useState<Glossary[]>([]);
   const submit = useSubmit();
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -212,6 +260,7 @@ export const CsvUpload = () => {
                 setErrors(`check if field ${field} in your csv file`);
               }
             });
+            const glossaries: Glossary[] = [];
             data.forEach((row) => {
               console.log(row);
               const origin = row?.['origin'];
@@ -228,6 +277,7 @@ export const CsvUpload = () => {
               }, {} as Record<string, string>) as unknown as Glossary;
               glossaries.push(glossary);
             });
+            setGlossaries(glossaries);
           },
         });
       });
@@ -277,8 +327,8 @@ export const CsvUpload = () => {
           only allow upload one file at a time
         </Text>
       ) : null}
-      <Input hidden={true} name='glossaries' value={JSON.stringify(glossaries)} />
-      <Input hidden={true} name='intent' value={Intent.BULK_CREATE_GLOSSARY} />
+      <Input readOnly={true} hidden={true} name='glossaries' value={JSON.stringify(glossaries)} />
+      <Input readOnly={true} hidden={true} name='intent' value={Intent.BULK_CREATE_GLOSSARY} />
     </Box>
   );
 };
