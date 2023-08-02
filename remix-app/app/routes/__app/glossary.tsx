@@ -106,7 +106,7 @@ export default function GlossaryRoute() {
   const glossaryComp = gloss.length
     ? gloss.map((glossary) => (
         <GlossaryView
-          key={Math.random()}
+          key={crypto.randomUUID()}
           glossary={glossary}
           glossaryForm={
             <GlossaryDetailView intent={actionData?.intent} glossary={glossary} errors={errors} />

@@ -285,7 +285,7 @@ export const NewParagraphModal = ({
   startingIndex: number;
 }) => {
   const [inputs, setInputs] = useState<InputState[]>([
-    { id: Math.random().toString(36).substring(7), value: '', num: startingIndex },
+    { id: crypto.randomUUID(), value: '', num: startingIndex },
   ]);
 
   const actionData = useActionData<{ intent: Intent }>();
@@ -299,7 +299,7 @@ export const NewParagraphModal = ({
 
   const handleAddClick = () => {
     const newInput = {
-      id: Math.random().toString(36).substring(7),
+      id: crypto.randomUUID(),
       value: '',
       num: inputs[inputs.length - 1].num + 1,
     };
@@ -315,7 +315,7 @@ export const NewParagraphModal = ({
       },
       { method: 'post' }
     );
-    setInputs([{ id: Math.random().toString(36).substring(7), value: '', num: startingIndex }]);
+    setInputs([{ id: crypto.randomUUID(), value: '', num: startingIndex }]);
   };
 
   useEffect(() => {

@@ -93,7 +93,7 @@ export default function ManagementRoute() {
         <Table variant='simple'>
           <Thead>
             <Tr>
-              <Th>Book Name</Th>
+              <Th>Reference Book Name</Th>
               <Th>Sutra Name</Th>
               <Th>Team Name</Th>
             </Tr>
