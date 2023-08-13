@@ -130,6 +130,11 @@ export async function RemixStack({ stack }: StackContext) {
       ES_URL: domain.domainEndpoint,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
     },
+    defaults: {
+      function: {
+        timeout: 30,
+      },
+    },
     cdk: {
       bucket: {
         blockPublicAccess: BlockPublicAccess.BLOCK_ACLS,
