@@ -163,14 +163,14 @@ export const getMetaData = async (feed: FeedParams) => {
         const children = pcur.children.reduce((acc, cur) => {
           const kind = 'ROLL';
           const title = pcur.title.replace(/\d+\s+/u, '');
-          const category = cur.type ?? '品';
+          const category = cur.type ?? '卷';
           const roll: CreateType<Roll> = {
             PK,
             SK: composeIdForRoll({
               sutraId: PK,
               id: cur.juan,
             }),
-            title: `${sutraMeta.title}第${cn.numberToChinese(cur.juan)}${category}`,
+            title: `${sutraMeta.title}第${cn.numberToChinese(cur.juan)}卷`,
             subtitle: `${title}${cur.title}`,
             finish: true,
             category,

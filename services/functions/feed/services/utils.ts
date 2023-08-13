@@ -36,7 +36,7 @@ type CBeta = {
 };
 const getJson = async ({ sutra, roll }: FeedParams): Promise<CBeta | undefined> => {
   const { data, status } = await axios.get<CBeta>(
-    `http://cbdata.dila.edu.tw/stable/juans?work=${sutra}&juan=${roll}&work_info=1&toc=1`,
+    `https://cbdata.dila.edu.tw/stable/juans?work=${sutra}&juan=${roll}&work_info=1&toc=1`,
     { headers: { accept: 'application/json' } }
   );
   if (status === 200) {
