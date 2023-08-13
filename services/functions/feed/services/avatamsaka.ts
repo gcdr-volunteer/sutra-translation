@@ -309,21 +309,16 @@ export const getFeedByChapter = async (params: FeedParams) => {
     // Only run metadata for first chapter, because it contains all the
     // metadata for the rest of the chapters
     const metaData = await getMetaData(params);
+    console.log('getFeedByChapter', metaData);
     if (metaData) {
       const { sutra, rolls } = metaData;
       await upsertSutra(sutra);
-      await Promise.all(
-        rolls.map((roll, index) => {
-          const timer = 500 * index;
-          return setTimeout(() => {
-            return upsertRoll(roll);
-          }, timer);
-        })
-      );
+      for (const roll of rolls) {
+        await upsertRoll(roll);
+      }
     }
     return await getFeed1(params);
   }
-  console.log(params);
   if (['2', '3', '4', '5'].includes(params.roll)) {
     return await getFeedx(params);
   }
