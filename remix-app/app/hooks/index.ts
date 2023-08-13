@@ -5,3 +5,6 @@ export * from './useParagraphIds';
 export * from './useGlossary';
 export * from './useError';
 export * from './useGlossarySearch';
+export * from './useScrollToParagraph';
+export * from './useHightlight';
+export * from './useCommentMessage';

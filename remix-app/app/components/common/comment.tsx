@@ -5,8 +5,6 @@ import { AppContext } from '~/routes/__app';
 type CommentProps = {
   selectedText?: string;
   paragraphId: string;
-  start?: number;
-  end?: number;
 };
 export const Comment = (props: CommentProps) => {
   const { pathname } = useLocation();
@@ -14,7 +12,7 @@ export const Comment = (props: CommentProps) => {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, __, sutraId, rollId] = pathname?.split('/') ?? [];
-  const { selectedText, start, end, paragraphId } = props;
+  const { selectedText, paragraphId } = props;
   return (
     <VStack spacing={4} justifyContent={'flex-start'}>
       <Text>
@@ -33,8 +31,6 @@ export const Comment = (props: CommentProps) => {
         <option value='3'>High</option>
       </Select>
       <Textarea placeholder='add your comments here' name='comment' />
-      <Input hidden readOnly name='start' value={start} />
-      <Input hidden readOnly name='end' value={end} />
       <Input hidden readOnly name='content' value={selectedText} />
       <Input hidden readOnly name='path' value={pathname} />
       <Input hidden readOnly name='sutraId' value={sutraId} />

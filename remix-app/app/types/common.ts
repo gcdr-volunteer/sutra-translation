@@ -39,7 +39,7 @@ export enum Intent {
   BULK_CREATE_GLOSSARY = 'bulk_create_glossary',
   CREATE_FOOTNOTE = 'create_footnote',
   CREATE_COMMENT = 'create_comment',
-  UPDATE_COMMENT = 'update_comment',
+  UPDATE_COMMENT_AND_PARAGRAPH = 'update_comment_and_paragraph',
   CREATE_MESSAGE = 'create_message',
   CREATE_USER = 'create_user',
   UPDATE_USER = 'update_user',

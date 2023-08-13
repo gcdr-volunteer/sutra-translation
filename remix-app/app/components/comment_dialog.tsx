@@ -15,44 +15,50 @@ import {
   DrawerCloseButton,
   DrawerHeader,
   DrawerBody,
-  Highlight,
   Divider,
   ButtonGroup,
-  HStack,
+  Flex,
 } from '@chakra-ui/react';
 import { useActionData, useSubmit, useTransition } from '@remix-run/react';
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Comment } from '~/types';
 import { Intent } from '~/types/common';
 import { AppContext } from '~/routes/__app';
 import { useMessage } from '~/hooks/useMessage';
 import { Can } from '~/authorisation';
-import { useSetTheme } from '~/hooks';
 import { HighlightWithinTextareaCC } from 'react-highlight-within-textarea';
 
 type CommentDialogPayload = {
   onClose: () => void;
   isOpen: boolean;
   fullText: string;
-  highlightedText: string;
-  comments: Comment[];
+  messages: Comment[];
   paragraphId: string;
+  content: string;
 };
 
-export const CommentDialog = (props: CommentDialogPayload) => {
-  const { comments, fullText, highlightedText, isOpen, onClose, paragraphId } = props;
+export const MessageDialog = (props: CommentDialogPayload) => {
+  const { messages, fullText, isOpen, onClose, paragraphId, content } = props;
   const actionData = useActionData<{ paragraph: string; resolved: boolean }>();
   const submit = useSubmit();
   const transaction = useTransition();
   const isSubmitting = Boolean(transaction.submission);
-  const [toggle, setToggle] = useBoolean();
+  const [toggle, setToggle] = useBoolean(false);
   const { currentUser } = useContext(AppContext);
   useMessage(currentUser);
   const toast = useToast();
 
-  const getRootMessage = () => {
-    return comments.find((comment) => comment.id === comment.parentId) || { id: '' };
-  };
+  const rootComment = useMemo(() => {
+    return messages.find((message) => message.id === message.parentId) || { id: '', SK: '' };
+  }, [messages]);
+
+  const highlightedText = useMemo(() => {
+    console.log({ content, messages });
+    return messages
+      .filter((message) => Boolean(message.content))
+      .filter((message) => message.content === content)
+      .map((comment) => comment.content);
+  }, [messages, content]);
 
   useEffect(() => {
     if (actionData?.resolved) {
@@ -70,11 +76,11 @@ export const CommentDialog = (props: CommentDialogPayload) => {
 
   const conversationRef = useCallback(
     (node: HTMLDivElement) => {
-      if (node || comments.length) {
+      if (node || messages.length) {
         node?.scrollIntoView();
       }
     },
-    [comments]
+    [messages]
   );
 
   const [message, setMessage] = useState('');
@@ -84,9 +90,10 @@ export const CommentDialog = (props: CommentDialogPayload) => {
         {
           intent: Intent.CREATE_MESSAGE,
           paragraphId: paragraphId,
-          parentId: getRootMessage().id,
+          parentId: rootComment.id,
           creatorAlias: currentUser?.username || '',
           comment: message?.trim(),
+          content: content,
         },
         { method: 'post', replace: true }
       );
@@ -94,7 +101,7 @@ export const CommentDialog = (props: CommentDialogPayload) => {
     }
   };
 
-  const [text, setText] = useState('');
+  const [text, setText] = useState(fullText);
   const handleUpdateParagraph = () => {
     if (!text) {
       toast({
@@ -108,18 +115,16 @@ export const CommentDialog = (props: CommentDialogPayload) => {
     }
     submit(
       {
-        intent: Intent.UPDATE_COMMENT,
+        intent: Intent.UPDATE_COMMENT_AND_PARAGRAPH,
         after: text || fullText,
         paragraphId,
-        commentId: getRootMessage().id,
+        commentId: rootComment.SK || '',
         before: fullText,
       },
       { method: 'post', replace: true }
     );
     onClose();
   };
-
-  const { fontSize, fontFamilyTarget } = useSetTheme();
 
   return (
     <Drawer
@@ -135,57 +140,34 @@ export const CommentDialog = (props: CommentDialogPayload) => {
         <DrawerCloseButton />
         <DrawerHeader>Comment Workspace</DrawerHeader>
         <DrawerBody>
-          <HStack alignItems={'flex-start'}>
-            <VStack flex={2} alignItems={'start'}>
+          <Flex direction={'row'} gap={4} alignItems={'stretch'}>
+            <Flex flex={2} direction={'column'}>
+              <Box flexGrow={1} w='100%' onMouseUp={(e) => e.stopPropagation()}>
+                <HighlightWithinTextareaCC
+                  value={text}
+                  highlight={highlightedText}
+                  onChange={setText}
+                  readOnly={!toggle}
+                />
+              </Box>
               {toggle ? (
-                <VStack>
-                  <Box onMouseUp={(e) => e.stopPropagation()}>
-                    <HighlightWithinTextareaCC
-                      value={text || fullText}
-                      highlight={[
-                        {
-                          highlight: highlightedText,
-                        },
-                      ]}
-                      onChange={setText}
-                    />
-                  </Box>
-                  <ButtonGroup justifyContent='center' size='sm'>
-                    <Button
-                      colorScheme='iconButton'
-                      onClick={handleUpdateParagraph}
-                      aria-label='submit'
-                    >
-                      Resolve
-                    </Button>
-                    <Button aria-label='cancel' onClick={() => setToggle.off()}>
-                      Cancel
-                    </Button>
-                  </ButtonGroup>
-                </VStack>
-              ) : (
-                <Box
-                  bg={'secondary.200'}
-                  p={4}
-                  borderRadius={12}
-                  fontFamily={fontFamilyTarget}
-                  fontSize={fontSize}
-                  onMouseUp={(e) => e.stopPropagation()}
-                >
-                  <Highlight
-                    query={highlightedText}
-                    styles={{ p: '1', rounded: 'md', bg: 'yellow.200' }}
+                <ButtonGroup justifyContent='left' size='sm'>
+                  <Button
+                    colorScheme='iconButton'
+                    onClick={handleUpdateParagraph}
+                    aria-label='submit'
                   >
-                    {fullText}
-                  </Highlight>
-                </Box>
-              )}
+                    Resolve
+                  </Button>
+                  <Button aria-label='cancel' onClick={() => setToggle.off()}>
+                    Cancel
+                  </Button>
+                </ButtonGroup>
+              ) : null}
               {!toggle ? (
                 <Can I='Update' this='Paragraph'>
                   <FormControl display='flex' alignItems='center'>
-                    <FormLabel htmlFor='edit-paragraph' mb='0' p={4}>
-                      Edit paragraph
-                    </FormLabel>
+                    <FormLabel htmlFor='edit-paragraph'>Edit paragraph</FormLabel>
                     <Switch
                       id='edit-paragraph'
                       onChange={setToggle.toggle}
@@ -194,26 +176,28 @@ export const CommentDialog = (props: CommentDialogPayload) => {
                   </FormControl>
                 </Can>
               ) : null}
-            </VStack>
-            <Divider orientation='vertical' maxH={'40vh'} minH={'40vh'} />
-            <VStack flex={1} flexDir={'column'} maxH={'40vh'} minH={'40vh'}>
-              <Box flex={1} overflowY={'scroll'} w={'100%'}>
-                {comments?.map((comment, index) => (
+            </Flex>
+            <Box border='1px' borderColor='gray.200' />
+            <Flex flex={1} direction={'column'}>
+              <Box flexGrow={1} overflowY={'scroll'} minH={'30vh'}>
+                {messages.map((comment, index) => (
                   <Conversation key={index} comment={comment} />
                 ))}
                 <Box ref={conversationRef} />
               </Box>
               <Can I='Update' this='Comment'>
-                <Divider />
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={handleCreateNewMessage}
-                  placeholder='you can press Enter to send your comment'
-                />
+                <Box>
+                  <Divider my={4} />
+                  <Textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={handleCreateNewMessage}
+                    placeholder='you can press Enter to send your comment'
+                  />
+                </Box>
               </Can>
-            </VStack>
-          </HStack>
+            </Flex>
+          </Flex>
         </DrawerBody>
       </DrawerContent>
     </Drawer>
@@ -227,6 +211,7 @@ const Conversation = (props: { comment: Comment }) => {
     <VStack
       w='100%'
       align={currentUser?.username === comment?.creatorAlias ? 'flex-start' : 'flex-end'}
+      pr={4}
     >
       <Text fontWeight={'bold'}>{comment?.creatorAlias ?? comment?.createdBy}:</Text>
       <Text

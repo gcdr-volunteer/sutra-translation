@@ -104,9 +104,9 @@ export default function GlossaryRoute() {
   const { errors } = useModalErrors({ modalErrors: actionData?.errors, isOpen });
 
   const glossaryComp = gloss.length
-    ? gloss.map((glossary) => (
+    ? gloss.map((glossary, index) => (
         <GlossaryView
-          key={crypto.randomUUID()}
+          key={index}
           glossary={glossary}
           glossaryForm={
             <GlossaryDetailView intent={actionData?.intent} glossary={glossary} errors={errors} />

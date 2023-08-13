@@ -224,6 +224,7 @@ export const replaceWithGlossary = async (
   return origins;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const composeContent = (result: any) => {
   const {
     origin,
@@ -293,7 +294,6 @@ export const handleCreateBulkGlossary = async ({
       )
     );
 
-    console.log({ newGlossaries });
     const glossariesToInsert = [];
     const glossariesDuplicated = [];
     for await (const glossary of newGlossaries) {

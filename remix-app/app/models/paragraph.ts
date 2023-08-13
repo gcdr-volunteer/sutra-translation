@@ -1,6 +1,6 @@
 import type { Paragraph } from '~/types/paragraph';
 import type { QueryCommandInput } from '@aws-sdk/client-dynamodb';
-import type { CreatedType, CreateType, Key, UpdateType } from '~/types';
+import type { CreatedType, CreateType, Key, UpdateType, Comment } from '~/types';
 import { QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import {
@@ -11,6 +11,7 @@ import {
   dbUpdate,
 } from '~/models/external_services/dynamodb';
 import { logger } from '~/utils';
+import { getAllRootCommentsForRoll } from '~/models/comment';
 
 export const getParagraphsByRollId = async (PK?: string): Promise<CreatedType<Paragraph>[]> => {
   const params: QueryCommandInput = {
@@ -74,4 +75,52 @@ export const upsertParagraph = async (paragraph: CreateType<Paragraph> | UpdateT
 
 export const insertBulkParagraph = async (paragraphs: CreateType<Paragraph>[]) => {
   return await dbBulkInsert({ tableName: process.env.TRANSLATION_TABLE, docs: paragraphs });
+};
+
+export type ParagraphLoaderData = {
+  origin: CreateType<Paragraph>;
+  target?: CreateType<Paragraph> & { comments: Comment[] };
+};
+export type Paragraphs = ParagraphLoaderData[];
+export const fetchParagraphsByRollId = async (rollId: string): Promise<Paragraphs> => {
+  try {
+    const originParagraphs = await getOriginParagraphsByRollId(rollId);
+    const targetParagraphs = await getTargetParagraphsByRollId(rollId);
+    const rootComments = await getAllRootCommentsForRoll(rollId.replace('ZH', 'EN'));
+    const transformedComments = rootComments
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      .sort((a, b) => new Date(a.updatedAt!).getTime() - new Date(b.updatedAt!).getTime())
+      .reduce((acc, cur) => {
+        if (cur.paragraphId in acc) {
+          acc[cur.paragraphId].push(cur);
+        } else {
+          acc[cur.paragraphId] = [cur];
+        }
+        return acc;
+      }, {} as Record<string, Comment[]>);
+    const transformedTargets = targetParagraphs.reduce((acc, cur) => {
+      // TODO: replace with user's profile
+      const newParagraph = {
+        ...cur,
+        comments: transformedComments[cur.SK] || [],
+      };
+      // TODO: replace with user profile
+      acc = { [cur.SK.replace('EN', 'ZH')]: newParagraph, ...acc };
+      return acc;
+    }, {} as Record<string, Paragraphs[0]['target']>);
+
+    const paragraphs = originParagraphs?.reduce((acc, cur) => {
+      const newParagraph = {
+        origin: cur,
+        target: transformedTargets[cur.SK] as Paragraphs[0]['target'],
+      };
+      acc = [...acc, newParagraph];
+      return acc;
+    }, [] as Paragraphs);
+
+    return paragraphs;
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
 };

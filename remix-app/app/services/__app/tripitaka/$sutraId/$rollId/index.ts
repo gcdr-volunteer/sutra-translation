@@ -15,8 +15,6 @@ const newCommentSchema = () => {
     ping: yup.array().of(yup.mixed<string>().required()).required(),
     priority: yup.mixed().oneOf(['1', '2', '3']).required('priority is required'),
     comment: yup.string().trim().required('comment cannot be empty'),
-    start: yup.number().required('start index of the selected content is required'),
-    end: yup.number().required('end index of the selected content is required'),
     content: yup.string().required('selet to highlight content cannot be empty'),
     path: yup.string().required('the path of the current roll is required'),
     sutraId: yup
@@ -65,6 +63,7 @@ const newMessageSchema = () => {
       .trim()
       .required('the paragraph id cannot be empty')
       .transform((value) => value.replace('ZH', 'EN')),
+    content: yup.string().required('content cannot be empty'),
     creatorAlias: yup.string().default(''),
     id: yup.string().default(id),
     parentId: yup.string().required('parentId cannot be empty'),
@@ -141,7 +140,7 @@ export const handleResolveComment = async (newComment: {
       obj: newComment,
     });
     await resolveComment(result);
-    return json({ data: {}, intent: Intent.UPDATE_COMMENT });
+    return json({ data: {}, intent: Intent.UPDATE_COMMENT_AND_PARAGRAPH });
   } catch (error) {
     // TODO: handle failure case
     logger.error(handleResolveComment.name, 'error', error);

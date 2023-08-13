@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Text,
@@ -6,24 +6,21 @@ import {
   Checkbox,
   useBoolean,
   useDisclosure,
-  useHighlight,
   Mark,
   useToast,
 } from '@chakra-ui/react';
 import { FormModal } from '~/components/common';
 import { Comment } from './comment';
 import type { MutableRefObject } from 'react';
-import type { Comment as TComment } from '~/types';
+import type { CreatedType, Comment as TComment, Paragraph as TParagraph } from '~/types';
 import { Intent } from '~/types/common';
-import { CommentDialog } from '../comment_dialog';
+import { MessageDialog } from '../comment_dialog';
 import { AppContext } from '~/routes/__app';
 import { Can } from '~/authorisation';
 import { useActionData } from '@remix-run/react';
-type TextSelection = {
-  start?: number;
-  end?: number;
-  selectedText?: string;
-};
+import type { ParagraphLoaderData } from '../../models/paragraph';
+import { useHighlight, useSetTheme } from '../../hooks';
+import { buildRegex } from '../../utils';
 
 export const ParagraphTarget = ({
   paragraphId,
@@ -79,41 +76,52 @@ export const TextWithComment = ({
     onClose: onNewCommentClose,
     isOpen: isNewCommentOpen,
   } = useDisclosure();
-  const [selectedText, setSelectedText] = useState<TextSelection>({});
+  const [selectedText, setSelectedText] = useState<string>('');
+
+  const parentRef = useRef<HTMLParagraphElement>(null);
 
   const toast = useToast();
-
   const handleMouseUp = useCallback(() => {
-    const selection = document.getSelection();
-    if (selection?.toString() !== '') {
-      const data = selection?.anchorNode?.nodeValue as string;
-      const { baseOffset, extentOffset } = (selection || {}) as {
-        baseOffset: number;
-        extentOffset: number;
-      };
-      const [start, end] =
-        baseOffset > extentOffset ? [extentOffset, baseOffset] : [baseOffset, extentOffset];
-      const selectedText = data?.slice(start, end);
-      const cleanedText = selectedText.trim();
-      if (selectedText.split(/\s+/).length < 5) {
-        toast({
-          title: 'Highlighter',
-          description: 'You have select at least 5 words to make it less confuse',
-          position: 'top',
-          status: 'warning',
-        });
-        return;
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const parent = parentRef.current;
+      if (parent) {
+        const cleanedText = selection.toString().trim();
+        setSelectedText(cleanedText);
       }
-      cleanedText.length && onNewCommentOpen();
-      setSelectedText((prev) => ({ ...prev, start, end, selectedText }));
     }
-  }, [onNewCommentOpen, toast]);
+  }, []);
 
+  useEffect(() => {
+    if (selectedText?.length) {
+      const regex = buildRegex([selectedText]);
+      if (regex) {
+        const matches = text.match(regex);
+        if (matches && matches?.length >= 2) {
+          toast({
+            title: 'Select words failed',
+            description: 'Please select more words',
+            status: 'warning',
+            duration: 2000,
+            position: 'top',
+          });
+          return;
+        } else {
+          onNewCommentOpen();
+        }
+      }
+    }
+  }, [selectedText, onNewCommentOpen, toast, text]);
+
+  const commentsNotResolved = useMemo(() => {
+    return comments
+      .filter((comment) => Boolean(comment.content))
+      .filter((comment) => comment.id === comment.parentId)
+      .filter((comment) => !comment?.resolved);
+  }, [comments]);
   const chunks = useHighlight({
     text,
-    query: comments
-      .filter((comment) => comment.id === comment.parentId)
-      .map((comment) => comment.content),
+    query: commentsNotResolved.map((comment) => comment.content),
   });
 
   const actionData = useActionData();
@@ -130,20 +138,24 @@ export const TextWithComment = ({
         fontFamily={font.fontFamilyTarget}
         fontSize={font.fontSize}
         onMouseUp={handleMouseUp}
+        ref={parentRef}
       >
-        {chunks.map(({ match, text: normalText }) => {
-          if (!match) return <Text as='span'>{normalText}</Text>;
-          const rootComment = comments.find((comment) => comment.content === normalText) || {
-            id: '',
-          };
+        {chunks.map(({ match, text: segment }) => {
+          if (match) {
+            return (
+              <MessageWithHighlightComp
+                key={segment}
+                segment={segment}
+                comments={comments}
+                fullText={text}
+                paragraphId={paragraphId}
+              />
+            );
+          }
           return (
-            <HighlightedText
-              paragraphId={paragraphId}
-              key={text}
-              fullText={text}
-              highlightedText={normalText}
-              comments={comments.filter((comment) => comment.parentId === rootComment.id)}
-            />
+            <Text key={segment} as='span'>
+              {segment}
+            </Text>
           );
         })}
       </Text>
@@ -151,7 +163,7 @@ export const TextWithComment = ({
         <FormModal
           value={Intent.CREATE_COMMENT}
           header='Add comment'
-          body={<Comment paragraphId={paragraphId} {...selectedText} />}
+          body={<Comment paragraphId={paragraphId} selectedText={selectedText} />}
           isOpen={isNewCommentOpen}
           onClose={onNewCommentClose}
         />
@@ -160,58 +172,72 @@ export const TextWithComment = ({
   );
 };
 
-export const HighlightedText = ({
-  fullText,
-  highlightedText,
+export const MessageWithHighlightComp = ({
+  segment,
   comments,
+  fullText,
   paragraphId,
 }: {
-  fullText: string;
-  highlightedText: string;
+  segment: string;
   comments: TComment[];
+  fullText: string;
   paragraphId: string;
 }) => {
-  const { onOpen, onClose, isOpen } = useDisclosure();
   const { currentUser } = useContext(AppContext);
-  const hasNewMessage = () => {
-    return currentUser?.username !== comments[comments.length - 1].creatorAlias;
-  };
+  const hasNewMessage = useMemo(() => {
+    return currentUser?.username !== comments[comments.length - 1]?.creatorAlias;
+  }, [currentUser, comments]);
 
+  const { onOpen, onClose, isOpen } = useDisclosure();
   return (
-    <Mark>
-      <Mark
-        p='1'
-        rounded={'md'}
-        bg={'yellow.200'}
-        cursor={'pointer'}
-        onClick={onOpen}
-        position={'relative'}
-      >
-        {highlightedText}
-        {hasNewMessage() ? (
-          <Mark
-            pos={'absolute'}
-            top='0'
-            right='0'
-            bg='tomato'
-            h='1rem'
-            w='1rem'
-            borderRadius={'50%'}
-            transform='translate(50%, -50%)'
-            border='0.1em solid papayawhip'
-          />
-        ) : null}
-      </Mark>
-      <CommentDialog
+    <Mark onClick={onOpen}>
+      <NewMessageIndicator hasNewMessage={hasNewMessage}>
+        <HighlightedText highlightedText={segment} />
+      </NewMessageIndicator>
+      <MessageDialog
+        content={segment}
         paragraphId={paragraphId}
-        highlightedText={highlightedText}
         isOpen={isOpen}
-        comments={comments}
+        messages={comments.filter((comment) => comment.content === segment)}
         fullText={fullText}
         onClose={onClose}
       />
     </Mark>
   );
+};
+
+export const HighlightedText = ({ highlightedText }: { highlightedText: string }) => {
+  return (
+    <Mark p='1' rounded={'md'} bg={'yellow.200'} cursor={'pointer'} whiteSpace={'normal'}>
+      {highlightedText}
+    </Mark>
+  );
+};
+
+const NewMessageIndicator = ({
+  children,
+  hasNewMessage,
+}: React.PropsWithChildren<{ hasNewMessage: boolean }>) => {
+  if (hasNewMessage) {
+    return (
+      <Mark pos={'relative'}>
+        {children}
+        <Mark
+          pos={'absolute'}
+          top='0'
+          left='0'
+          bg='tomato'
+          h='1rem'
+          w='1rem'
+          borderRadius={'50%'}
+          transform='translate(-50%, -50%)'
+          border='0.1em solid papayawhip'
+        />
+      </Mark>
+    );
+  } else {
+    return <Mark>{children}</Mark>;
+  }
 };
 
 export const Paragraph = ({
@@ -297,23 +323,19 @@ export const ParagraphOrigin = ({
 export const ParagraphPair = ({
   origin,
   target,
-  font,
 }: {
-  origin: {
-    content: string;
-    SK: string;
-  };
-  target: {
-    content: string;
-    comments: TComment[];
-  };
+  origin: CreatedType<TParagraph>;
+  target: Required<ParagraphLoaderData>['target'];
   footnotes: string[];
-  font: {
-    fontSize: string;
-    fontFamilyOrigin: string;
-    fontFamilyTarget: string;
-  };
 }) => {
+  const font = useSetTheme();
+  const commentsInThisParagraph = useMemo(() => {
+    if (target.comments) {
+      return target.comments.filter((comment) => comment.paragraphId === target.SK);
+    } else {
+      return [];
+    }
+  }, [target.comments, target.SK]);
   return (
     <Flex flexDir={'row'} gap={4}>
       <Paragraph font={font} background='secondary.300' content={origin?.content} />
@@ -322,11 +344,7 @@ export const ParagraphPair = ({
         content={target.content}
         paragraphId={origin.SK}
         background='secondary.200'
-        comments={
-          target?.comments?.filter(
-            (comment) => comment.paragraphId === origin.SK.replace('ZH', 'EN')
-          ) || []
-        }
+        comments={commentsInThisParagraph}
       />
     </Flex>
   );

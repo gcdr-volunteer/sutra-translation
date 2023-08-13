@@ -262,7 +262,6 @@ export const CsvUpload = () => {
             });
             const glossaries: Glossary[] = [];
             data.forEach((row) => {
-              console.log(row);
               const origin = row?.['origin'];
               const target = row?.['target'];
               if (!origin) {

@@ -19,14 +19,6 @@ export interface Comment extends CommonMeta {
    */
   paragraphId: string;
   /**
-   * The start index of the selected text
-   */
-  start: number;
-  /**
-   * The end index of the selected text
-   */
-  end: number;
-  /**
    * The selected string
    */
   content: string;
@@ -63,10 +55,6 @@ export interface Comment extends CommonMeta {
    * This id provide the information that which comment belongs to
    */
   parentId: string;
-  /**
-   * this timestamp is used to compare if there is updated message
-   */
-  latestMessage?: string;
   /**
    * The helper type
    */

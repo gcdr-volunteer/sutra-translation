@@ -46,10 +46,13 @@ export const translate = async (
   ] as ChatCompletionRequestMessage[];
   logger.log(translate.name, 'prompt', messages);
   try {
-    const completion = await openai().createChatCompletion({
-      model: 'gpt-4-0613',
-      messages,
-    });
+    const completion = await openai().createChatCompletion(
+      {
+        model: 'gpt-4-0613',
+        messages,
+      },
+      { timeout: 10 * 1000 /* 10 seconds timeout*/ }
+    );
     const result =
       completion?.data?.choices[0].message?.content
         .trim()
@@ -59,7 +62,12 @@ export const translate = async (
     return result;
   } catch (error) {
     const axiosError = error as AxiosError;
+    if (axiosError.code === 'ECONNABORTED' && axiosError?.message?.includes('timeout')) {
+      logger.warn(translate.name, 'openai server timeout');
+      return 'openai server timeout, please refresh or edit by yourself';
+    }
     if (axiosError.response) {
+      logger.error(translate.name, 'response', axiosError.response);
       return axiosError.response?.statusText;
     }
     return 'not available';
