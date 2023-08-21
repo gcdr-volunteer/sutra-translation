@@ -5,34 +5,26 @@ import { useActionData, useCatch, useLoaderData } from '@remix-run/react';
 import { Box, Flex, IconButton, Tooltip, useDisclosure } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
 import { Warning } from '~/components/common/errors';
-import { getRollsBySutraId } from '~/models/roll';
 import { Can } from '~/authorisation';
 import { FiBook } from 'react-icons/fi';
 import { FormModal } from '~/components/common';
 import { Intent } from '~/types/common';
 import { RollForm } from '~/components/roll_form';
 import { assertAuthUser } from '~/auth.server';
-import { unauthorized } from 'remix-utils';
-import { handleCreateNewRoll } from '~/services/__app/reference/$sutraId';
+import { badRequest, unauthorized } from 'remix-utils';
+import {
+  handleCreateNewRoll,
+  handleGetAllRollsBySutraId,
+} from '~/services/__app/reference/$sutraId';
 import { useEffect } from 'react';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { sutraId } = params;
-  const rolls = await getRollsBySutraId(sutraId ?? '');
-  const targetRolls = await getRollsBySutraId(sutraId?.replace('ZH', 'EN') ?? '');
-  const mapper = targetRolls.reduce((acc, cur) => {
-    if (cur?.origin_rollId) {
-      acc[cur.origin_rollId] = false;
-      return acc;
-    }
-    return acc;
-  }, {} as Record<string, boolean>);
-  const extractedRolls = rolls.map((roll) => ({
-    firstTime: mapper[roll.SK ?? ''] ?? true,
-    slug: roll.SK,
-    ...roll,
-  }));
-  return json({ data: extractedRolls });
+  if (!sutraId) {
+    throw badRequest({ message: 'sutra id is not provided' });
+  }
+  const rolls = await handleGetAllRollsBySutraId(sutraId);
+  return json({ data: rolls });
 };
 
 export const action = async ({ request, params }: ActionArgs) => {

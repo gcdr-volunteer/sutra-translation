@@ -4,77 +4,53 @@ import {
   ButtonGroup,
   Card,
   CardBody,
-  Checkbox,
   Editable,
   EditablePreview,
   EditableTextarea,
   Flex,
   Heading,
   IconButton,
-  Mark,
   Stack,
   StackDivider,
   Text,
-  useBoolean,
+  Radio,
 } from '@chakra-ui/react';
-import { useNavigate, useSubmit } from '@remix-run/react';
-import { useEffect } from 'react';
-import type { MutableRefObject } from 'react';
-import { useMemo, useState } from 'react';
+import { useLocation, useNavigate, useSubmit } from '@remix-run/react';
+import { useMemo, useState, useEffect } from 'react';
 import { Intent } from '~/types/common';
+import type { CreatedType, Paragraph, Reference } from '../../types';
+import { splitParagraph } from '../../utils';
 
 export const OriginReference = ({
   origin,
-  urlParams,
   SK,
+  selectedParagraph,
 }: {
   origin: string;
-  urlParams: MutableRefObject<URLSearchParams>;
   SK: string;
+  selectedParagraph: string;
 }) => {
-  const [toggle, setToggle] = useBoolean(false);
-  useMemo(() => {
-    if (toggle) {
-      const urls = urlParams.current.getAll('p');
-      if (!urls.includes(SK ?? '')) {
-        urlParams.current.append('p', SK ?? '');
-      }
-      const paramsArray = Array.from(urlParams.current.entries());
-      paramsArray.sort((a, b) => a[1].localeCompare(b[1]));
-      urlParams.current = new URLSearchParams(paramsArray);
-    } else {
-      const newParams = new URLSearchParams();
-      for (const [key, value] of urlParams.current.entries()) {
-        if (value !== SK) {
-          newParams.append(key, value);
-        }
-      }
-      urlParams.current = newParams;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toggle]);
   return (
-    <Flex w={'85%'} flexDir={'row'} alignItems={'flex-start'} my={2}>
-      <Checkbox ml={-6} borderColor={'primary.300'} onChange={setToggle.toggle}>
-        <Text
-          bg={toggle ? 'primary.300' : 'inherit'}
-          p={toggle ? 2 : 0}
-          borderRadius={toggle ? 4 : 0}
-        >
-          {origin}
-        </Text>
-      </Checkbox>
-    </Flex>
+    <Radio ml={-6} borderColor={'primary.300'} value={SK}>
+      <Text
+        bg={selectedParagraph === SK ? 'primary.300' : 'inherit'}
+        p={selectedParagraph === SK ? 1 : 0}
+        borderRadius={selectedParagraph === SK ? 4 : 0}
+      >
+        {origin}
+      </Text>
+    </Radio>
   );
 };
 
-interface Reference {
+interface TReference {
+  id?: string;
   name: string;
   content: string[];
 }
-export const ReferencePair = (props: {
+export const ReferencePairForStaging = (props: {
   origin: string;
-  references: Reference[];
+  references: TReference[];
   paragraphIndex?: number;
   sentenceIndex?: number;
   totalSentences?: number;
@@ -91,55 +67,127 @@ export const ReferencePair = (props: {
     paragraphId = '',
     finish,
   } = props;
-  const [originValue, setOriginValue] = useState({ name: 'Origin', content: 'click to edit' });
-  const [values, setValues] = useState<Reference[]>([...references]);
-
-  const [isEditing, setIsEditing] = useState(false);
-
-  const handleOriginChange = (name: string, content: string) => {
-    setOriginValue({ name, content });
-    setIsEditing(true);
-  };
-
-  const handelReferenceChanges = (name: string, content: string, index: number) => {
-    const newValues = values.map((value) => {
-      // If this is the item we want to update, return a new object
-      if (value.name === name) {
-        return {
-          ...value, // Copy all properties of the existing item
-          content: [content], // Overwrite the content with the new content
-        } as Reference;
-      }
-
-      // If this is not the item we want to update, return it as is
-      return value;
-    });
-    setValues(newValues);
-    setIsEditing(true);
-  };
-
-  const submit = useSubmit();
-  const handleSubmit = () => {
-    submit(
-      {
-        intent: Intent.CREATE_REFERENCE,
-        paragraphIndex: paragraphIndex.toString(),
-        sentenceIndex: sentenceIndex.toString(),
-        totalSentences: totalSentences.toString(),
-        content: JSON.stringify(values),
-        paragraphId,
-      },
-      { method: 'post' }
-    );
-  };
-
+  const location = useLocation();
   const navigate = useNavigate();
   useEffect(() => {
     if (finish) {
       const newLocation = location.pathname.replace('/staging', '');
       navigate(newLocation);
     }
-  }, [finish, navigate]);
+  }, [finish, navigate, location]);
+
+  return (
+    <Card bg={'secondary.300'}>
+      <CardBody>
+        <Stack divider={<StackDivider />} spacing='4'>
+          <Box>
+            <Heading size='xs' textTransform='uppercase'>
+              Origin
+            </Heading>
+            <Text>{origin}</Text>
+          </Box>
+          <ReferencePairForStagingElement
+            references={references}
+            paragraphId={paragraphId}
+            paragraphIndex={paragraphIndex}
+            sentenceIndex={sentenceIndex}
+            totalSentences={totalSentences}
+          />
+        </Stack>
+      </CardBody>
+    </Card>
+  );
+};
+
+export const ReferencePairForStagingElement = ({
+  references,
+  paragraphIndex,
+  sentenceIndex,
+  totalSentences,
+  paragraphId,
+}: {
+  references: TReference[];
+  paragraphIndex: number;
+  sentenceIndex: number;
+  totalSentences: number;
+  paragraphId: string;
+}) => {
+  const [values, setValues] = useState<TReference[]>([...references]);
+
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handelReferenceChanges = (index: number, content: string) => {
+    const newValues = [...values];
+    newValues[index]['content'] = [content];
+    setValues(newValues);
+    setIsEditing(true);
+  };
+
+  const submit = useSubmit();
+  const handleSubmit = () => {
+    const params = {
+      intent: Intent.CREATE_REFERENCE,
+      paragraphIndex: paragraphIndex.toString(),
+      sentenceIndex: sentenceIndex.toString(),
+      totalSentences: totalSentences.toString(),
+      content: JSON.stringify(values),
+      paragraphId,
+    };
+    submit(params, { method: 'post' });
+  };
+
+  return (
+    <Box>
+      {references.map((value, i) => (
+        <Box key={i}>
+          <Heading size='xs' textTransform='uppercase'>
+            {value.name}
+          </Heading>
+          <Flex height={'65px'} justify={'flex-start'} align={'center'}>
+            <Editable defaultValue={'Click to edit'} w={'100%'}>
+              <EditablePreview />
+              <EditableTextarea
+                onBlur={(e) => {
+                  if (!e.target.value) {
+                    handelReferenceChanges(i, 'Click to edit');
+                  }
+                }}
+                onChange={(e) => handelReferenceChanges(i, e.target.value)}
+              />
+            </Editable>
+          </Flex>
+        </Box>
+      ))}
+      {isEditing ? (
+        <ButtonGroup>
+          <IconButton
+            size={'sm'}
+            icon={<CheckIcon />}
+            aria-label='submit reference'
+            onClick={handleSubmit}
+          />
+          <IconButton
+            onClick={() => setIsEditing(false)}
+            size={'sm'}
+            icon={<CloseIcon />}
+            aria-label='close reference edit button'
+          />
+        </ButtonGroup>
+      ) : null}
+    </Box>
+  );
+};
+
+export const ReferencePair = (props: {
+  origin: Paragraph;
+  references: CreatedType<Reference>[];
+}) => {
+  const { origin, references } = props;
+
+  const originSentences = useMemo(() => {
+    const sentences = splitParagraph(origin);
+    return sentences.length > 1 ? sentences : [];
+  }, [origin]);
 
   return (
     <>
@@ -150,47 +198,94 @@ export const ReferencePair = (props: {
               <Heading size='xs' textTransform='uppercase'>
                 Origin
               </Heading>
-              <Editable defaultValue={origin || originValue.content}>
-                <EditablePreview />
-                <EditableTextarea onChange={(e) => handleOriginChange('Origin', e.target.value)} />
-              </Editable>
+              <Text fontSize={'lg'}>{origin.content}</Text>
             </Box>
-            {references?.map((reference) => (
-              <Box key={reference.name}>
-                <Heading size='xs' textTransform='uppercase'>
-                  {reference.name}
+            {references?.map((reference, index) => (
+              <Box key={index}>
+                <Heading size='xs' textTransform='uppercase' mb={2} color={'primary.300'}>
+                  {originSentences[index]}
                 </Heading>
-                <Stack>
-                  {reference.content?.map((ct, index) => (
-                    <Box key={ct}>
-                      <Editable defaultValue={ct}>
-                        <Mark mr={4}>{`${index + 1}`}.</Mark>
-                        <EditablePreview />
-                        <EditableTextarea
-                          onChange={(e) =>
-                            handelReferenceChanges(reference.name, e.target.value, index)
-                          }
-                        />
-                      </Editable>
-                    </Box>
-                  ))}
-                </Stack>
+                <ReferenceElement reference={reference} />
               </Box>
             ))}
-            {isEditing ? (
-              <ButtonGroup>
-                <IconButton size={'sm'} icon={<CheckIcon />} aria-label='' onClick={handleSubmit} />
-                <IconButton
-                  onClick={() => setIsEditing(false)}
-                  size={'sm'}
-                  icon={<CloseIcon />}
-                  aria-label=''
-                />
-              </ButtonGroup>
-            ) : null}
           </Stack>
         </CardBody>
       </Card>
     </>
+  );
+};
+
+export const ReferenceElement = ({ reference }: { reference: CreatedType<Reference> }) => {
+  const [contents, setContents] = useState<{ content: string[]; name: string }[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const submit = useSubmit();
+  const handleSubmit = () => {
+    const params = {
+      intent: Intent.UPDATE_REFERENCE,
+      content: JSON.stringify(contents),
+      id: reference.SK,
+    };
+    submit(params, { method: 'post' });
+    setIsEditing(false);
+  };
+
+  const handleUpdate = (name: string, value: string) => {
+    const updatedContent = contents.map((content) => {
+      if (content.name === name) {
+        return { ...content, content: [value] }; // Create a new object with the updated name
+      }
+      return content; // Return unchanged items
+    });
+    setIsEditing(true);
+    setContents(updatedContent);
+  };
+
+  useEffect(() => {
+    if (reference.content) {
+      const obj = JSON.parse(reference.content) as {
+        content: string[];
+        name: string;
+      }[];
+      setContents(obj);
+    }
+  }, [reference]);
+
+  return (
+    <Box>
+      {contents?.map((content, index) => (
+        <Flex height={'85px'} direction={'column'} justify={'flex-start'} key={index}>
+          <Heading size='xs' textTransform='uppercase'>
+            {content.name}
+          </Heading>
+          <Editable defaultValue={'Click to edit'} value={contents[index].content[0]}>
+            <EditablePreview />
+            <EditableTextarea
+              onBlur={(e) => {
+                if (!e.target.value) {
+                  handleUpdate(content.name, 'Click to edit');
+                }
+              }}
+              onChange={(e) => handleUpdate(content.name, e.target.value)}
+            />
+          </Editable>
+        </Flex>
+      ))}
+      {isEditing ? (
+        <ButtonGroup>
+          <IconButton
+            size={'sm'}
+            icon={<CheckIcon />}
+            aria-label='update reference'
+            onClick={handleSubmit}
+          />
+          <IconButton
+            onClick={() => setIsEditing(false)}
+            size={'sm'}
+            icon={<CloseIcon />}
+            aria-label='close reference edit button'
+          />
+        </ButtonGroup>
+      ) : null}
+    </Box>
   );
 };

@@ -1,8 +1,7 @@
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
-import type { CreateType, Paragraph, Roll } from '~/types';
+import type { CreateType, Paragraph, Roll, Reference, CreatedType } from '~/types';
 import type { ChangeEvent } from 'react';
-import { useEffect } from 'react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { json } from '@remix-run/node';
 import { Outlet, useActionData, useLoaderData, useNavigate, useSubmit } from '@remix-run/react';
 import {
@@ -24,13 +23,13 @@ import {
   EditableTextarea,
   Divider,
   Tooltip,
+  RadioGroup,
 } from '@chakra-ui/react';
-import { useRef } from 'react';
 import { FiEdit, FiBook } from 'react-icons/fi';
 import { getOriginParagraphsByRollId } from '~/models/paragraph';
 import { assertAuthUser } from '~/auth.server';
 import { Intent } from '~/types/common';
-import { badRequest } from 'remix-utils';
+import { badRequest, created, serverError } from 'remix-utils';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { getTargetReferencesByRollId } from '~/models/reference';
 import { OriginReference, ReferencePair } from '~/components/common/reference';
@@ -40,164 +39,199 @@ import {
   handleGetLatestParagraphSK,
 } from '~/services/__app/reference/$sutraId/$rollId';
 import { composeIdForParagraph } from '~/models/utils';
-import { utcNow } from '~/utils';
-import { handleCreateNewReference } from '~/services/__app/reference/$sutraId/$rollId.staging';
+import { utcNow, logger } from '~/utils';
+import {
+  handleCreateNewReference,
+  handleUpdateReference,
+} from '~/services/__app/reference/$sutraId/$rollId.staging';
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import { useTransitionState } from '../../../../hooks';
 export const loader = async ({ params }: LoaderArgs) => {
   const { rollId, sutraId } = params;
-  if (rollId) {
-    const roll = await getRollByPrimaryKey({ PK: sutraId ?? '', SK: rollId });
-    const originParagraphs = await getOriginParagraphsByRollId(rollId);
-    const targetReferences = await getTargetReferencesByRollId(rollId);
-    // TODO: update language to match user's profile
+  if (!rollId || !sutraId) {
+    throw badRequest({ message: 'roll id or sutra id cannot be empty' });
+  }
+  const roll = await getRollByPrimaryKey({ PK: sutraId ?? '', SK: rollId });
+  const originParagraphs = await getOriginParagraphsByRollId(rollId);
+  const targetReferences = await getTargetReferencesByRollId(rollId);
+  // TODO: update language to match user's profile
 
-    const targets = targetReferences
-      .sort((a, b) => Number(new Date(a.createdAt || '')) - Number(new Date(b.createdAt || '')))
-      .reduce((acc, cur) => {
-        if (cur.paragraphId in acc) {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          const objList = acc[cur.paragraphId];
-          const contents = JSON.parse(cur.content);
-          contents?.map((content: { name: unknown; content: unknown }) => {
-            return objList?.forEach((obj: { name: unknown; content: unknown[] }) => {
-              if (obj.name === content.name) {
-                obj.content.push(content.content);
-              }
-            });
-          });
-        } else {
-          // create new object is no id found
-          const content = JSON.parse(cur.content);
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          const newContent = content.map((c) => ({
-            name: c.name,
-            content: [c.content],
-          }));
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          acc[cur.paragraphId] = newContent;
-        }
-        return acc;
-      }, {});
+  const targets = targetReferences
+    .sort((a, b) => Number(new Date(a.createdAt || '')) - Number(new Date(b.createdAt || '')))
+    .reduce((acc, cur) => {
+      if (cur.paragraphId in acc) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        acc[cur.paragraphId].push(cur);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        acc[cur.paragraphId] = [cur];
+      }
+      return acc;
+    }, {} as { [key: string]: CreatedType<Reference>[] });
 
-    const origins = originParagraphs?.map(({ PK, SK, category, content, num, finish }) => ({
+  const origins = originParagraphs
+    .sort((a, b) => {
+      if (a.num !== b.num) {
+        return a.num - b.num;
+      }
+      if (a.order && b.order) {
+        return a?.order.localeCompare(b?.order);
+      }
+      return a.num - b.num;
+    })
+    ?.map(({ PK, SK, category, content, num, finish, order }) => ({
       PK,
       SK,
+      order,
       category,
       content,
       num,
       finish,
     }));
-    return json({
-      origins,
-      targets,
-      roll,
-    });
-  }
-
-  return badRequest({ errors: { error: 'rollId is not provided' } });
+  return json({
+    origins,
+    targets,
+    roll,
+  });
 };
 
 export const action = async ({ request, params }: ActionArgs) => {
-  const { rollId = '', sutraId = '' } = params;
-  const user = await assertAuthUser(request);
-  const formData = await request.formData();
-  const entryData = Object.fromEntries(formData.entries());
-  if (entryData?.intent === Intent.CREATE_BULK_PARAGRAPH) {
-    const rawParagraphs = JSON.parse(entryData.paragraphs as string) as {
-      num: number;
-      value: string;
-    }[];
-    const latestSK = await handleGetLatestParagraphSK(rollId);
-    const paragraphs: CreateType<Paragraph>[] = rawParagraphs
-      ?.filter((paragraph) => paragraph.value)
-      .map((paragraph, index) => ({
-        PK: rollId,
-        SK: composeIdForParagraph({ rollId, id: latestSK + index + 1 }),
-        num: latestSK + index + 1,
-        content: paragraph.value,
-        category: 'NORMAL',
-        sutra: sutraId,
-        roll: rollId,
-        finish: true,
-        kind: 'PARAGRAPH',
-        createdAt: utcNow(),
-        updatedAt: utcNow(),
-        updatedBy: user?.email,
-        createdBy: user?.email,
-      }));
-    return await handleCreateBulkParagraph(paragraphs);
+  try {
+    const { rollId, sutraId } = params;
+    if (!rollId || !sutraId) {
+      throw badRequest({ message: 'roll id and sutra id must be provided' });
+    }
+    const user = await assertAuthUser(request);
+    const formData = await request.formData();
+    const entryData = Object.fromEntries(formData.entries());
+    if (entryData?.intent === Intent.CREATE_BULK_PARAGRAPH) {
+      const createParagraphs = JSON.parse(entryData.create as string) as {
+        num: number;
+        value: string;
+        order?: string;
+        SK?: string;
+      }[];
+      const orderTruth = createParagraphs.filter((p) => Boolean(p?.order));
+      const latestSK = await handleGetLatestParagraphSK(rollId);
+
+      const createdParagraph: CreateType<Paragraph>[] = createParagraphs
+        ?.filter((paragraph) => paragraph.value)
+        .map((paragraph, index) => {
+          return {
+            PK: rollId,
+            SK:
+              paragraph?.SK ??
+              composeIdForParagraph({
+                rollId,
+                id: latestSK + index + 1,
+              }),
+            num: paragraph.num,
+            order: `${orderTruth?.[0]?.order || paragraph.num}.${index}`,
+            content: paragraph.value,
+            category: 'NORMAL',
+            sutra: sutraId,
+            roll: rollId,
+            finish: true,
+            kind: 'PARAGRAPH',
+            createdAt: utcNow(),
+            updatedAt: utcNow(),
+            updatedBy: user?.email,
+            createdBy: user?.email,
+          };
+        });
+
+      // max bulk insert is 25;
+      const SEGMENT_SIZE = 25;
+      for (let i = 0; i < createdParagraph.length; i += SEGMENT_SIZE) {
+        const segment = createdParagraph.slice(i, i + SEGMENT_SIZE);
+        await handleCreateBulkParagraph(segment);
+      }
+      return created({ data: {}, intent: Intent.CREATE_BULK_PARAGRAPH });
+    }
+    if (entryData?.intent === Intent.CREATE_REFERENCE) {
+      return await handleCreateNewReference({
+        paragraphIndex: entryData?.paragraphIndex as string,
+        sentenceIndex: entryData?.sentenceIndex as string,
+        totalSentences: entryData?.totalSentences as string,
+        paragraphId: entryData?.paragraphId as string,
+        content: entryData?.content as string,
+        finish: Boolean(entryData?.finish) || false,
+        sutraId,
+        rollId,
+      });
+    }
+    if (entryData?.intent === Intent.UPDATE_REFERENCE) {
+      await handleUpdateReference({
+        id: entryData?.id as string,
+        content: entryData.content as string,
+      });
+      return json({ intent: Intent.UPDATE_REFERENCE });
+    }
+    return json({});
+  } catch (error) {
+    logger.error('reference.sutraId.rollId', 'error', error);
+    if (error instanceof ConditionalCheckFailedException) {
+      return badRequest({ message: 'you are using same key' });
+    }
+    return serverError({ message: 'internal server error' });
   }
-  if (entryData?.intent === Intent.CREATE_REFERENCE) {
-    return await handleCreateNewReference({
-      paragraphIndex: entryData?.paragraphIndex as string,
-      sentenceIndex: entryData?.sentenceIndex as string,
-      totalSentences: entryData?.totalSentences as string,
-      paragraphId: entryData?.paragraphId as string,
-      content: entryData?.content as string,
-      finish: Boolean(entryData?.finish) || false,
-      sutraId,
-      rollId,
-    });
-  }
-  return json({});
 };
 
-export type ParagraphLoadData = {
-  PK: string;
-  SK: string;
-  num: string;
-  finish: boolean;
-  content: string;
-  json: string;
-  comments: [];
-  paragraph?: string;
-};
 export default function ReferenceRoute() {
   const { origins, targets, roll } = useLoaderData<{
-    origins: ParagraphLoadData[];
-    targets: ParagraphLoadData[];
+    origins: CreatedType<Paragraph>[];
+    targets: { [key: string]: CreatedType<Reference>[] };
     roll?: Roll;
   }>();
 
   const navigate = useNavigate();
-  const urlParams = useRef<URLSearchParams>(new URLSearchParams());
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+
+  const [selectedParagraph, setSelectedParagraph] = useState('');
 
   const paragraphsComp = origins?.map((origin, index) => {
     if (origin) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore
-      const target = targets[origin.SK];
-      if (target) {
+      const references = targets[origin.SK];
+      if (references) {
         return (
-          <Box key={origin.SK} w='85%'>
-            <ReferencePair
-              paragraphId={origin.SK}
-              finish={false}
-              origin={origin.content}
-              references={target}
-            />
+          <Box key={index} w='85%'>
+            <ReferencePair origin={origin} references={references} />
           </Box>
         );
       }
     }
     return (
-      <OriginReference
-        urlParams={urlParams}
-        SK={origin.SK}
-        key={origin.content}
-        origin={origin.content}
-      />
+      <Flex key={index} w={'85%'} flexDir={'row'} alignItems={'flex-start'} my={2}>
+        <RadioGroup onChange={setSelectedParagraph} value={selectedParagraph}>
+          <OriginReference
+            selectedParagraph={selectedParagraph}
+            SK={origin.SK}
+            key={index}
+            origin={origin.content}
+          />
+        </RadioGroup>
+      </Flex>
     );
   });
 
-  const getStartingIndex = () => {
+  const selectedContent = useMemo(() => {
+    return origins.find((origin) => origin.SK === selectedParagraph);
+  }, [origins, selectedParagraph]);
+
+  const startingIndex = useMemo(() => {
     const lastParagraph = origins[origins.length - 1];
-    return parseInt(lastParagraph.SK.slice(lastParagraph.SK.length - 4)) + 1;
-  };
+    if (lastParagraph) {
+      return parseInt(lastParagraph.SK.slice(lastParagraph.SK.length - 4)) + 1;
+    } else {
+      return 0;
+    }
+  }, [origins]);
+
   if (origins?.length) {
     return (
       <Flex
@@ -238,18 +272,25 @@ export default function ReferenceRoute() {
             aria-label='edit roll'
             colorScheme={'iconButton'}
             onClick={() => {
-              navigate(`staging?${urlParams.current.toString()}`, {
-                replace: true,
-              });
+              if (selectedParagraph) {
+                navigate(`staging?p=${selectedParagraph}`, {
+                  replace: true,
+                });
+              }
             }}
           />
         </Tooltip>
-        <NewParagraphModal onClose={onClose} isOpen={isOpen} startingIndex={getStartingIndex()} />
+        <NewParagraphModal
+          onClose={onClose}
+          isOpen={isOpen}
+          startingIndex={selectedContent ? selectedContent.num : startingIndex}
+          selectedContent={selectedContent}
+        />
       </Flex>
     );
   }
   return (
-    <Flex w='100%' flexDir='column' justifyContent='flex-start' alignItems='center' gap={4} mt={10}>
+    <Flex w='100%' flexDir='column' justifyContent='flex-start' alignItems='center' gap={4}>
       {roll?.title ? <Heading size={'lg'}>{roll.title}</Heading> : null}
       {roll?.subtitle ? <Heading size={'md'}>{roll.subtitle}</Heading> : null}
       <IconButton
@@ -273,20 +314,43 @@ interface InputState {
   id: string;
   value: string;
   num: number;
+  SK?: string;
+  order?: string;
 }
 
 export const NewParagraphModal = ({
   onClose,
   isOpen,
   startingIndex,
+  selectedContent,
 }: {
   onClose: () => void;
   isOpen: boolean;
   startingIndex: number;
+  selectedContent?: CreatedType<Paragraph>;
 }) => {
   const [inputs, setInputs] = useState<InputState[]>([
-    { id: Math.random().toString(), value: '', num: startingIndex },
+    {
+      id: Math.random().toString(),
+      value: '',
+      num: startingIndex,
+      order: '',
+    },
   ]);
+
+  useEffect(() => {
+    if (selectedContent) {
+      setInputs([
+        {
+          id: Math.random().toString(),
+          value: selectedContent?.content,
+          num: selectedContent?.num,
+          SK: selectedContent.SK,
+          order: selectedContent?.order || selectedContent.num.toString(),
+        },
+      ]);
+    }
+  }, [selectedContent]);
 
   const actionData = useActionData<{ intent: Intent }>();
 
@@ -301,7 +365,7 @@ export const NewParagraphModal = ({
     const newInput = {
       id: Math.random().toString(),
       value: '',
-      num: inputs[inputs.length - 1].num + 1,
+      num: selectedContent?.num || inputs[inputs.length - 1].num + 1,
     };
     setInputs([...inputs, newInput]);
   };
@@ -311,7 +375,7 @@ export const NewParagraphModal = ({
     submit(
       {
         intent: Intent.CREATE_BULK_PARAGRAPH,
-        paragraphs: JSON.stringify(inputs),
+        create: JSON.stringify(inputs),
       },
       { method: 'post' }
     );
@@ -324,6 +388,8 @@ export const NewParagraphModal = ({
     }
   }, [actionData, onClose]);
 
+  const { isLoading } = useTransitionState();
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={'2xl'}>
       <ModalOverlay />
@@ -333,7 +399,7 @@ export const NewParagraphModal = ({
         <ModalCloseButton />
         <ModalBody>
           {inputs.map(({ id, value }) => (
-            <Editable key={id} placeholder='click to edit' mb={2}>
+            <Editable key={id} placeholder='click to edit' value={value} mb={2}>
               <EditablePreview bg={'secondary.300'} p={2} display={'block'} />
               <EditableTextarea id={id} onChange={(e) => handleInputChange(id, e)} value={value} />
             </Editable>
@@ -346,11 +412,12 @@ export const NewParagraphModal = ({
             aria-label='add-new-paragraph'
             mr={'auto'}
             onClick={handleAddClick}
+            disabled={isLoading}
           />
-          <Button colorScheme='blue' mr={3} onClick={handleSubmit}>
+          <Button colorScheme='blue' mr={3} onClick={handleSubmit} disabled={isLoading}>
             Submit
           </Button>
-          <Button variant='ghost' onClick={onClose}>
+          <Button variant='ghost' onClick={onClose} disabled={isLoading}>
             Close
           </Button>
         </ModalFooter>

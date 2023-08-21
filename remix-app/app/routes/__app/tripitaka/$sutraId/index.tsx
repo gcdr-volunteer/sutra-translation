@@ -5,36 +5,18 @@ import { useCatch, useLoaderData } from '@remix-run/react';
 import { Box, Flex } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
 import { Warning } from '~/components/common/errors';
-import { getRollByPrimaryKey, getRollsBySutraId, upsertRoll } from '~/models/roll';
+import { getRollByPrimaryKey, upsertRoll } from '~/models/roll';
 import { Intent } from '~/types/common';
-import { created } from 'remix-utils';
+import { badRequest, created } from 'remix-utils';
+import { handleGetAllRollsBySutraId } from '../../../../services/__app/reference/$sutraId';
 
 export const loader = async ({ params }: LoaderArgs) => {
   const { sutraId } = params;
-  const rolls = await getRollsBySutraId(sutraId ?? '');
-  const targetRolls = await getRollsBySutraId(sutraId?.replace('ZH', 'EN') ?? '');
-  const mapper = targetRolls?.reduce((acc, cur) => {
-    if (cur?.origin_rollId) {
-      acc[cur.origin_rollId] = false;
-      return acc;
-    }
-    return acc;
-  }, {} as Record<string, boolean>);
-  const extractedRolls = rolls
-    ?.filter((roll) => {
-      const target = targetRolls.find((target) => target.origin_rollId === roll.SK);
-      if (target?.finish) {
-        return false;
-      }
-
-      return true;
-    })
-    .map((roll) => ({
-      firstTime: mapper[roll.SK ?? ''] ?? true,
-      slug: roll.SK,
-      ...roll,
-    }));
-  return json({ data: extractedRolls });
+  if (!sutraId) {
+    throw badRequest({ message: 'sutra id is not provided' });
+  }
+  const rolls = await handleGetAllRollsBySutraId(sutraId);
+  return json({ data: rolls });
 };
 
 export const action = async ({ request }: ActionArgs) => {

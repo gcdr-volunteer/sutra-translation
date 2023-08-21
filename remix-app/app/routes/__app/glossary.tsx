@@ -1,6 +1,6 @@
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import { json } from '@remix-run/node';
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { getGlossariesByTerm, getGlossaryByPage } from '~/models/glossary';
 import {
   Accordion,
@@ -23,20 +23,18 @@ import {
   Text,
   useDisclosure,
 } from '@chakra-ui/react';
-import { AiOutlinePlus } from 'react-icons/ai';
+import { AiOutlinePlus, AiOutlineEdit } from 'react-icons/ai';
 import { FormModal } from '~/components/common';
 import { Intent } from '~/types/common';
 import { GlossaryForm } from '~/components/common/glossary_form';
 import { useActionData, useLoaderData } from '@remix-run/react';
 import type { Glossary } from '~/types';
-import { AiOutlineEdit } from 'react-icons/ai';
 import { assertAuthUser } from '~/auth.server';
 import {
   handleCreateNewGlossary,
   handleUpdateGlossary,
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { serverError, unauthorized } from 'remix-utils';
-import { useEffect } from 'react';
 import { Can } from '~/authorisation';
 import { useGlossary, useGlossarySearch } from '~/hooks';
 import { logger } from '~/utils';

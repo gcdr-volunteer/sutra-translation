@@ -11,12 +11,13 @@ import {
   Spinner,
 } from '@chakra-ui/react';
 import { json, redirect } from '@remix-run/node';
-import { useActionData, Form, useTransition } from '@remix-run/react';
+import { useActionData, Form } from '@remix-run/react';
 import { assertAuthUser, authenticator } from '~/auth.server';
 import { updateUserPassword } from '~/models/user';
 import { commitSession, getSession } from '~/session.server';
 import { logger } from '~/utils';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import { useTransitionState } from '../hooks';
 
 export const loader = async ({ request }: LoaderArgs) => {
   await assertAuthUser(request);
@@ -95,8 +96,7 @@ type LoginFormProps = {
   };
 };
 const UpdatePasswordForm = (props: LoginFormProps) => {
-  const transition = useTransition();
-  const isLoading = Boolean(transition.submission);
+  const { isLoading } = useTransitionState();
   const { password } = props.actionData || {};
   return (
     <Box my={8} textAlign='left'>

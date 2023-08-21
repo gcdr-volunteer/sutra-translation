@@ -1,7 +1,6 @@
-import { IconButton, Tooltip, VStack, useDisclosure } from '@chakra-ui/react';
-import type { ActionArgs } from '@remix-run/node';
+import { Center, IconButton, SimpleGrid, Tooltip, useDisclosure } from '@chakra-ui/react';
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import { json } from '@remix-run/node';
-import type { LoaderArgs } from '@remix-run/node';
 import { useActionData, useLoaderData } from '@remix-run/react';
 import { FiBook } from 'react-icons/fi';
 import { unauthorized } from 'remix-utils';
@@ -79,32 +78,34 @@ export default function ReferenceRoute() {
   }, [actionData, onClose]);
   const sutraComp = sutras.map((sutra) => <Sutra key={sutra.slug} {...sutra} />);
   return (
-    <VStack spacing={8}>
-      <Can I='Read' this='Management'>
-        <Tooltip label='Add a new sutra'>
-          <IconButton
-            borderRadius={'50%'}
-            w={12}
-            h={12}
-            pos={'fixed'}
-            top={24}
-            right={8}
-            icon={<FiBook />}
-            aria-label='add new sutra'
-            colorScheme={'iconButton'}
-            onClick={() => onOpen()}
-          />
-        </Tooltip>
-      </Can>
+    <Center>
+      <SimpleGrid maxW={{ base: 'md', lg: 'lg', xl: 'xl' }} minW={'300px'} spacing={8} w='100%'>
+        {sutraComp}
+        <Can I='Read' this='Management'>
+          <Tooltip label='Add a new sutra'>
+            <IconButton
+              borderRadius={'50%'}
+              w={12}
+              h={12}
+              pos={'fixed'}
+              top={24}
+              right={8}
+              icon={<FiBook />}
+              aria-label='add new sutra'
+              colorScheme={'iconButton'}
+              onClick={() => onOpen()}
+            />
+          </Tooltip>
+        </Can>
 
-      {sutraComp}
-      <FormModal
-        header='Add new sutra'
-        isOpen={isOpen}
-        onClose={onClose}
-        value={Intent.CREATE_SUTRA}
-        body={<SutraForm />}
-      />
-    </VStack>
+        <FormModal
+          header='Add new sutra'
+          isOpen={isOpen}
+          onClose={onClose}
+          value={Intent.CREATE_SUTRA}
+          body={<SutraForm />}
+        />
+      </SimpleGrid>
+    </Center>
   );
 }

@@ -73,7 +73,7 @@ export const upsertParagraph = async (paragraph: CreateType<Paragraph> | UpdateT
   }
 };
 
-export const insertBulkParagraph = async (paragraphs: CreateType<Paragraph>[]) => {
+export const insertBulkParagraph = async (paragraphs: (Partial<Paragraph> & Required<Key>)[]) => {
   return await dbBulkInsert({ tableName: process.env.TRANSLATION_TABLE, docs: paragraphs });
 };
 

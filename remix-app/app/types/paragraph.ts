@@ -32,6 +32,10 @@ export interface Paragraph {
    */
   paragraphIndex?: number;
   /**
+   * the order to sort the paragraph when insert new paragraph in the middle
+   */
+  order?: string;
+  /**
    * The helper type
    */
   kind: 'PARAGRAPH';

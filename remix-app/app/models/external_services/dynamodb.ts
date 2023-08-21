@@ -4,17 +4,18 @@ import type {
   UpdateItemCommandInput,
   QueryCommandInput,
   BatchWriteItemCommandInput,
+  PutItemCommandInput,
 } from '@aws-sdk/client-dynamodb';
-import { BatchWriteItemCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   PutItemCommand,
   ReturnValue,
   UpdateItemCommand,
   GetItemCommand,
   QueryCommand,
+  BatchWriteItemCommand,
+  DynamoDBClient,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import type { PutItemCommandInput } from '@aws-sdk/client-dynamodb';
 import { utcNow } from '~/utils';
 // Can be removed after refactor
 export const dbClient = () => new DynamoDBClient({ region: process.env.REGION });
@@ -191,7 +192,7 @@ export const dbBulkInsert = async ({
   tableName,
   docs,
 }: {
-  docs: CreateType<Doc>[];
+  docs: Partial<Doc>[];
   tableName: string;
 }) => {
   const params: BatchWriteItemCommandInput = {

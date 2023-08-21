@@ -1,7 +1,7 @@
 import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { GetItemCommand } from '@aws-sdk/client-dynamodb';
 import {
+  GetItemCommand,
   PutItemCommand,
   ReturnValue,
   QueryCommand,

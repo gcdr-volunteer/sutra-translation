@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import type { CreatedType, Sutra } from '~/types';
+import type { CreatedType, Sutra, Team } from '~/types';
 import type { ChangeEvent } from 'react';
-import type { Team } from '~/types';
 import {
   FormControl,
   FormErrorMessage,

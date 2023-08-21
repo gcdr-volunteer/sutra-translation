@@ -24,7 +24,7 @@ import {
 import { json } from '@remix-run/node';
 import type { ActionArgs } from '@remix-run/node';
 import { Intent } from '~/types/common';
-import { EditIcon } from '@chakra-ui/icons';
+import { EditIcon, CopyIcon } from '@chakra-ui/icons';
 import { FormModal } from '~/components/common';
 import { getLoaderData } from '~/services/__app/admin';
 import type { Team, Sutra, CreatedType, RefBook, Glossary } from '~/types';
@@ -41,7 +41,6 @@ import Papa from 'papaparse';
 import { handleCreateBulkGlossary } from '../../services/__app/tripitaka/$sutraId/$rollId/staging';
 import { assertAuthUser } from '../../auth.server';
 import { unauthorized } from 'remix-utils';
-import { CopyIcon } from '@chakra-ui/icons';
 export async function loader({ request }: ActionArgs) {
   const { teams } = await getLoaderData();
   const sutras = await getAllSutraThatFinished();

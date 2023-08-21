@@ -6,33 +6,39 @@ import { json } from '@remix-run/node';
 import { Warning } from '~/components/common/errors';
 import { Intent } from '~/types/common';
 import { getParagraphByPrimaryKey } from '~/models/paragraph';
-import { handleCreateNewReference } from '~/services/__app/reference/$sutraId/$rollId.staging';
-import { getRefBookBySutraId } from '~/models/reference';
-import { ReferencePair } from '~/components/common/reference';
+import {
+  handleCreateNewReference,
+  handleGetAllRefBooks,
+} from '~/services/__app/reference/$sutraId/$rollId.staging';
+import { ReferencePairForStaging } from '~/components/common/reference';
 import { useParagraphIds } from '~/hooks';
 import { splitParagraph } from '../../../../utils';
+import { badRequest } from 'remix-utils';
 
-export const loader = async ({ params, request }: LoaderArgs) => {
+export async function loader({ params, request }: LoaderArgs) {
   const { rollId, sutraId } = params;
+  if (!rollId) {
+    throw badRequest({ message: 'roll id cannot be empty' });
+  }
+  if (!sutraId) {
+    throw badRequest({ message: 'sutra id cannot be empty' });
+  }
   const url = new URL(request.url);
   const ps = [...new Set(url.searchParams.getAll('p'))];
 
   const paragraphs = await Promise.all(
-    ps.map((p) => getParagraphByPrimaryKey({ PK: rollId ?? '', SK: p }))
+    ps.map((p) => getParagraphByPrimaryKey({ PK: rollId, SK: p }))
   );
 
-  const refBooks = await getRefBookBySutraId(sutraId ?? '');
+  const references = await handleGetAllRefBooks(sutraId);
 
   return json({
     sentenceIndex: -1,
     paragraphIndex: -1,
-    reference: refBooks.map((reference) => ({
-      name: reference.bookname,
-      content: ['click to edit'],
-    })),
+    references,
     paragraphs,
   });
-};
+}
 
 export const action = async ({ request, params }: ActionArgs) => {
   const { sutraId = '', rollId = '' } = params;
@@ -76,14 +82,10 @@ export default function ReferenceStagingRoute() {
 
   const paragraphsComp = loaderData?.paragraphs?.map((paragraph, i, arr) => {
     const sentences = splitParagraph(paragraph);
-    if (sentences?.length >= 2) {
+    if (sentences?.length) {
       return (
         <Box key={i}>
           <Collapse in={workingSentenceIndex < sentences.length} unmountOnExit={true}>
-            <Alert mb={4} status='warning'>
-              <AlertIcon />
-              Before you click other page, please make sure you have finished all the reference
-            </Alert>
             {workingSentenceIndex < sentences.length ? (
               <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
                 <Text size={'lg'} fontSize='1.5rem' lineHeight={1.5}>
@@ -106,13 +108,13 @@ export default function ReferenceStagingRoute() {
                   animateOpacity={true}
                   unmountOnExit={true}
                 >
-                  <ReferencePair
+                  <ReferencePairForStaging
                     finish={workingSentenceIndex === sentences.length}
                     paragraphId={paragraphIds[i]}
                     sentenceIndex={loaderData.sentenceIndex}
                     paragraphIndex={loaderData.paragraphIndex}
                     origin={sentence ?? 'click to edit'}
-                    references={loaderData.reference}
+                    references={loaderData.references}
                     totalParagraphs={ref?.current.length - 1}
                   />
                   {j !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
@@ -124,33 +126,18 @@ export default function ReferenceStagingRoute() {
         </Box>
       );
     }
+    return <Text key={i}>not text available</Text>;
+  });
+  if (loaderData?.paragraphs?.length) {
     return (
-      <Collapse
-        key={i}
-        in={Boolean(workingSentenceIndex - 1)}
-        unmountOnExit={i !== arr.length - 1}
-        animateOpacity={true}
-      >
-        <Alert mb={4} status='warning'>
+      <Box px={16}>
+        <Alert status='warning'>
           <AlertIcon />
           Before you click other page, please make sure you have finished all the reference
         </Alert>
-        <ReferencePair
-          sentenceIndex={loaderData.sentenceIndex}
-          paragraphIndex={loaderData.paragraphIndex}
-          totalSentences={0}
-          paragraphId={paragraphIds[0]}
-          origin={paragraph?.content ?? 'click to edit'}
-          references={loaderData.reference}
-          totalParagraphs={ref?.current.length - 1}
-          finish={Boolean(workingSentenceIndex)}
-        />
-        {i !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
-      </Collapse>
+        {paragraphsComp}
+      </Box>
     );
-  });
-  if (loaderData?.paragraphs?.length) {
-    return <Box px={16}>{paragraphsComp}</Box>;
   } else {
     return <Warning content='Please select at least one paragraph from the roll' />;
   }

@@ -9,8 +9,9 @@ import {
   ModalOverlay,
   Spinner,
 } from '@chakra-ui/react';
-import { useSubmit, useTransition, Form } from '@remix-run/react';
+import { useSubmit, Form } from '@remix-run/react';
 import type { FormEvent, ReactNode } from 'react';
+import { useTransitionState } from '../../hooks';
 
 interface CommonModalProps {
   header: string;
@@ -49,8 +50,7 @@ interface FormModalProps {
   modalSize?: string;
 }
 export const FormModal = (props: FormModalProps) => {
-  const transition = useTransition();
-  const isLoading = Boolean(transition.submission);
+  const { isLoading } = useTransitionState();
   const submit = useSubmit();
   const { header, body, modalSize, isOpen, onClose, value } = props;
 

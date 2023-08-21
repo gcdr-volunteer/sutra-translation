@@ -1,16 +1,15 @@
 import type { Comment, Message } from '~/types/comment';
 import type { QueryCommandInput } from '@aws-sdk/client-dynamodb';
-import { TransactWriteItemsCommand } from '@aws-sdk/client-dynamodb';
-import { dbUpdate } from '~/models/external_services/dynamodb';
 import type { CreatedType, Key, UpdateType, User } from '~/types';
 import {
   dbClient,
   dbGetByIndexAndKey,
   dbGetByKey,
   dbInsert,
+  dbUpdate,
 } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { QueryCommand } from '@aws-sdk/client-dynamodb';
+import { QueryCommand, TransactWriteItemsCommand } from '@aws-sdk/client-dynamodb';
 import { utcNow } from '~/utils';
 
 export const getAllCommentsByParentId = async (parentId?: string): Promise<Comment[]> => {

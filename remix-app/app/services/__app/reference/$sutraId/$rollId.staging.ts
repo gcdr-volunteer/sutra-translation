@@ -4,7 +4,12 @@ import { logger } from '~/utils';
 import { created } from 'remix-utils';
 import { Intent } from '~/types/common';
 import { json } from '@remix-run/node';
-import { getLatestReference, upsertReference } from '~/models/reference';
+import {
+  getLatestReference,
+  getRefBookBySutraId,
+  updateReference,
+  upsertReference,
+} from '~/models/reference';
 import { composeIdForReference } from '~/models/utils';
 const newReferenceSchema = () => {
   const baseSchema = initialSchema();
@@ -94,4 +99,27 @@ export const handleGetLatestReferenceIdByParagraphId = async (paragraphId: strin
     logger.error(handleGetLatestReferenceIdByParagraphId.name, 'error', error);
     return '';
   }
+};
+
+export type Reference = {
+  name: string;
+  content: string[];
+};
+export const handleGetAllRefBooks = async (sutraId: string): Promise<Reference[]> => {
+  try {
+    const refBooks = await getRefBookBySutraId(sutraId);
+    return refBooks.map((reference) => ({
+      name: reference.bookname,
+      content: ['click to edit'],
+    }));
+  } catch (error) {
+    logger.error(handleGetAllRefBooks.name, 'error', error);
+    return [];
+  }
+};
+
+export const handleUpdateReference = async ({ id, content }: { id: string; content: string }) => {
+  try {
+    await updateReference({ PK: 'REFERENCE', SK: id, content });
+  } catch (error) {}
 };

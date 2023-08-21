@@ -32,6 +32,7 @@ export enum Intent {
   MARK_ROLL_COMPLETE = 'mark_roll_complete',
   CREATE_TRANSLATION = 'create_translation',
   CREATE_REFERENCE = 'create_reference',
+  UPDATE_REFERENCE = 'update_reference',
   CREATE_GLOSSARY = 'create_glossary',
   READ_GLOSSARY = 'read_glossary',
   SEARCH_GLOSSARY = 'search_glossary',

@@ -19,7 +19,7 @@ import {
   ButtonGroup,
   Flex,
 } from '@chakra-ui/react';
-import { useActionData, useSubmit, useTransition } from '@remix-run/react';
+import { useActionData, useSubmit } from '@remix-run/react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Comment } from '~/types';
 import { Intent } from '~/types/common';
@@ -27,6 +27,7 @@ import { AppContext } from '~/routes/__app';
 import { useMessage } from '~/hooks/useMessage';
 import { Can } from '~/authorisation';
 import { HighlightWithinTextareaCC } from 'react-highlight-within-textarea';
+import { useTransitionState } from '../hooks';
 
 type CommentDialogPayload = {
   onClose: () => void;
@@ -41,8 +42,7 @@ export const MessageDialog = (props: CommentDialogPayload) => {
   const { messages, fullText, isOpen, onClose, paragraphId, content } = props;
   const actionData = useActionData<{ paragraph: string; resolved: boolean }>();
   const submit = useSubmit();
-  const transaction = useTransition();
-  const isSubmitting = Boolean(transaction.submission);
+  const { isLoading } = useTransitionState();
   const [toggle, setToggle] = useBoolean(false);
   const { currentUser } = useContext(AppContext);
   useMessage(currentUser);
@@ -168,11 +168,7 @@ export const MessageDialog = (props: CommentDialogPayload) => {
                 <Can I='Update' this='Paragraph'>
                   <FormControl display='flex' alignItems='center'>
                     <FormLabel htmlFor='edit-paragraph'>Edit paragraph</FormLabel>
-                    <Switch
-                      id='edit-paragraph'
-                      onChange={setToggle.toggle}
-                      disabled={isSubmitting}
-                    />
+                    <Switch id='edit-paragraph' onChange={setToggle.toggle} disabled={isLoading} />
                   </FormControl>
                 </Can>
               ) : null}

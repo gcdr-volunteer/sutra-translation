@@ -13,7 +13,7 @@ export const createReference = async (reference: CreateType<Reference>) => {
   return await dbInsert({ tableName: process.env.REFERENCE_TABLE, doc: reference });
 };
 
-export const updateReference = async (reference: CreatedType<Reference>) => {
+export const updateReference = async (reference: Partial<Reference> & Required<Key>) => {
   return await dbUpdate({ tableName: process.env.REFERENCE_TABLE, doc: reference });
 };
 

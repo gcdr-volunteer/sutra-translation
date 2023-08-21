@@ -10,7 +10,6 @@ import {
   Form,
   useNavigate,
   useLoaderData,
-  useTransition,
 } from '@remix-run/react';
 import {
   Tag,
@@ -64,7 +63,7 @@ import {
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { Intent } from '~/types/common';
 import { assertAuthUser } from '~/auth.server';
-import { useDebounce, useKeyPress, useSetTheme } from '~/hooks';
+import { useDebounce, useKeyPress, useSetTheme, useTransitionState } from '~/hooks';
 import { logger, splitParagraph } from '~/utils';
 import { getParagraphByPrimaryKey, getParagraphsByRollId } from '~/models/paragraph';
 import { getFootnotesByPartitionKey } from '~/models/footnote';
@@ -360,8 +359,7 @@ function TranlationWorkspace({
   const [glossary, setGlossary] = useBoolean(false);
   const [cursorPos, setCursorPos] = useState(-1);
   const [footnotes, setFootnotes] = useState<FN[]>([]);
-  const transaction = useTransition();
-  const isSubmit = Boolean(transaction.submission);
+  const { isSubmitting } = useTransitionState();
   const [refresh, setRefresh] = useState<number>(0);
   const [latestTranslation, setLatestTranslation] = useState<string>('');
   const [prevTranslation, setPrevTranslation] = useState<string>('');
@@ -471,7 +469,7 @@ function TranlationWorkspace({
             <Heading size='sm'>OpenAI</Heading>
             <ButtonGroup variant='outline' spacing='6'>
               <IconButton
-                isLoading={isSubmit && isFirst}
+                isLoading={isSubmitting && isFirst}
                 icon={<RepeatIcon />}
                 onClick={() => {
                   setRefresh((pre) => pre + 1);
@@ -541,7 +539,7 @@ function TranlationWorkspace({
                   marginLeft={'auto'}
                   onClick={handleSubmitTranslation}
                   colorScheme={'iconButton'}
-                  isLoading={isSubmit && isFirst}
+                  isLoading={isSubmitting && isFirst}
                 >
                   Submit
                 </Button>

@@ -4,7 +4,10 @@ module.exports = {
   assetsBuildDirectory: 'public/build',
   publicPath: '/build/',
   serverBuildPath: 'build/index.js',
-  serverBuildTarget: 'node-cjs',
+  serverPlatform: 'node',
+  serverModuleFormat: 'cjs',
+  serverMainFields: ['main', 'module'],
+  serverMinify: false,
   server: undefined,
   appDirectory: 'app',
   serverDependenciesToBundle: [

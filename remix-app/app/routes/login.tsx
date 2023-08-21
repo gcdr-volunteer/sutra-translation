@@ -1,7 +1,7 @@
 import type { ActionArgs } from '@remix-run/node';
 import { json, redirect } from '@remix-run/node';
 import { authenticator } from '~/auth.server';
-import { emailRegex } from '~/utils';
+import { emailRegex, logger } from '~/utils';
 import {
   Flex,
   Box,
@@ -16,11 +16,11 @@ import {
   FormErrorMessage,
   Spinner,
 } from '@chakra-ui/react';
-import { useActionData, useTransition, Form } from '@remix-run/react';
+import { useActionData, Form } from '@remix-run/react';
 import { commitSession, getSession } from '~/session.server';
 import { onlyCreateAdminUserWhenFirstSystemUp } from '~/models/user';
-import { logger } from '~/utils';
 import { Error } from '~/components/common/errors';
+import { useTransitionState } from '../hooks';
 
 export const loader = async () => {
   await onlyCreateAdminUserWhenFirstSystemUp();
@@ -116,8 +116,7 @@ type LoginFormProps = {
   };
 };
 const LoginForm = (props: LoginFormProps) => {
-  const transition = useTransition();
-  const isLoading = Boolean(transition.submission);
+  const { isLoading } = useTransitionState();
   const { username, password } = props.actionData || {};
   return (
     <Box my={8} textAlign='left'>

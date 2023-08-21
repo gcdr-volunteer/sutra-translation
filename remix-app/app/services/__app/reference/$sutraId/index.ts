@@ -55,3 +55,21 @@ export const handleCreateNewRoll = async ({
     return json({ errors, intent: Intent.CREATE_ROLL });
   }
 };
+
+export const handleGetAllRollsBySutraId = async (sutraId: string) => {
+  try {
+    const originRolls = await getRollsBySutraId(sutraId);
+    const targetRolls = await getRollsBySutraId(sutraId.replace('ZH', 'EN'));
+    const workingOnRollsIds = targetRolls.map((roll) => roll.origin_rollId);
+    return originRolls
+      .map((roll) => ({
+        firstTime: workingOnRollsIds.includes(roll.SK || ''),
+        slug: roll.SK,
+        ...roll,
+      })) // we use num field to order the roll
+      .sort((a, b) => a.num - b.num);
+  } catch (error) {
+    logger.error(handleGetAllRollsBySutraId.name, 'error', error);
+    return [];
+  }
+};

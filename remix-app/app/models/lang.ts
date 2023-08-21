@@ -1,7 +1,11 @@
 import { dbClient } from '~/models/external_services/dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
-import { PutItemCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
+import {
+  GetItemCommand,
+  QueryCommand,
+  PutItemCommand,
+  ReturnValue,
+} from '@aws-sdk/client-dynamodb';
 import { composeSKForLang } from './utils';
 import type { Lang } from '~/types/lang';
 import type {

@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { LangCode } from '~/types/lang';
-import type { CreatedType, Sutra } from '~/types';
 import { RoleType } from '~/types';
 import type { ChangeEvent } from 'react';
-import type { Role, Team, User } from '~/types';
+import type { CreatedType, Sutra, Role, Team, User } from '~/types';
 import type { Lang } from '~/types/lang';
 import {
   FormControl,

@@ -1,23 +1,18 @@
-import { created } from 'remix-utils';
 import { getOriginParagraphsByRollId, insertBulkParagraph } from '~/models/paragraph';
-import type { CreateType, Paragraph } from '~/types';
-import { Intent } from '~/types/common';
+import type { Paragraph, Key } from '~/types';
 import { logger } from '~/utils';
 
-export const handleCreateBulkParagraph = async (paragraphs: CreateType<Paragraph>[]) => {
-  try {
-    await insertBulkParagraph(paragraphs);
-    return created({ data: {}, intent: Intent.CREATE_BULK_PARAGRAPH });
-  } catch (error) {
-    logger.error(handleCreateBulkParagraph.name, 'error', error);
-  }
+export const handleCreateBulkParagraph = async (
+  paragraphs: (Partial<Paragraph> & Required<Key>)[]
+) => {
+  await insertBulkParagraph(paragraphs);
 };
 
 export const handleGetLatestParagraphSK = async (rollId: string): Promise<number> => {
   try {
     const paragraphs = await getOriginParagraphsByRollId(rollId);
     if (paragraphs.length) {
-      return paragraphs[paragraphs.length - 1].num;
+      return parseInt(paragraphs[paragraphs.length - 1].SK.slice(-4));
     } else {
       return 0;
     }

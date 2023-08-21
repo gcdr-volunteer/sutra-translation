@@ -1,13 +1,12 @@
 import type { SutraProps } from '~/components/common/sutra';
 import type { CreatedType, CreateType, Sutra as TSutra } from '~/types';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
-import { RoleType } from '~/types';
-import { VStack } from '@chakra-ui/react';
+import { RoleType, LangCode } from '~/types';
+import { Center, SimpleGrid } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 import { Sutra } from '~/components/common/sutra';
 import { getSutraByPrimaryKey, getSutrasByLangAndVersion, upsertSutra } from '~/models/sutra';
-import { LangCode } from '~/types';
 import { Intent } from '~/types/common';
 import { created } from 'remix-utils';
 import { assertAuthUser } from '~/auth.server';
@@ -80,5 +79,17 @@ export default function TripitakaRoute() {
       data: SutraProps[];
     }>() || {};
   const sutraComp = data.map((sutra) => <Sutra key={sutra.slug} {...sutra} />);
-  return <VStack spacing={8}>{sutraComp}</VStack>;
+  return (
+    <Center>
+      <SimpleGrid
+        columns={1}
+        maxW={{ base: 'md', lg: 'lg', xl: 'xl' }}
+        minW={'300px'}
+        w='100%'
+        spacing={8}
+      >
+        {sutraComp}
+      </SimpleGrid>
+    </Center>
+  );
 }
