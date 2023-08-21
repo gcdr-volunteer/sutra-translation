@@ -63,7 +63,7 @@ export default function SutraRoute() {
   const rollsComp = data?.map((roll) => <Roll key={roll.slug} {...roll} />);
   return (
     <Box p={10}>
-      <Flex gap={8} flexWrap={'wrap'}>
+      <Flex gap={8} flexWrap={'wrap'} justifyContent={'center'}>
         <Can I='Read' this='Management'>
           <Tooltip placement='left' label='Add a new roll'>
             <IconButton

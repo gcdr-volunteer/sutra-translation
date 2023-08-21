@@ -116,12 +116,17 @@ export default function DashboardRoute() {
     }[priorityLevel] as AlertStatus;
     return (
       <Link key={comment} to={`${path}#${paragraphId}`} style={{ width: '100%' }}>
-        <Alert status={statusValue}>
+        <Alert status={statusValue} maxW={'lg'}>
           <AlertIcon />
-          <AlertTitle textOverflow={'ellipsis'} whiteSpace='nowrap' overflow={'hidden'} maxW='50%'>
+          <AlertTitle
+            textOverflow={'ellipsis'}
+            whiteSpace={'nowrap'}
+            overflow={'hidden'}
+            maxW='50%'
+          >
             {content}
           </AlertTitle>
-          <AlertDescription textOverflow={'ellipsis'} whiteSpace='nowrap' overflow={'hidden'}>
+          <AlertDescription textOverflow={'ellipsis'} whiteSpace={'nowrap'} overflow={'hidden'}>
             {comment}
           </AlertDescription>
         </Alert>

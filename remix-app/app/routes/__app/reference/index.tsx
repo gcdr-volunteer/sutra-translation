@@ -78,7 +78,7 @@ export default function ReferenceRoute() {
   }, [actionData, onClose]);
   const sutraComp = sutras.map((sutra) => <Sutra key={sutra.slug} {...sutra} />);
   return (
-    <Center h='100vh'>
+    <Center h='100vh' alignItems={'flex-start'}>
       <SimpleGrid maxW={{ base: 'md', lg: 'lg', xl: 'xl' }} minW={'300px'} spacing={8} w='100%'>
         {sutraComp}
         <Can I='Read' this='Management'>

@@ -60,7 +60,7 @@ export default function SutraRoute() {
   if (data?.length) {
     return (
       <Box p={10}>
-        <Flex gap={8} flexWrap={'wrap'}>
+        <Flex gap={8} flexWrap={'wrap'} justifyContent={'center'}>
           {rollsComp}
         </Flex>
       </Box>
