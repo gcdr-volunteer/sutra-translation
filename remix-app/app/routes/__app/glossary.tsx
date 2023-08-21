@@ -120,40 +120,42 @@ export default function GlossaryRoute() {
   }, [actionData, onClose]);
 
   return (
-    <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
-      <Heading as='h5' size={'md'}>
-        Glossary
-      </Heading>
-      <Divider mt={4} mb={4} borderColor={'primary.300'} />
-      <GlossarySearch {...glossarySearch} />
-      {glossaryComp}
-      <div ref={footRef} />
-      {isIntersecting && nextPage ? <Spinner /> : null}
-      {isOpen ? (
-        <FormModal
-          header='Add new glossary'
-          body={<GlossaryForm errors={errors} />}
-          isOpen={isOpen}
-          onClose={onClose}
-          value={Intent.CREATE_GLOSSARY}
-          modalSize='3xl'
-        />
-      ) : null}
-      <Can I='Create' this='Glossary'>
-        <IconButton
-          borderRadius={'50%'}
-          w={12}
-          h={12}
-          pos={'fixed'}
-          bottom={8}
-          right={8}
-          icon={<AiOutlinePlus />}
-          aria-label='edit roll'
-          colorScheme={'iconButton'}
-          onClick={() => onOpen()}
-        />
-      </Can>
-    </Flex>
+    <Box h='100%' w='100%'>
+      <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
+        <Heading as='h5' size={'md'}>
+          Glossary
+        </Heading>
+        <Divider mt={4} mb={4} borderColor={'primary.300'} />
+        <GlossarySearch {...glossarySearch} />
+        {glossaryComp}
+        <div ref={footRef} />
+        {isIntersecting && nextPage ? <Spinner /> : null}
+        {isOpen ? (
+          <FormModal
+            header='Add new glossary'
+            body={<GlossaryForm errors={errors} />}
+            isOpen={isOpen}
+            onClose={onClose}
+            value={Intent.CREATE_GLOSSARY}
+            modalSize='3xl'
+          />
+        ) : null}
+        <Can I='Create' this='Glossary'>
+          <IconButton
+            borderRadius={'50%'}
+            w={12}
+            h={12}
+            pos={'fixed'}
+            bottom={8}
+            right={8}
+            icon={<AiOutlinePlus />}
+            aria-label='edit roll'
+            colorScheme={'iconButton'}
+            onClick={() => onOpen()}
+          />
+        </Can>
+      </Flex>
+    </Box>
   );
 }
 type GlossarySearchProps = ReturnType<typeof useGlossarySearch>;

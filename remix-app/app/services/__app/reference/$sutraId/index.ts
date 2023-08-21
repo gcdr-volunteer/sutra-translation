@@ -63,7 +63,7 @@ export const handleGetAllRollsBySutraId = async (sutraId: string) => {
     const workingOnRollsIds = targetRolls.map((roll) => roll.origin_rollId);
     return originRolls
       .map((roll) => ({
-        firstTime: workingOnRollsIds.includes(roll.SK || ''),
+        firstTime: !workingOnRollsIds.includes(roll.SK || ''),
         slug: roll.SK,
         ...roll,
       })) // we use num field to order the roll

@@ -137,18 +137,20 @@ export default function AdminRoute() {
     );
   });
   return (
-    <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
-      <Heading as='h5' size={'md'}>
-        Admin
-      </Heading>
-      <Divider mt={4} mb={4} borderColor={'primary.300'} />
-      <Heading as='h5' size={'md'}>
-        User Management
-      </Heading>
-      {usersComp}
-      <SutraManagement />
-      <AdminActionButtons teams={teams} langs={langs} sutras={sutras} />
-    </Flex>
+    <Box h='100vh' w='100%'>
+      <Flex p={10} background='secondary.800' flexDir='column' h='100%'>
+        <Heading as='h5' size={'md'}>
+          Admin
+        </Heading>
+        <Divider mt={4} mb={4} borderColor={'primary.300'} />
+        <Heading as='h5' size={'md'}>
+          User Management
+        </Heading>
+        {usersComp}
+        <SutraManagement />
+        <AdminActionButtons teams={teams} langs={langs} sutras={sutras} />
+      </Flex>
+    </Box>
   );
 }
 

@@ -5,8 +5,6 @@ import {
   AlertTitle,
   Box,
   Flex,
-  Grid,
-  GridItem,
   Heading,
   Stat,
   StatLabel,
@@ -137,23 +135,44 @@ export default function DashboardRoute() {
       <Box mb={4}>
         <TranslationProtocol />
       </Box>
-      <Grid h='300px' templateRows='repeat(2, 1fr)' templateColumns='repeat(5, 1fr)' gap={4}>
-        <GridItem bg='papayawhip' borderRadius={10} padding={2}>
-          <Stat>
-            <StatLabel>Supported Languages</StatLabel>
-            <StatNumber>{langs?.length ?? 0}</StatNumber>
-            <StatHelpText>
-              {langs?.length
-                ? langs.map((lang) => (
-                    <Tag key={lang.alias} size={'sm'} variant='solid' colorScheme='teal' mr={1}>
-                      {lang.alias}
-                    </Tag>
-                  ))
-                : null}
-            </StatHelpText>
-          </Stat>
-        </GridItem>
-        <GridItem rowSpan={2}>
+      <Flex
+        flexDirection={{ sm: 'column', md: 'column', lg: 'column', xl: 'row' }}
+        gap={4}
+        w='100%'
+      >
+        <VStack flex={1}>
+          <Box bg='papayawhip' borderRadius={10} padding={2} w='100%'>
+            <Stat>
+              <StatLabel>Supported Languages</StatLabel>
+              <StatNumber>{langs?.length ?? 0}</StatNumber>
+              <StatHelpText>
+                {langs?.length
+                  ? langs.map((lang) => (
+                      <Tag key={lang.alias} size={'sm'} variant='solid' colorScheme='teal' mr={1}>
+                        {lang.alias}
+                      </Tag>
+                    ))
+                  : null}
+              </StatHelpText>
+            </Stat>
+          </Box>
+          <Box bg='papayawhip' borderRadius={10} padding={2} w='100%'>
+            <Stat>
+              <StatLabel>Number of Teams</StatLabel>
+              <StatNumber>{teams?.length ?? 0}</StatNumber>
+              <StatHelpText>
+                {teams?.length
+                  ? teams?.map((team) => (
+                      <Tag key={team.alias} size={'sm'} variant='solid' colorScheme='cyan' mr={1}>
+                        {team?.alias}
+                      </Tag>
+                    ))
+                  : null}
+              </StatHelpText>
+            </Stat>
+          </Box>
+        </VStack>
+        <Box flex={1}>
           <Heading size={'sm'}>{tripitakaStats.name} (sutras)</Heading>
           <ResponsiveContainer width='100%' height='90%'>
             <PieChart>
@@ -173,8 +192,8 @@ export default function DashboardRoute() {
               <Legend />
             </PieChart>
           </ResponsiveContainer>
-        </GridItem>
-        <GridItem rowSpan={2}>
+        </Box>
+        <Box flex={1}>
           <Heading size={'sm'}>{sutraMetric?.[0]?.name} (rolls)</Heading>
           <ResponsiveContainer width='100%' height='90%'>
             <PieChart>
@@ -194,29 +213,14 @@ export default function DashboardRoute() {
               <Legend />
             </PieChart>
           </ResponsiveContainer>
-        </GridItem>
-        <GridItem rowSpan={2} colSpan={2}>
+        </Box>
+        <Box flexGrow={1}>
           <Heading as={'h3'} size='md'>
             Comments to be resolved
           </Heading>
           <VStack spacing={2}>{commentsComp}</VStack>
-        </GridItem>
-        <GridItem bg='papayawhip' borderRadius={10} padding={2}>
-          <Stat>
-            <StatLabel>Number of Teams</StatLabel>
-            <StatNumber>{teams?.length ?? 0}</StatNumber>
-            <StatHelpText>
-              {teams?.length
-                ? teams?.map((team) => (
-                    <Tag key={team.alias} size={'sm'} variant='solid' colorScheme='cyan' mr={1}>
-                      {team?.alias}
-                    </Tag>
-                  ))
-                : null}
-            </StatHelpText>
-          </Stat>
-        </GridItem>
-      </Grid>
+        </Box>
+      </Flex>
     </Flex>
   );
 }

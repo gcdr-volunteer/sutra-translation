@@ -140,7 +140,11 @@ export const MessageDialog = (props: CommentDialogPayload) => {
         <DrawerCloseButton />
         <DrawerHeader>Comment Workspace</DrawerHeader>
         <DrawerBody>
-          <Flex direction={'row'} gap={4} alignItems={'stretch'}>
+          <Flex
+            direction={{ sm: 'column', md: 'column', lg: 'row', xl: 'row' }}
+            gap={4}
+            alignItems={'stretch'}
+          >
             <Flex flex={2} direction={'column'}>
               <Box flexGrow={1} w='100%' onMouseUp={(e) => e.stopPropagation()}>
                 <HighlightWithinTextareaCC

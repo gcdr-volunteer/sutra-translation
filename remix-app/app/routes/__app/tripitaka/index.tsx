@@ -80,7 +80,7 @@ export default function TripitakaRoute() {
     }>() || {};
   const sutraComp = data.map((sutra) => <Sutra key={sutra.slug} {...sutra} />);
   return (
-    <Center>
+    <Center h='100vh'>
       <SimpleGrid
         columns={1}
         maxW={{ base: 'md', lg: 'lg', xl: 'xl' }}

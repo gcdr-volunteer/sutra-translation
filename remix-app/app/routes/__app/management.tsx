@@ -87,29 +87,31 @@ export async function action({ request }: ActionArgs) {
 export default function ManagementRoute() {
   const { teams, sutras, refBooks } = useLoaderData<typeof loader>();
   return (
-    <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
-      <TableContainer>
-        <Table variant='simple'>
-          <Thead>
-            <Tr>
-              <Th>Reference Book Name</Th>
-              <Th>Sutra Name</Th>
-              <Th>Team Name</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {refBooks.map((refbook) => (
-              <Tr key={refbook.bookname}>
-                <Td>{refbook.bookname}</Td>
-                <Td>{refbook.sutra}</Td>
-                <Td>{refbook.team}</Td>
+    <Box h='100vh' w='100%'>
+      <Flex p={10} background='secondary.800' flexDir='column' h='100%'>
+        <TableContainer>
+          <Table variant='simple'>
+            <Thead>
+              <Tr>
+                <Th>Reference Book Name</Th>
+                <Th>Sutra Name</Th>
+                <Th>Team Name</Th>
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </TableContainer>
-      <ManagementButtons teams={teams} sutras={sutras} />
-    </Flex>
+            </Thead>
+            <Tbody>
+              {refBooks.map((refbook) => (
+                <Tr key={refbook.bookname}>
+                  <Td>{refbook.bookname}</Td>
+                  <Td>{refbook.sutra}</Td>
+                  <Td>{refbook.team}</Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </TableContainer>
+        <ManagementButtons teams={teams} sutras={sutras} />
+      </Flex>
+    </Box>
   );
 }
 

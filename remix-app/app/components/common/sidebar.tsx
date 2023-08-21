@@ -10,6 +10,9 @@ import {
   Box,
   useTheme,
   Spinner,
+  useMediaQuery,
+  Circle,
+  useBoolean,
 } from '@chakra-ui/react';
 import { NavLink } from '@remix-run/react';
 import { FiHome } from 'react-icons/fi';
@@ -19,6 +22,7 @@ import { Can } from '~/authorisation';
 import { useContext } from 'react';
 import { AppContext } from '~/routes/__app';
 import { useTransitionState } from '../../hooks';
+import { ArrowRightIcon, ArrowLeftIcon } from '@chakra-ui/icons';
 export const Sidebar = () => {
   const { isLoading, isSubmitting } = useTransitionState();
   const { currentUser } = useContext(AppContext);
@@ -31,6 +35,32 @@ export const Sidebar = () => {
   const nonActiveLinkColor = {
     color: secondary[500],
   };
+
+  const [expand, setExpand] = useBoolean(true);
+
+  const [isLargerThan800] = useMediaQuery('(min-width: 800px)');
+
+  if (expand && !isLargerThan800) {
+    return (
+      <Box w='50px' background='primary.800'>
+        <Flex flexDir='column' w='100%' alignItems='center' mb={4} h='100%'>
+          <Flex mt={4} alignItems='center' flexDir='row' justifyContent='center' h='50px'>
+            <Avatar
+              size='sm'
+              name={currentUser?.username ?? 'U'}
+              src='https://bit.ly/broken-link'
+            />
+          </Flex>
+          <Box flexGrow={1} />
+          <Box onClick={setExpand.toggle} mb={2} cursor={'pointer'}>
+            <Circle bg={'primary.300'} size={8}>
+              <ArrowRightIcon boxSize={4} color={'secondary.800'} />
+            </Circle>
+          </Box>
+        </Flex>
+      </Box>
+    );
+  }
   return (
     <Box w='250px' background='primary.800'>
       <Flex
@@ -220,6 +250,11 @@ export const Sidebar = () => {
                 <Text color='secondary.500'>{currentUser?.roles[0]}</Text>
               </NavLink>
             </Flex>
+            {!isLargerThan800 ? (
+              <Box onClick={setExpand.toggle}>
+                <ArrowLeftIcon boxSize={4} color={'secondary.800'} />
+              </Box>
+            ) : undefined}
           </Flex>
         </Flex>
       </Flex>

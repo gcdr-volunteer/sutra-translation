@@ -337,7 +337,7 @@ export const ParagraphPair = ({
     }
   }, [target.comments, target.SK]);
   return (
-    <Flex flexDir={'row'} gap={4}>
+    <Flex flexDir={{ sm: 'column', md: 'column', lg: 'column', xl: 'row' }} gap={4}>
       <Paragraph font={font} background='secondary.300' content={origin?.content} />
       <ParagraphTarget
         font={font}
