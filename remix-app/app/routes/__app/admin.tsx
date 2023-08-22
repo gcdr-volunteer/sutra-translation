@@ -137,7 +137,7 @@ export default function AdminRoute() {
     );
   });
   return (
-    <Box h='100vh' w='100%'>
+    <Box w='100%' overflowY={'scroll'}>
       <Flex p={10} background='secondary.800' flexDir='column' h='100%'>
         <Heading as='h5' size={'md'}>
           Admin

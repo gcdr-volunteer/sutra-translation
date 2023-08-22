@@ -12,6 +12,7 @@ import {
   StatHelpText,
   Tag,
   VStack,
+  SimpleGrid,
 } from '@chakra-ui/react';
 import { json } from '@remix-run/node';
 import type { LoaderArgs } from '@remix-run/node';
@@ -115,8 +116,8 @@ export default function DashboardRoute() {
       3: 'error',
     }[priorityLevel] as AlertStatus;
     return (
-      <Link key={comment} to={`${path}#${paragraphId}`} style={{ width: '100%' }}>
-        <Alert status={statusValue} maxW={'lg'}>
+      <Link key={comment} to={`${path}#${paragraphId}`}>
+        <Alert status={statusValue}>
           <AlertIcon />
           <AlertTitle
             textOverflow={'ellipsis'}
@@ -136,16 +137,17 @@ export default function DashboardRoute() {
   const COLORS = ['#0088FE', '#00C49F', '#FF8042'];
 
   return (
-    <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
+    <Flex p={10} background='secondary.800' flexDir='column' w='100%' overflowY={'scroll'}>
       <Box mb={4}>
         <TranslationProtocol />
       </Box>
-      <Flex
+      <SimpleGrid
+        columns={{ sm: 1, lg: 4 }}
         flexDirection={{ sm: 'column', md: 'column', lg: 'column', xl: 'row' }}
         gap={4}
         w='100%'
       >
-        <VStack flex={1}>
+        <VStack flex={'1 0 auto'}>
           <Box bg='papayawhip' borderRadius={10} padding={2} w='100%'>
             <Stat>
               <StatLabel>Supported Languages</StatLabel>
@@ -177,9 +179,9 @@ export default function DashboardRoute() {
             </Stat>
           </Box>
         </VStack>
-        <Box flex={1}>
+        <Box flex={'1 0 auto'}>
           <Heading size={'sm'}>{tripitakaStats.name} (sutras)</Heading>
-          <ResponsiveContainer width='100%' height='90%'>
+          <ResponsiveContainer width='100%' height='93%'>
             <PieChart>
               <Pie
                 data={tripitakaMetric}
@@ -198,9 +200,9 @@ export default function DashboardRoute() {
             </PieChart>
           </ResponsiveContainer>
         </Box>
-        <Box flex={1}>
+        <Box flex={'1 0 auto'}>
           <Heading size={'sm'}>{sutraMetric?.[0]?.name} (rolls)</Heading>
-          <ResponsiveContainer width='100%' height='90%'>
+          <ResponsiveContainer width='100%' height='93%'>
             <PieChart>
               <Pie
                 data={sutraMetric?.[0]?.data}
@@ -219,13 +221,15 @@ export default function DashboardRoute() {
             </PieChart>
           </ResponsiveContainer>
         </Box>
-        <Box flexGrow={1}>
+        <Box flexGrow={1} overflowX={'auto'}>
           <Heading as={'h3'} size='md'>
             Comments to be resolved
           </Heading>
-          <VStack spacing={2}>{commentsComp}</VStack>
+          <VStack spacing={2} alignItems={'stretch'}>
+            {commentsComp}
+          </VStack>
         </Box>
-      </Flex>
+      </SimpleGrid>
     </Flex>
   );
 }

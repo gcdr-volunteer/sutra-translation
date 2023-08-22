@@ -1,12 +1,16 @@
-import { Box, Heading, ListItem, OrderedList, SimpleGrid, Text } from '@chakra-ui/react';
+import { Box, Heading, ListItem, OrderedList, Text } from '@chakra-ui/react';
 
 export const TranslationProtocol = () => {
   return (
-    <Box>
-      <Heading textAlign={'center'} as='h3' size='lg'>
+    <Box wordBreak={'break-word'}>
+      <Heading
+        textAlign={'center'}
+        as='h3'
+        size={{ base: 'xl', sm: 'sm', md: 'md', '2xl': 'lg', xs: 'xs' }}
+      >
         The Eight Guidelines for Translators and Volunteers 譯經八項基本守則
       </Heading>
-      <SimpleGrid columns={1} spacing={4}>
+      <Box>
         <OrderedList>
           <ListItem>
             <Text>
@@ -83,7 +87,7 @@ export const TranslationProtocol = () => {
             </Text>
           </ListItem>
         </OrderedList>
-      </SimpleGrid>
+      </Box>
     </Box>
   );
 };

@@ -43,13 +43,16 @@ export const Sidebar = () => {
   if (expand && !isLargerThan800) {
     return (
       <Box w='50px' background='primary.800'>
-        <Flex flexDir='column' w='100%' alignItems='center' mb={4} h='100%'>
-          <Box onClick={setExpand.toggle} mt={2} cursor={'pointer'}>
-            <Circle bg={'primary.300'} size={8}>
-              <ArrowRightIcon boxSize={4} color={'secondary.800'} />
-            </Circle>
-          </Box>
-          <Box flexGrow={1} />
+        <Flex
+          flexDir='column'
+          w='100%'
+          alignItems='center'
+          mb={4}
+          h='100vh'
+          pos={'sticky'}
+          top='0'
+          left='0'
+        >
           <Flex mt={4} alignItems='center' flexDir='row' justifyContent='center' h='50px'>
             <Avatar
               size='sm'
@@ -57,6 +60,12 @@ export const Sidebar = () => {
               src='https://bit.ly/broken-link'
             />
           </Flex>
+          <Box flexGrow={1} />
+          <Box onClick={setExpand.toggle} mb={4} cursor={'pointer'}>
+            <Circle bg={'primary.300'} size={8}>
+              <ArrowRightIcon boxSize={4} color={'secondary.800'} />
+            </Circle>
+          </Box>
         </Flex>
       </Box>
     );
