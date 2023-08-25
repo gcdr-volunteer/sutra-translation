@@ -146,6 +146,10 @@ export async function RemixStack({ stack }: StackContext) {
     actions: ['es:Search', 'es:ESHttpPost', 'es:ESHttpGet'],
     resources: ['*'],
   });
+  const sesAccess = new iam.PolicyStatement({
+    actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+    resources: ['*'],
+  });
   site.attachPermissions([
     userTable,
     referenceTable,
@@ -153,6 +157,7 @@ export async function RemixStack({ stack }: StackContext) {
     historyTable,
     topic,
     esAccess,
+    sesAccess,
   ]);
   stack.addOutputs({
     URL: site.url,

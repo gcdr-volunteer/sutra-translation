@@ -99,8 +99,6 @@ export const handleNewComment = async (newComment: Omit<Comment, 'kind'>) => {
       obj: newComment,
     });
     logger.log(handleNewComment.name, 'result', result);
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     await createNewComment(result);
     return created({ data: {}, intent: Intent.CREATE_COMMENT });
   } catch (errors) {

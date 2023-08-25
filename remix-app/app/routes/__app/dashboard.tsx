@@ -107,7 +107,7 @@ export default function DashboardRoute() {
   }, [] as Record<string, string | number>[]);
 
   comments?.sort((a, b) => b.priority - a.priority);
-  const commentsComp = comments.map((ccomment) => {
+  const commentsComp = comments.map((ccomment, index) => {
     const { path, content, comment, priority, paragraphId } = ccomment;
     const priorityLevel = priority as number;
     const statusValue = {
@@ -116,7 +116,7 @@ export default function DashboardRoute() {
       3: 'error',
     }[priorityLevel] as AlertStatus;
     return (
-      <Link key={comment} to={`${path}#${paragraphId}`}>
+      <Link key={index} to={`${path}#${paragraphId}`}>
         <Alert status={statusValue}>
           <AlertIcon />
           <AlertTitle
@@ -221,15 +221,15 @@ export default function DashboardRoute() {
             </PieChart>
           </ResponsiveContainer>
         </Box>
-        <Box flexGrow={1} overflowX={'auto'}>
-          <Heading as={'h3'} size='md'>
-            Comments to be resolved
-          </Heading>
-          <VStack spacing={2} alignItems={'stretch'}>
-            {commentsComp}
-          </VStack>
-        </Box>
       </SimpleGrid>
+      <Box flexGrow={1} overflowX={'auto'}>
+        <Heading as={'h3'} size='md'>
+          Comments to be resolved
+        </Heading>
+        <VStack spacing={2} alignItems={'stretch'}>
+          {commentsComp}
+        </VStack>
+      </Box>
     </Flex>
   );
 }
