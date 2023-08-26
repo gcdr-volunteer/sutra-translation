@@ -85,8 +85,8 @@ export const TextWithComment = ({
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const parent = parentRef.current;
-      if (parent) {
-        const cleanedText = selection.toString().trim();
+      if (parent && selection.toString().trim()) {
+        const cleanedText = selection.toString().trim().replace(/\n/g, ' ');
         setSelectedText(cleanedText);
       }
     }
@@ -96,7 +96,14 @@ export const TextWithComment = ({
     if (selectedText?.length) {
       const regex = buildRegex([selectedText]);
       if (regex) {
-        const matches = text.match(regex);
+        const withOutNewLine = text.replace(/\n/g, ' ');
+        const matches = withOutNewLine.match(regex);
+        console.log({
+          regex,
+          matches,
+          selectedText,
+          withOutNewLine,
+        });
         if (matches && matches?.length >= 2) {
           toast({
             title: 'Select words failed',
@@ -120,7 +127,7 @@ export const TextWithComment = ({
       .filter((comment) => !comment?.resolved);
   }, [comments]);
   const chunks = useHighlight({
-    text,
+    text: text.replace(/\n/g, ' '),
     query: commentsNotResolved.map((comment) => comment.content),
   });
 
@@ -140,11 +147,11 @@ export const TextWithComment = ({
         onMouseUp={handleMouseUp}
         ref={parentRef}
       >
-        {chunks.map(({ match, text: segment }) => {
+        {chunks.map(({ match, text: segment }, index) => {
           if (match) {
             return (
               <MessageWithHighlightComp
-                key={segment}
+                key={index}
                 segment={segment}
                 comments={comments}
                 fullText={text}

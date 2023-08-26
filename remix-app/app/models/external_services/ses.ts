@@ -65,7 +65,7 @@ export const sendRegistrationEmail = async ({
       },
     };
 
-    const result = sesClient().send(new SendEmailCommand(input));
+    const result = await sesClient().send(new SendEmailCommand(input));
     logger.log(sendRegistrationEmail.name, 'result', result);
   } catch (error) {
     logger.error(sendRegistrationEmail.name, 'error', error);

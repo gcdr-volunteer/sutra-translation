@@ -146,8 +146,9 @@ export default function DashboardRoute() {
         flexDirection={{ sm: 'column', md: 'column', lg: 'column', xl: 'row' }}
         gap={4}
         w='100%'
+        mb={4}
       >
-        <VStack flex={'1 0 auto'}>
+        <VStack flex={'1 0 auto'} justifyContent={'space-between'}>
           <Box bg='papayawhip' borderRadius={10} padding={2} w='100%'>
             <Stat>
               <StatLabel>Supported Languages</StatLabel>
@@ -223,7 +224,7 @@ export default function DashboardRoute() {
         </Box>
       </SimpleGrid>
       <Box flexGrow={1} overflowX={'auto'}>
-        <Heading as={'h3'} size='md'>
+        <Heading as={'h4'} size='lg'>
           Comments to be resolved
         </Heading>
         <VStack spacing={2} alignItems={'stretch'}>

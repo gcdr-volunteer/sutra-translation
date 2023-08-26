@@ -26,7 +26,11 @@ const newTranslationSchema = () => {
   const baseSchema = initialSchema();
   // TODO: using strict().noUnknown() to stop unknown params
   const translationSchema = baseSchema.shape({
-    content: yup.string().trim().required('submitted tranlation cannot be empty'),
+    content: yup
+      .string()
+      .trim()
+      .transform((value) => value.replace(/\n/g, ' '))
+      .required('submitted tranlation cannot be empty'),
     PK: yup.string().trim().required(),
     SK: yup.string().trim().required(),
     kind: yup.mixed<'PARAGRAPH'>().default('PARAGRAPH'),

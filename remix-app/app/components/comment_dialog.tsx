@@ -53,7 +53,6 @@ export const MessageDialog = (props: CommentDialogPayload) => {
   }, [messages]);
 
   const highlightedText = useMemo(() => {
-    console.log({ content, messages });
     return messages
       .filter((message) => Boolean(message.content))
       .filter((message) => message.content === content)

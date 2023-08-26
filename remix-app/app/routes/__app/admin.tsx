@@ -1,5 +1,6 @@
 import type { ActionArgs } from '@remix-run/node';
 import type { Team, User, Lang, LangCode, Role, Sutra, CreatedType } from '~/types';
+import { created } from 'remix-utils';
 import {
   Flex,
   Box,
@@ -34,12 +35,14 @@ import {
   getLoaderData,
   feedSutra,
   handleUpdateUser,
+  // handleSendRegistrationEmail,
 } from '~/services/__app/admin';
 import { UserForm, TeamForm } from '~/components';
 import { LangForm } from '~/components/lang_form';
 import { Intent } from '~/types/common';
 import { getAllSutraThatFinished } from '~/models/sutra';
 import { useEffect, useState } from 'react';
+import { logger } from '../../utils';
 
 export const loader = async () => {
   const { teams, users, langs } = await getLoaderData();
@@ -68,61 +71,67 @@ type EntryData = {
   roles: Role['name'];
 };
 export const action = async ({ request }: ActionArgs) => {
-  const formData = await request.formData();
-  const entryData = Object.fromEntries(formData.entries());
-  const {
-    intent,
-    team_name,
-    team_alias,
-    lang_name,
-    lang_alias,
-    username,
-    email,
-    password,
-    team,
-    roles,
-    origin_lang,
-    target_lang,
-    working_sutra,
-  } = entryData as EntryData;
-  if (intent && intent === Intent.CREATE_USER) {
-    // TODO: we currently only support one selection of role, we will support
-    // multiple roles in the future
-    return await handleCreateNewUser({
-      working_sutra,
+  try {
+    const formData = await request.formData();
+    const entryData = Object.fromEntries(formData.entries());
+    const {
+      intent,
+      team_name,
+      team_alias,
+      lang_name,
+      lang_alias,
       username,
       email,
       password,
       team,
-      roles: roles as unknown as RoleType[],
+      roles,
       origin_lang,
       target_lang,
-      first_login: true,
-    });
+      working_sutra,
+    } = entryData as EntryData;
+    if (intent && intent === Intent.CREATE_USER) {
+      // TODO: we currently only support one selection of role, we will support
+      // multiple roles in the future
+      await handleCreateNewUser({
+        working_sutra,
+        username,
+        email,
+        password,
+        team,
+        roles: roles as unknown as RoleType[],
+        origin_lang,
+        target_lang,
+        first_login: true,
+      });
+      // await handleSendRegistrationEmail({ username, email });
+      return created({ data: {}, intent: Intent.CREATE_USER });
+    }
+    if (intent && intent === Intent.UPDATE_USER) {
+      const user = {
+        ...entryData,
+        PK: entryData.PK as string,
+        SK: entryData.SK as string,
+        ...(entryData.roles ? { roles: [entryData.roles] as RoleType[] } : undefined),
+      };
+      return handleUpdateUser(user);
+    }
+    if (intent && intent === Intent.CREATE_TEAM) {
+      return await handleCreateNewTeam({ name: team_name as string, alias: team_alias as string });
+    }
+    if (intent && intent === Intent.CREATE_LANG) {
+      return await handleCreateNewLang({
+        name: lang_name,
+        alias: lang_alias,
+      });
+    }
+    if (intent && intent === Intent.CREATE_SUTRA) {
+      const { sutra, roll } = entryData as { sutra: string; roll: string };
+      await feedSutra({ sutra, roll });
+    }
+  } catch (error) {
+    logger.error('admin.action', 'error', error);
+    return json({});
   }
-  if (intent && intent === Intent.UPDATE_USER) {
-    const user = {
-      ...entryData,
-      PK: entryData.PK as string,
-      SK: entryData.SK as string,
-      ...(entryData.roles ? { roles: [entryData.roles] as RoleType[] } : undefined),
-    };
-    return handleUpdateUser(user);
-  }
-  if (intent && intent === Intent.CREATE_TEAM) {
-    return await handleCreateNewTeam({ name: team_name as string, alias: team_alias as string });
-  }
-  if (intent && intent === Intent.CREATE_LANG) {
-    return await handleCreateNewLang({
-      name: lang_name,
-      alias: lang_alias,
-    });
-  }
-  if (intent && intent === Intent.CREATE_SUTRA) {
-    const { sutra, roll } = entryData as { sutra: string; roll: string };
-    await feedSutra({ sutra, roll });
-  }
-  return json({});
 };
 
 export default function AdminRoute() {

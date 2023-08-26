@@ -14,6 +14,7 @@ import { logger } from '~/utils';
 import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import { msgClient } from '~/models/external_services/sns';
 import { PublishCommand } from '@aws-sdk/client-sns';
+import { sendRegistrationEmail } from '../../models/external_services/ses';
 
 const langCodeValidator = yup
   .mixed<LangCode>()
@@ -126,11 +127,21 @@ export const handleCreateNewUser = async (user: Omit<User, 'kind'>) => {
     });
     logger.log(handleCreateNewUser.name, 'result', result);
     await createNewUser(result);
-    return created({ data: {}, intent: Intent.CREATE_USER });
   } catch (errors) {
     logger.error(handleCreateNewUser.name, 'errors', errors);
     return badRequest({ errors: errors, intent: Intent.CREATE_USER });
   }
+};
+
+export const handleSendRegistrationEmail = async ({
+  email,
+  username,
+}: {
+  email: string;
+  username: string;
+}) => {
+  logger.log(handleSendRegistrationEmail.name, 'params', { email, username });
+  await sendRegistrationEmail({ email, username });
 };
 
 export const handleUpdateUser = async (user: UpdateType<User>) => {
