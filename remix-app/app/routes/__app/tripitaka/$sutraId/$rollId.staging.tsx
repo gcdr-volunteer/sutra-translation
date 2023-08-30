@@ -167,7 +167,7 @@ export const action = async ({ request, params }: ActionArgs) => {
 
 export default function ParagraphStagingRoute() {
   const loaderData = useLoaderData<typeof loader>();
-  const { footnotes, references } = loaderData;
+  const { references } = loaderData;
   const actionData = useActionData<{
     payload: { paragraphIndex: number; sentenceIndex: number } | Record<string, string>;
     intent: Intent;
@@ -277,6 +277,7 @@ export default function ParagraphStagingRoute() {
                   in={paragraphFinish[i] === true ? false : !sentenceFinish[`${i}.${j}`]}
                   animateOpacity={true}
                   unmountOnExit={true}
+                  style={{ overflow: 'visible' }}
                 >
                   <TranlationWorkspace
                     isFirst={j === loaderData.sentenceIndex + 1}
@@ -419,12 +420,6 @@ function TranlationWorkspace({
         const newLocation = location.pathname.replace('/staging', '');
         navigate(newLocation);
       }
-      if (!finish) {
-        window.scrollTo({
-          top: 0,
-          left: 0,
-        });
-      }
     }
   }, [actionData, location.pathname, navigate, totalParagraphs]);
 
@@ -452,112 +447,118 @@ function TranlationWorkspace({
 
   // TODO: refactor this code to sub components
   return (
-    <Flex gap={4} flexDir='row' justifyContent='space-between'>
-      <VStack flex={1} spacing={4}>
-        <Card w='100%' background={'secondary.200'} borderRadius={12}>
-          <CardHeader>
-            <Heading size='sm'>Origin</Heading>
-          </CardHeader>
-          <CardBody>
-            <Text fontSize={fontSize} fontFamily={fontFamilyOrigin}>
-              {origin.content}
-            </Text>
-          </CardBody>
-        </Card>
-        <Card w='100%' background={'secondary.300'} borderRadius={12}>
-          <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
-            <Heading size='sm'>OpenAI</Heading>
-            <ButtonGroup variant='outline' spacing='6'>
-              <IconButton
-                isLoading={isSubmitting && isFirst}
-                icon={<RepeatIcon />}
-                onClick={() => {
-                  setRefresh((pre) => pre + 1);
-                }}
-                aria-label='refresh'
-              />
-              <IconButton
-                icon={<CopyIcon />}
-                aria-label='copy'
-                onClick={() => {
-                  setContent(latestTranslation || translation);
-                }}
-              />
-            </ButtonGroup>
-          </CardHeader>
-          <CardBody>
-            <Text fontFamily={fontFamilyTarget} fontSize={fontSize}>
-              {latestTranslation || translation}
-            </Text>
-          </CardBody>
-        </Card>
-        {reference?.content
-          ? JSON.parse(reference.content)?.map((reference: { name: string; content: string }) => (
-              <Card key={reference.content} w='100%' background={'secondary.400'} borderRadius={12}>
-                <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
-                  <Heading size='sm'>{reference.name}</Heading>
-                  <ButtonGroup variant='outline' spacing='6'>
-                    <IconButton
-                      icon={<CopyIcon />}
-                      aria-label='copy'
-                      onClick={() => {
-                        setContent(reference.content);
-                      }}
-                    />
-                  </ButtonGroup>
-                </CardHeader>
-                <CardBody>
-                  <Text fontFamily={fontFamilyTarget} fontSize={fontSize}>
-                    {reference?.content ?? ''}
-                  </Text>
-                </CardBody>
-              </Card>
-            ))
-          : null}
-        <Can I='Update' this='Paragraph'>
-          <Card background={'secondary.500'} w='100%' borderRadius={12}>
-            <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
-              <Heading size='sm'>Workspace</Heading>
-            </CardHeader>
-            <CardBody as={Flex} flexDir={'column'}>
-              <ButtonGroup colorScheme={'iconButton'} variant={'outline'} p={4} mb={2}>
-                <Tooltip label='open glossary' openDelay={1000}>
+    <Flex gap={4} flexDir='column' justifyContent='space-between'>
+      <Card
+        w='100%'
+        pos={'sticky'}
+        overflowY={'auto'}
+        background={'secondary.200'}
+        borderRadius={12}
+        top={0}
+        zIndex={10}
+      >
+        <CardHeader>
+          <Heading size='sm'>Origin</Heading>
+        </CardHeader>
+        <CardBody>
+          <Text fontSize={fontSize} fontFamily={fontFamilyOrigin}>
+            {origin.content}
+          </Text>
+        </CardBody>
+      </Card>
+      <Card w='100%' background={'secondary.300'} borderRadius={12}>
+        <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+          <Heading size='sm'>OpenAI</Heading>
+          <ButtonGroup variant='outline' spacing='6'>
+            <IconButton
+              isLoading={isSubmitting && isFirst}
+              icon={<RepeatIcon />}
+              onClick={() => {
+                setRefresh((pre) => pre + 1);
+              }}
+              aria-label='refresh'
+            />
+            <IconButton
+              icon={<CopyIcon />}
+              aria-label='copy'
+              onClick={() => {
+                setContent(latestTranslation || translation);
+              }}
+            />
+          </ButtonGroup>
+        </CardHeader>
+        <CardBody>
+          <Text fontFamily={fontFamilyTarget} fontSize={fontSize}>
+            {latestTranslation || translation}
+          </Text>
+        </CardBody>
+      </Card>
+      {reference?.content
+        ? JSON.parse(reference.content)?.map((reference: { name: string; content: string }) => (
+            <Card key={reference.content} w='100%' background={'secondary.400'} borderRadius={12}>
+              <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+                <Heading size='sm'>{reference.name}</Heading>
+                <ButtonGroup variant='outline' spacing='6'>
                   <IconButton
-                    onClick={setGlossary.toggle}
-                    icon={<BiTable />}
-                    aria-label='glossary button'
+                    icon={<CopyIcon />}
+                    aria-label='copy'
+                    onClick={() => {
+                      setContent(reference.content);
+                    }}
                   />
-                </Tooltip>
-                <FootnoteModal
-                  setFootnotes={setFootnotes}
-                  paragraphId={origin.SK}
-                  content={content}
-                  cursorPos={cursorPos}
+                </ButtonGroup>
+              </CardHeader>
+              <CardBody>
+                <Text fontFamily={fontFamilyTarget} fontSize={fontSize}>
+                  {reference?.content ?? ''}
+                </Text>
+              </CardBody>
+            </Card>
+          ))
+        : null}
+      <Can I='Update' this='Paragraph'>
+        <Card background={'secondary.500'} w='100%' borderRadius={12}>
+          <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+            <Heading size='sm'>Workspace</Heading>
+          </CardHeader>
+          <CardBody as={Flex} flexDir={'column'}>
+            <ButtonGroup colorScheme={'iconButton'} variant={'outline'} p={4} mb={2}>
+              <Tooltip label='open glossary' openDelay={1000}>
+                <IconButton
+                  onClick={setGlossary.toggle}
+                  icon={<BiTable />}
+                  aria-label='glossary button'
                 />
-                <SearchModal />
-                <Button
-                  marginLeft={'auto'}
-                  onClick={handleSubmitTranslation}
-                  colorScheme={'iconButton'}
-                  isLoading={isSubmitting && isFirst}
-                >
-                  Submit
-                </Button>
-              </ButtonGroup>
-              {glossary ? <GlossaryModal /> : null}
-              <Form method='post' style={{ height: '100%' }}>
-                <Textarea
-                  height={'150px'}
-                  fontFamily={fontFamilyTarget}
-                  fontSize={fontSize}
-                  value={text || content}
-                  onChange={(e) => setText(e.target.value)}
-                />
-              </Form>
-            </CardBody>
-          </Card>
-        </Can>
-      </VStack>
+              </Tooltip>
+              <FootnoteModal
+                setFootnotes={setFootnotes}
+                paragraphId={origin.SK}
+                content={content}
+                cursorPos={cursorPos}
+              />
+              <SearchModal />
+              <Button
+                marginLeft={'auto'}
+                onClick={handleSubmitTranslation}
+                colorScheme={'iconButton'}
+                isLoading={isSubmitting && isFirst}
+              >
+                Submit
+              </Button>
+            </ButtonGroup>
+            {glossary ? <GlossaryModal /> : null}
+            <Form method='post' style={{ height: '100%' }}>
+              <Textarea
+                height={'150px'}
+                fontFamily={fontFamilyTarget}
+                fontSize={fontSize}
+                value={text || content}
+                onChange={(e) => setText(e.target.value)}
+              />
+            </Form>
+          </CardBody>
+        </Card>
+      </Can>
     </Flex>
   );
 }
