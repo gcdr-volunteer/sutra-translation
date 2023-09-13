@@ -73,3 +73,45 @@ export const translate = async (
     return 'not available';
   }
 };
+
+export const baseGPT = async ({
+  text,
+  randomness = 0.4,
+}: {
+  text: string;
+  randomness?: number;
+}) => {
+  // compose a prompt by using openapi api
+
+  const messages = [
+    {
+      role: 'user',
+      content: `${text}`,
+    },
+  ] as ChatCompletionRequestMessage[];
+  try {
+    const completion = await openai().createChatCompletion(
+      {
+        model: 'gpt-4-0613',
+        messages,
+        temperature: randomness,
+      },
+      { timeout: 15 * 1000 /* 10 seconds timeout*/ }
+    );
+
+    const result = completion?.data?.choices[0].message?.content;
+
+    return result || 'not available';
+  } catch (error) {
+    const axiosError = error as AxiosError;
+    if (axiosError.code === 'ECONNABORTED' && axiosError?.message?.includes('timeout')) {
+      logger.warn(translate.name, 'openai server timeout');
+      return 'openai server timeout, please retry after a while';
+    }
+    if (axiosError.response) {
+      logger.error(translate.name, 'response', axiosError.response);
+      return axiosError.response?.statusText;
+    }
+    return 'not available';
+  }
+};

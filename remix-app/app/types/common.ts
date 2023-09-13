@@ -27,6 +27,7 @@ export enum Intent {
   CREATE_BULK_PARAGRAPH = 'create_bulk_paragraph',
   READ_DEEPL = 'read_deepl',
   READ_OPENAI = 'read_openai',
+  ASK_OPENAI = 'ask_openai',
   UPDATE_OPENAI = 'update_openai',
   READ_OPENSEARCH = 'read_opensearch',
   MARK_ROLL_COMPLETE = 'mark_roll_complete',

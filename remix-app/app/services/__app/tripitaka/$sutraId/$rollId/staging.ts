@@ -20,7 +20,7 @@ import { esClient } from '~/models/external_services/opensearch';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { getFootnotesByPartitionKey, upsertFootnote } from '~/models/footnote';
-import { translate } from '~/models/external_services/openai';
+import { baseGPT, translate } from '~/models/external_services/openai';
 
 const newTranslationSchema = () => {
   const baseSchema = initialSchema();
@@ -131,12 +131,16 @@ export const handleOpenaiFetch = async ({
       return acc;
     }, {} as Record<string, string>);
     logger.log(handleOpenaiFetch.name, 'results', obj);
-    return json({ payload: obj, intent: Intent.READ_OPENAI });
+    return obj;
   } catch (error) {
     // TODO: handle error from frontend
     logger.error(handleOpenaiFetch.name, 'error', error);
     return json({ errors: { deepl: (error as unknown as Error)?.message } }, { status: 400 });
   }
+};
+
+export const handleChatGPT = async ({ text }: { text: string }): Promise<string> => {
+  return await baseGPT({ text });
 };
 
 export const handleNewTranslationParagraph = async (

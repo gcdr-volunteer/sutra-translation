@@ -46,15 +46,18 @@ import {
   ModalBody,
   Icon,
   InputRightElement,
+  Skeleton,
+  Stack,
 } from '@chakra-ui/react';
 import { RepeatIcon, CopyIcon } from '@chakra-ui/icons';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { json } from '@remix-run/node';
-import { BiTable, BiSearch, BiNote, BiCheck } from 'react-icons/bi';
+import { BiTable, BiSearch, BiNote, BiCheck, BiGlasses } from 'react-icons/bi';
 import { AiFillGoogleCircle, AiOutlineGoogle } from 'react-icons/ai';
 import { Warning } from '~/components/common/errors';
 import { FormModal } from '~/components/common';
 import {
+  handleChatGPT,
   handleCreateNewGlossary,
   handleNewTranslationParagraph,
   handleOpenaiFetch,
@@ -110,13 +113,22 @@ export const action = async ({ request, params }: ActionArgs) => {
     // return json({ data: {}, intent: Intent.READ_DEEPL });
     if (Object.keys(rest)?.length) {
       // const origins = await replaceWithGlossary(rest as Record<string, string>);
-      return await handleOpenaiFetch({
+      const obj = await handleOpenaiFetch({
         origins: rest as Record<string, string>,
         category: category as string,
       });
+      return json({ payload: obj, intent: Intent.READ_OPENAI });
     }
   }
 
+  if (entryData?.intent === Intent.ASK_OPENAI) {
+    try {
+      const result = await handleChatGPT({ text: entryData?.text as string });
+      return json({ payload: result, intent: Intent.ASK_OPENAI });
+    } catch (error) {
+      return json({ errors: { deepl: (error as unknown as Error)?.message } }, { status: 400 });
+    }
+  }
   if (entryData?.intent === Intent.UPDATE_OPENAI) {
     const origin = entryData?.origin as string;
     const category = entryData?.category as string;
@@ -478,6 +490,7 @@ function TranlationWorkspace({
               }}
               aria-label='refresh'
             />
+            <OpenAIModal />
             <IconButton
               icon={<CopyIcon />}
               aria-label='copy'
@@ -530,18 +543,12 @@ function TranlationWorkspace({
                   aria-label='glossary button'
                 />
               </Tooltip>
-              <FootnoteModal
-                setFootnotes={setFootnotes}
-                paragraphId={origin.SK}
-                content={content}
-                cursorPos={cursorPos}
-              />
               <SearchModal />
               <Button
+                disabled={isSubmitting}
                 marginLeft={'auto'}
                 onClick={handleSubmitTranslation}
                 colorScheme={'iconButton'}
-                isLoading={isSubmitting && isFirst}
               >
                 Submit
               </Button>
@@ -664,95 +671,111 @@ type FootnoteModalProps = {
   paragraphId: string;
   setFootnotes: React.Dispatch<React.SetStateAction<FN[]>>;
 };
-const FootnoteModal = ({
-  cursorPos = -1,
-  content,
-  paragraphId,
-  setFootnotes,
-}: FootnoteModalProps) => {
-  const {
-    isOpen: isOpenFootnote,
-    onOpen: onOpenFootnote,
-    onClose: onCloseFootnote,
-  } = useDisclosure();
-  const ref = useRef<HTMLTextAreaElement>(null);
+const OpenAIModal = () => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const onAdd = () => {
-    const footnote: FN = {
-      paragraphId,
-      offset: cursorPos,
-      content: ref.current?.value ?? '',
-      sentence: content,
-    };
-    setFootnotes((prev) => [...prev, footnote]);
-    onCloseFootnote();
-  };
-  const getCurrentCursorText = () => {
-    if (cursorPos >= 0) {
-      const textBeforeCursor = cursorPos === 0 ? '' : content.slice(0, cursorPos - 1);
-      const textAfterCursor = content.slice(cursorPos);
-      const indexBeforeCursor = textBeforeCursor.trim().lastIndexOf(' ');
-      const indexAfterCursor = textAfterCursor.trim().indexOf(' ');
-      const wordsCursorSitting = content.slice(
-        indexBeforeCursor >= 0 ? indexBeforeCursor : 0,
-        indexAfterCursor >= 0 ? indexAfterCursor + cursorPos + 1 : content.length
-      );
-      if (cursorPos === 0) {
-        return (
-          <Text>
-            Your cursor is at the beginning of
-            <Tag>{wordsCursorSitting}</Tag>
-          </Text>
-        );
-      }
-      if (cursorPos === content.length) {
-        return (
-          <Text>
-            Your cursor is at the end of
-            <Tag>{wordsCursorSitting}</Tag>
-          </Text>
-        );
-      }
-      return (
-        <Text>
-          Your cursor is between
-          <Tag>{wordsCursorSitting}</Tag>
-        </Text>
-      );
+  const [text, setText] = useState('');
+  const [conversations, setConversations] = useState<string[]>([]);
+  const submit = useSubmit();
+
+  const actionData = useActionData();
+
+  useEffect(() => {
+    if (actionData?.intent === Intent.ASK_OPENAI) {
+      setConversations((prev) => [...prev, actionData.payload]);
     }
-    return <Text>You forget to put your cursor somewhere</Text>;
+  }, [actionData]);
+
+  const handleCreateNewMessage = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      submit(
+        {
+          intent: Intent.ASK_OPENAI,
+          text: text.trim(),
+        },
+        { method: 'post', replace: true }
+      );
+      setConversations((prev) => [...prev, text]);
+      setText('');
+    }
   };
+
+  const conversationRef = useCallback(
+    (node: HTMLDivElement) => {
+      if (node || conversations.length) {
+        node?.scrollIntoView();
+      }
+    },
+    [conversations]
+  );
+
+  const { isSubmitting } = useTransitionState();
   return (
     <>
-      <Tooltip label='add footnote' openDelay={1000} closeDelay={1000}>
+      <Tooltip label='open chatgpt' openDelay={1000} closeDelay={1000}>
         <IconButton
-          disabled={true}
-          onClick={onOpenFootnote}
-          icon={<BiNote />}
-          aria-label='footnote button'
+          disabled={isSubmitting}
+          onClick={onOpen}
+          icon={<BiGlasses />}
+          aria-label='custom openai'
         />
       </Tooltip>
-      <Modal isOpen={isOpenFootnote} onClose={onCloseFootnote} size={'2xl'}>
+      <Modal isOpen={isOpen} onClose={onClose} size={'3xl'}>
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>add footnote</ModalHeader>
+        <ModalContent height={'80vh'}>
+          <ModalHeader>GPT translation</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
-            <Box>
-              {getCurrentCursorText()}
-              <Textarea autoFocus mt={4} ref={ref} placeholder='add your footnotes' />
-            </Box>
+            <Flex flex={1} direction={'column'} height={'100%'} maxH={'65vh'}>
+              <Box flexGrow={1} overflowY={'scroll'}>
+                {conversations.map((conversion, index, arr) => {
+                  return <Conversation key={index} index={index} text={conversion} />;
+                })}
+                {isSubmitting ? (
+                  <Stack align={'flex-end'} px={2}>
+                    <Skeleton height='40px' w='60%' color={'blue.100'} />;
+                  </Stack>
+                ) : null}
+                <Box ref={conversationRef} />
+                {/* <Box ref={conversationRef} /> */}
+              </Box>
+              <Divider my={4} />
+              <Box height={'75px'}>
+                <Textarea
+                  height={'100px'}
+                  autoFocus
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={handleCreateNewMessage}
+                  placeholder='you can press Enter to send your text'
+                />
+              </Box>
+            </Flex>
           </ModalBody>
-
           <ModalFooter>
-            <Button colorScheme='iconButton' mr={3} onClick={onAdd}>
-              Add
-            </Button>
-            <Button onClick={onCloseFootnote}>Cancel</Button>
+            <Button onClick={onClose}>Close</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
     </>
+  );
+};
+
+const Conversation = ({ text, index }: { text: string; index: number }) => {
+  return (
+    <VStack w='100%' align={index % 2 === 0 ? 'flex-start' : 'flex-end'} mb={4} px={2}>
+      <Text
+        maxW={'60%'}
+        as={'span'}
+        background={index % 2 === 0 ? 'green.100' : 'blue.100'}
+        borderRadius={8}
+        px={2}
+        py={1}
+      >
+        {text}
+      </Text>
+    </VStack>
   );
 };
 
