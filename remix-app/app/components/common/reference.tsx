@@ -253,7 +253,7 @@ export const ReferenceElement = ({ reference }: { reference: CreatedType<Referen
   return (
     <Box>
       {contents?.map((content, index) => (
-        <Flex height={'85px'} direction={'column'} justify={'flex-start'} key={index}>
+        <Flex minH={'85px'} direction={'column'} justify={'flex-start'} key={index}>
           <Heading size='xs' textTransform='uppercase'>
             {content.name}
           </Heading>
