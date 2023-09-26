@@ -61,6 +61,8 @@ export const defineAbilityFor = (user: User) => {
   if (
     user.roles.includes(RoleType.Assistor) ||
     user.roles.includes(RoleType.Admin) ||
+    user.roles.includes(RoleType.Leader) ||
+    user.roles.includes(RoleType.Editor) ||
     user.roles.includes(RoleType.Manager)
   ) {
     can('Create', 'Glossary');

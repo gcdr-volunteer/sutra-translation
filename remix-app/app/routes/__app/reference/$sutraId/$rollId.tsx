@@ -2,7 +2,7 @@ import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { CreateType, Paragraph, Roll, Reference, CreatedType } from '~/types';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { Outlet, useActionData, useLoaderData, useNavigate, useSubmit } from '@remix-run/react';
 import {
   IconButton,
@@ -46,7 +46,11 @@ import {
 } from '~/services/__app/reference/$sutraId/$rollId.staging';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { useTransitionState } from '../../../../hooks';
-export const loader = async ({ params }: LoaderArgs) => {
+export const loader = async ({ params, request }: LoaderArgs) => {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const { rollId, sutraId } = params;
   if (!rollId || !sutraId) {
     throw badRequest({ message: 'roll id or sutra id cannot be empty' });
@@ -99,11 +103,14 @@ export const loader = async ({ params }: LoaderArgs) => {
 
 export const action = async ({ request, params }: ActionArgs) => {
   try {
+    const user = await assertAuthUser(request);
+    if (!user) {
+      return redirect('/login');
+    }
     const { rollId, sutraId } = params;
     if (!rollId || !sutraId) {
       throw badRequest({ message: 'roll id and sutra id must be provided' });
     }
-    const user = await assertAuthUser(request);
     const formData = await request.formData();
     const entryData = Object.fromEntries(formData.entries());
     if (entryData?.intent === Intent.CREATE_BULK_PARAGRAPH) {

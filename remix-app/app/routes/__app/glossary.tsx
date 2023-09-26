@@ -1,5 +1,5 @@
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { useRef, useEffect } from 'react';
 import { getGlossariesByTerm, getGlossaryByPage } from '~/models/glossary';
 import {
@@ -41,6 +41,10 @@ import { logger } from '~/utils';
 import { useModalErrors } from '~/hooks/useError';
 
 export const loader = async ({ request }: LoaderArgs) => {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const url = new URL(request.url);
   const page = url.searchParams.get('page') || undefined;
   const search = url.searchParams.get('search') || undefined;
@@ -55,6 +59,9 @@ export const loader = async ({ request }: LoaderArgs) => {
 export const action = async ({ request }: ActionArgs) => {
   try {
     const user = await assertAuthUser(request);
+    if (!user) {
+      return redirect('/login');
+    }
     const formdata = await request.formData();
     const entryData = Object.fromEntries(formdata.entries());
     if (!user) {

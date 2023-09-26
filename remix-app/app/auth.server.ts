@@ -1,12 +1,13 @@
 // app/services/auth.server.ts
 import { Authenticator } from 'remix-auth';
-import { sessionStorage } from './session.server';
+import { destroySession, getSession, sessionStorage } from './session.server';
 import { FormStrategy } from 'remix-auth-form';
 import bcrypt from 'bcryptjs';
 import { getUserByEmail } from './models/user';
 import { logger } from '~/utils';
 import type { User } from './types/user';
 import type { LoaderArgs } from '@remix-run/node';
+import type { RoleType } from './types';
 export const authenticator = new Authenticator<User | undefined>(sessionStorage);
 
 authenticator.use(
@@ -35,7 +36,14 @@ authenticator.use(
 );
 
 export const assertAuthUser = async (request: LoaderArgs['request']) => {
-  return await authenticator.isAuthenticated(request, {
+  const result = await authenticator.isAuthenticated(request, {
     failureRedirect: '/login',
   });
+  const session = await getSession(request.headers.get('Cookie'));
+  const latestUser = await getUserByEmail(result?.email as string);
+  if (!latestUser?.roles.includes(result?.roles[0] as RoleType)) {
+    await destroySession(session);
+    return undefined;
+  }
+  return result;
 };

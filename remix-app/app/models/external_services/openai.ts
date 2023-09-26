@@ -1,12 +1,11 @@
-import { Configuration, OpenAIApi } from 'openai';
-import type { ChatCompletionRequestMessage } from 'openai';
+import { OpenAI } from 'openai';
 import { logger } from '~/utils';
 import type { AxiosError } from 'axios';
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = () => new OpenAIApi(configuration);
+export const openai = () =>
+  new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
 
 export const translate = async (
   input: {
@@ -33,33 +32,31 @@ export const translate = async (
       ];
     }, []);
   }
-  const messages = [
-    {
-      role: 'system',
-      content: 'You are a professional Chinese to English translator',
-    },
-    ...glossary,
-    {
-      role: 'user',
-      content: `${input.text}`,
-    },
-  ] as ChatCompletionRequestMessage[];
-  logger.log(translate.name, 'prompt', messages);
   try {
-    const completion = await openai().createChatCompletion(
+    const completion = await openai().chat.completions.create(
       {
         model: 'gpt-4-0613',
-        messages,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a professional Chinese to English translator',
+          },
+          ...glossary,
+          {
+            role: 'user',
+            content: `${input.text}`,
+          },
+        ],
       },
       { timeout: 10 * 1000 /* 10 seconds timeout*/ }
     );
-    const result =
-      completion?.data?.choices[0].message?.content
-        .trim()
-        .replace(/^,/, '')
-        .replace(/^"|"$/g, '') ?? '';
-    logger.log(translate.name, 'completetion result', result);
-    return result;
+    const message = completion?.choices?.[0]?.message?.content;
+    if (message) {
+      const result = message.trim().replace(/^,/, '').replace(/^"|"$/g, '') ?? '';
+      logger.log(translate.name, 'completetion result', result);
+      return result;
+    }
+    return '';
   } catch (error) {
     const axiosError = error as AxiosError;
     if (axiosError.code === 'ECONNABORTED' && axiosError?.message?.includes('timeout')) {
@@ -81,27 +78,23 @@ export const baseGPT = async ({
   text: string;
   randomness?: number;
 }) => {
-  // compose a prompt by using openapi api
-
-  const messages = [
-    {
-      role: 'user',
-      content: `${text}`,
-    },
-  ] as ChatCompletionRequestMessage[];
   try {
-    const completion = await openai().createChatCompletion(
+    const completion = await openai().chat.completions.create(
       {
         model: 'gpt-4-0613',
-        messages,
+        messages: [
+          {
+            role: 'user',
+            content: `${text}`,
+          },
+        ],
         temperature: randomness,
       },
       { timeout: 15 * 1000 /* 10 seconds timeout*/ }
     );
+    const message = completion?.choices?.[0]?.message?.content;
 
-    const result = completion?.data?.choices[0].message?.content;
-
-    return result || 'not available';
+    return message || 'not available';
   } catch (error) {
     const axiosError = error as AxiosError;
     if (axiosError.code === 'ECONNABORTED' && axiosError?.message?.includes('timeout')) {

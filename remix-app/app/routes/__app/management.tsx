@@ -20,7 +20,7 @@ import {
   ListItem,
   UnorderedList,
 } from '@chakra-ui/react';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import type { ActionArgs } from '@remix-run/node';
 import { Intent } from '~/types/common';
 import { EditIcon, CopyIcon } from '@chakra-ui/icons';
@@ -39,8 +39,11 @@ import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
 import { handleCreateBulkGlossary } from '../../services/__app/tripitaka/$sutraId/$rollId/staging';
 import { assertAuthUser } from '../../auth.server';
-import { unauthorized } from 'remix-utils';
 export async function loader({ request }: ActionArgs) {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const { teams } = await getLoaderData();
   const sutras = await getAllSutraThatFinished();
   const rawRefBooks = await getAllRefBooks();
@@ -62,12 +65,12 @@ export async function loader({ request }: ActionArgs) {
 }
 
 export async function action({ request }: ActionArgs) {
-  const formdata = await request.formData();
-  const entryData = Object.fromEntries(formdata.entries());
   const user = await assertAuthUser(request);
   if (!user) {
-    throw unauthorized({ message: 'you should login first' });
+    return redirect('/login');
   }
+  const formdata = await request.formData();
+  const entryData = Object.fromEntries(formdata.entries());
   if (entryData?.intent === Intent.CREATE_REF_BOOK) {
     const refBook: RefBook = {
       bookname: entryData?.bookname as string,

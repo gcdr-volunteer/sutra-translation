@@ -3,7 +3,7 @@ import type { CreatedType, CreateType, Sutra as TSutra } from '~/types';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import { RoleType, LangCode } from '~/types';
 import { Center, SimpleGrid } from '@chakra-ui/react';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 import { Sutra } from '~/components/common/sutra';
 import { getSutraByPrimaryKey, getSutrasByLangAndVersion, upsertSutra } from '~/models/sutra';
@@ -14,6 +14,9 @@ import { assertAuthUser } from '~/auth.server';
 export const loader = async ({ request }: LoaderArgs) => {
   // TODO: use user profile, instead of hard code here
   const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const sutras = await getSutrasByLangAndVersion(LangCode.ZH, 'V1');
   const targetSutras = await getSutrasByLangAndVersion(LangCode.EN, 'V1');
   const mapper = targetSutras.reduce((acc, cur) => {
@@ -40,6 +43,9 @@ export const loader = async ({ request }: LoaderArgs) => {
 
 export const action = async ({ request }: ActionArgs) => {
   const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries()) as Pick<
     CreatedType<TSutra>,

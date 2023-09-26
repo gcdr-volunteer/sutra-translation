@@ -51,7 +51,7 @@ import {
 } from '@chakra-ui/react';
 import { RepeatIcon, CopyIcon } from '@chakra-ui/icons';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { BiTable, BiSearch, BiNote, BiCheck, BiGlasses } from 'react-icons/bi';
 import { AiFillGoogleCircle, AiOutlineGoogle } from 'react-icons/ai';
 import { Warning } from '~/components/common/errors';
@@ -78,6 +78,11 @@ import { unauthorized } from 'remix-utils';
 import { useModalErrors } from '~/hooks/useError';
 
 export const loader = async ({ params, request }: LoaderArgs) => {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
+
   const { rollId } = params;
   const url = new URL(request.url);
   const ps = [...new Set(url.searchParams.getAll('p'))];
@@ -103,7 +108,7 @@ export const action = async ({ request, params }: ActionArgs) => {
   const { sutraId, rollId } = params;
   const user = await assertAuthUser(request);
   if (!user) {
-    throw unauthorized({ message: 'you should login first' });
+    return redirect('/login');
   }
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());

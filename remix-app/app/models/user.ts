@@ -61,7 +61,10 @@ export const onlyCreateAdminUserWhenFirstSystemUp = async (): Promise<void> => {
 
 export const getUserByEmail = async (email: string): Promise<DBUser | undefined> => {
   const SK = composeSKForUser({ email });
-  const user = dbGetByKey<DBUser>({ key: { PK: 'TEAM', SK }, tableName: process.env.USER_TABLE });
+  const user = await dbGetByKey<DBUser>({
+    key: { PK: 'TEAM', SK },
+    tableName: process.env.USER_TABLE,
+  });
   logger.log(getUserByEmail.name, 'user', user);
   return user;
 };
@@ -124,22 +127,27 @@ export const createNewUser = async (user: User) => {
 };
 
 export const getAllUsers = async (currentUser?: string): Promise<User[]> => {
-  const params: QueryCommandInput = {
-    TableName: process.env.USER_TABLE,
-    KeyConditionExpression: 'PK = :team AND begins_with(SK, :user)',
-    FilterExpression: 'email <> :currentUser',
-    ExpressionAttributeValues: marshall({
-      ':team': 'TEAM',
-      ':user': 'USER',
-      ':currentUser': currentUser,
-    }),
-  };
-  const { Items } = await dbClient().send(new QueryCommand(params));
-  if (Items?.length) {
-    return Items.map((Item) => {
-      const { password, ...rest } = unmarshall(Item) as User;
-      return rest as User;
-    });
+  if (currentUser) {
+    const params: QueryCommandInput = {
+      TableName: process.env.USER_TABLE,
+      KeyConditionExpression: 'PK = :team AND begins_with(SK, :user)',
+      FilterExpression: 'email <> :currentUser',
+      ExpressionAttributeValues: marshall(
+        {
+          ':team': 'TEAM',
+          ':user': 'USER',
+          ':currentUser': currentUser,
+        },
+        { removeUndefinedValues: true }
+      ),
+    };
+    const { Items } = await dbClient().send(new QueryCommand(params));
+    if (Items?.length) {
+      return Items.map((Item) => {
+        const { password, ...rest } = unmarshall(Item) as User;
+        return rest as User;
+      });
+    }
   }
   return [];
 };

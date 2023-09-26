@@ -1,7 +1,7 @@
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { CreatedType, Footnote, Paragraph as TParagraph, Roll, Comment } from '~/types';
 import type { Message } from '~/types/comment';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { Outlet, useLoaderData, useNavigate } from '@remix-run/react';
 import { IconButton, Flex, Box, Heading, Tooltip } from '@chakra-ui/react';
 import { useRef } from 'react';
@@ -20,7 +20,11 @@ import { badRequest } from 'remix-utils';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { Can } from '~/authorisation';
 import { useScrollToParagraph, useSetTheme } from '~/hooks';
-export const loader = async ({ params }: LoaderArgs) => {
+export const loader = async ({ params, request }: LoaderArgs) => {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const { sutraId, rollId } = params;
   if (rollId) {
     const roll = await getRollByPrimaryKey({ PK: sutraId ?? '', SK: rollId });
@@ -36,8 +40,11 @@ export const loader = async ({ params }: LoaderArgs) => {
 };
 
 export const action = async ({ request, params }: ActionArgs) => {
-  const { sutraId = '', rollId = '' } = params;
   const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
+  const { sutraId = '', rollId = '' } = params;
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
   if (entryData?.intent === Intent.CREATE_COMMENT) {

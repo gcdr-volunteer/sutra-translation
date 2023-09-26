@@ -17,3 +17,15 @@ export const useMessage = (currentUser?: User) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message]);
 };
+
+export const useGpt = () => {
+  const message = useEventSource('/chat/subscribe', { event: 'gpt' });
+  const revalidator = useRevalidator();
+
+  useEffect(() => {
+    if (message) {
+      revalidator.revalidate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message]);
+};

@@ -1,6 +1,16 @@
 import { Flex, Divider } from '@chakra-ui/react';
+import { json, redirect, type LoaderArgs } from '@remix-run/node';
 import { Outlet } from '@remix-run/react';
 import { BreadCrumb } from '~/components/common/breadcrumb';
+import { assertAuthUser } from '../../auth.server';
+
+export const loader = async ({ request }: LoaderArgs) => {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
+  return json({});
+};
 
 export default function TripitakaRoute() {
   return (

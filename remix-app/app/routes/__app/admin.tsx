@@ -1,6 +1,6 @@
-import type { ActionArgs } from '@remix-run/node';
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { Team, User, Lang, LangCode, Role, Sutra, CreatedType } from '~/types';
-import { created } from 'remix-utils';
+import { created, unauthorized } from 'remix-utils';
 import {
   Flex,
   Box,
@@ -21,7 +21,7 @@ import {
   HStack,
   Divider,
 } from '@chakra-ui/react';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { EditIcon } from '@chakra-ui/icons';
 import { RiUser2Line, RiTeamLine } from 'react-icons/ri';
@@ -43,8 +43,13 @@ import { Intent } from '~/types/common';
 import { getAllSutraThatFinished } from '~/models/sutra';
 import { useEffect, useState } from 'react';
 import { logger } from '../../utils';
+import { assertAuthUser } from '../../auth.server';
 
-export const loader = async () => {
+export const loader = async ({ request }: LoaderArgs) => {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const { teams, users, langs } = await getLoaderData();
   const sutras = await getAllSutraThatFinished();
   return json<{ teams: Team[]; users: User[]; langs: Lang[]; sutras: CreatedType<Sutra>[] }>({
@@ -72,6 +77,10 @@ type EntryData = {
 };
 export const action = async ({ request }: ActionArgs) => {
   try {
+    const authUser = await assertAuthUser(request);
+    if (!authUser) {
+      return redirect('/login');
+    }
     const formData = await request.formData();
     const entryData = Object.fromEntries(formData.entries());
     const {
@@ -113,7 +122,8 @@ export const action = async ({ request }: ActionArgs) => {
         SK: entryData.SK as string,
         ...(entryData.roles ? { roles: [entryData.roles] as RoleType[] } : undefined),
       };
-      return handleUpdateUser(user);
+      await handleUpdateUser(user);
+      return json({ intent: Intent.UPDATE_USER });
     }
     if (intent && intent === Intent.CREATE_TEAM) {
       return await handleCreateNewTeam({ name: team_name as string, alias: team_alias as string });

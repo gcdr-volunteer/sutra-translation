@@ -19,4 +19,5 @@ if (process.env.NODE_ENV === 'test') {
 export { emitter };
 export const EVENTS = {
   MESSAGE: 'message',
+  GPT: 'gpt',
 };

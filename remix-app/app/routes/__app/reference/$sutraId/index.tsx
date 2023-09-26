@@ -1,6 +1,6 @@
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { AsStr, Roll as TRoll } from '~/types';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { useActionData, useCatch, useLoaderData } from '@remix-run/react';
 import { Box, Flex, IconButton, Tooltip, useDisclosure } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
@@ -11,14 +11,18 @@ import { FormModal } from '~/components/common';
 import { Intent } from '~/types/common';
 import { RollForm } from '~/components/roll_form';
 import { assertAuthUser } from '~/auth.server';
-import { badRequest, unauthorized } from 'remix-utils';
+import { badRequest } from 'remix-utils';
 import {
   handleCreateNewRoll,
   handleGetAllRollsBySutraId,
 } from '~/services/__app/reference/$sutraId';
 import { useEffect } from 'react';
 
-export const loader = async ({ params }: LoaderArgs) => {
+export const loader = async ({ params, request }: LoaderArgs) => {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const { sutraId } = params;
   if (!sutraId) {
     throw badRequest({ message: 'sutra id is not provided' });
@@ -28,13 +32,13 @@ export const loader = async ({ params }: LoaderArgs) => {
 };
 
 export const action = async ({ request, params }: ActionArgs) => {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const { sutraId = '' } = params;
 
   const formData = await request.formData();
-  const user = await assertAuthUser(request);
-  if (!user) {
-    return unauthorized({ message: 'you should login first' });
-  }
   const entryData = Object.fromEntries(formData.entries());
 
   if (entryData?.intent === Intent.CREATE_ROLL) {

@@ -1,9 +1,8 @@
 import { Center, IconButton, SimpleGrid, Tooltip, useDisclosure } from '@chakra-ui/react';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { useActionData, useLoaderData } from '@remix-run/react';
 import { FiBook } from 'react-icons/fi';
-import { unauthorized } from 'remix-utils';
 import { assertAuthUser } from '~/auth.server';
 import { FormModal } from '~/components/common';
 import { Sutra } from '~/components/common/sutra';
@@ -19,6 +18,9 @@ import { useEffect } from 'react';
 
 export const loader = async ({ request }: LoaderArgs) => {
   const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   logger.info('reference', user);
   let sutra;
   if (user?.roles.includes(RoleType.Manager) || user?.roles.includes(RoleType.Admin)) {
@@ -52,11 +54,11 @@ export const loader = async ({ request }: LoaderArgs) => {
 };
 
 export const action = async ({ request, params }: ActionArgs) => {
-  const formData = await request.formData();
   const user = await assertAuthUser(request);
   if (!user) {
-    return unauthorized({ message: 'you should login first' });
+    return redirect('/login');
   }
+  const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
 
   if (entryData?.intent === Intent.CREATE_SUTRA) {

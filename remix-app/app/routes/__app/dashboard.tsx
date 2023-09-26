@@ -14,7 +14,7 @@ import {
   VStack,
   SimpleGrid,
 } from '@chakra-ui/react';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import type { LoaderArgs } from '@remix-run/node';
 import { useLoaderData, Link } from '@remix-run/react';
 import { getAllNotResolvedCommentsForMe } from '~/models/comment';
@@ -47,6 +47,9 @@ type TripitakaStat = {
 
 export const loader = async ({ request }: LoaderArgs) => {
   const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const [comments, teams, langs] = await Promise.all([
     getAllNotResolvedCommentsForMe(user),
     getAllTeams(),

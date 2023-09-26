@@ -20,7 +20,10 @@ import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import { useTransitionState } from '../hooks';
 
 export const loader = async ({ request }: LoaderArgs) => {
-  await assertAuthUser(request);
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   return json({});
 };
 

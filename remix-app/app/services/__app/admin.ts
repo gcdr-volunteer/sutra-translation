@@ -148,7 +148,6 @@ export const handleUpdateUser = async (user: UpdateType<User>) => {
   try {
     logger.log(handleUpdateUser.name, 'user', user);
     await updateUser(user);
-    return json({ intent: Intent.UPDATE_USER });
   } catch (errors) {
     logger.error(handleCreateNewUser.name, 'errors', errors);
     return badRequest({ errors: errors, intent: Intent.UPDATE_USER });

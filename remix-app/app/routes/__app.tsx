@@ -1,5 +1,5 @@
 import { Box, Flex } from '@chakra-ui/react';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { Outlet, useLoaderData } from '@remix-run/react';
 import { assertAuthUser } from '~/auth.server';
 import { Sidebar } from '~/components/common/sidebar';
@@ -13,7 +13,10 @@ import type { User } from '~/types/user';
 import { notFound } from 'remix-utils';
 export const loader = async ({ request }: LoaderArgs) => {
   const user = await assertAuthUser(request);
-  const users = await getAllUsers(user?.email);
+  if (!user) {
+    return redirect('/login');
+  }
+  const users = await getAllUsers(user.email);
   if (user) {
     return json({
       currentUser: user,
