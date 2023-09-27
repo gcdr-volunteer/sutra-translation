@@ -5,6 +5,7 @@ import type {
   QueryCommandInput,
   BatchWriteItemCommandInput,
   PutItemCommandInput,
+  BatchGetItemCommandInput,
 } from '@aws-sdk/client-dynamodb';
 import {
   PutItemCommand,
@@ -14,6 +15,7 @@ import {
   QueryCommand,
   BatchWriteItemCommand,
   DynamoDBClient,
+  BatchGetItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import { utcNow } from '~/utils';
@@ -214,4 +216,24 @@ export const dbBulkInsert = async ({
     },
   };
   return await dbClient().send(new BatchWriteItemCommand(params));
+};
+
+export const dbBulkGetByKeys = async ({ tableName, keys }: { tableName: string; keys: Key[] }) => {
+  const params: BatchGetItemCommandInput = {
+    RequestItems: {
+      [tableName]: {
+        Keys: keys.map((key) =>
+          marshall({
+            PK: key.PK,
+            SK: key.SK,
+          })
+        ),
+      },
+    },
+  };
+
+  const result = await dbClient().send(new BatchGetItemCommand(params));
+  if (result.Responses) {
+    return result.Responses[tableName]?.map((item) => unmarshall(item) as Doc);
+  }
 };

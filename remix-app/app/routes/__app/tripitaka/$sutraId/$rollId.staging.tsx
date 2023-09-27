@@ -787,7 +787,10 @@ const Conversation = ({ text, index }: { text: string; index: number }) => {
 const SearchModal = () => {
   const { isOpen: isOpenSearch, onOpen: onOpenSearch, onClose: onCloseSearch } = useDisclosure();
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<(Paragraph | TGlossary)[]>([]);
+  const [searchResults, setSearchResults] = useState<{
+    results: (Paragraph | TGlossary)[];
+    counterParts: (Paragraph | TGlossary)[];
+  }>({ counterParts: [], results: [] });
   const [focusIndex, setFocusIndex] = useState<number>(-1);
   const submit = useSubmit();
   const actionData = useActionData();
@@ -823,7 +826,7 @@ const SearchModal = () => {
 
   useEffect(() => {
     if (arrowDownPressed) {
-      if (focusIndex < searchResults.length - 1) {
+      if (focusIndex < searchResults.results.length - 1) {
         setFocusIndex((pre) => pre + 1);
       }
     }
@@ -836,15 +839,21 @@ const SearchModal = () => {
     }
     if (!isOpenSearch) {
       setSearchTerm('');
-      setSearchResults([]);
+      setSearchResults({ counterParts: [], results: [] });
     }
   }, [actionData, isOpenSearch]);
 
   const getContent = (index: number) => {
-    const result = searchResults[index];
+    const result = searchResults.results[index];
     if (result?.kind === 'PARAGRAPH') {
+      const counterPart = searchResults.counterParts.find(
+        (counterPart) => counterPart.kind === 'PARAGRAPH' && counterPart?.num === result.num
+      );
       return (result.content as unknown as string[])?.map((text) => (
-        <Text mb={2} key={text} dangerouslySetInnerHTML={{ __html: text }} />
+        <div key={text}>
+          <Text mb={2} dangerouslySetInnerHTML={{ __html: text }} />
+          <Text mb={2}>{counterPart?.content}</Text>
+        </div>
       ));
     }
     if (result?.kind === 'GLOSSARY') {
@@ -884,10 +893,10 @@ const SearchModal = () => {
                 }
               />
             </InputGroup>
-            {searchResults.length ? (
+            {searchResults.results?.length ? (
               <HStack w='100%' alignItems={'flex-start'}>
                 <List flex='1' borderRight={'1px solid lightgray'}>
-                  {searchResults.map((result, index) => {
+                  {searchResults.results.map((result, index) => {
                     if (result?.kind === 'PARAGRAPH') {
                       return (
                         <ListItem

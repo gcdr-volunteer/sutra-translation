@@ -21,6 +21,7 @@ import { getRollByPrimaryKey } from '~/models/roll';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { getFootnotesByPartitionKey, upsertFootnote } from '~/models/footnote';
 import { baseGPT, translate } from '~/models/external_services/openai';
+import { dbBulkGetByKeys } from '../../../../../models/external_services/dynamodb';
 
 const newTranslationSchema = () => {
   const baseSchema = initialSchema();
@@ -416,7 +417,36 @@ export const handleSearchByTerm = async (term: string) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (hit: any) => ({ ...hit._source, content: hit.highlight?.content } as Paragraph | Glossary)
       );
-      return json({ payload: results as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
+
+      const counterParts = await dbBulkGetByKeys({
+        tableName: process.env.TRANSLATION_TABLE,
+        keys: results.map((result: { PK: string; SK: string }) => {
+          let PK = result.PK;
+          let SK = result.SK;
+          if (PK.includes('ZH')) {
+            PK = PK.replace('ZH', 'EN');
+          } else {
+            PK = PK.replace('EN', 'ZH');
+          }
+          if (SK.includes('ZH')) {
+            SK = SK.replace('ZH', 'EN');
+          } else {
+            SK = SK.replace('EN', 'ZH');
+          }
+          return {
+            PK,
+            SK,
+          };
+        }),
+      });
+
+      return json({
+        payload: { results, counterParts } as {
+          results: (Paragraph | Glossary)[];
+          counterParts: (Paragraph | Glossary)[];
+        },
+        intent: Intent.READ_OPENSEARCH,
+      });
     }
     logger.info(handleSearchByTerm.name, 'did not get any result');
     return [];
@@ -433,13 +463,16 @@ export const handleSearchGlossary = async ({ text, filter }: { text: string; fil
     const glossaries = await getGlossariesByTerm({ term: text?.toLowerCase() });
     logger.log(handleSearchGlossary.name, 'glossaries', glossaries);
     return json({
-      payload: glossaries as (Paragraph | Glossary)[],
+      payload: { results: glossaries as (Paragraph | Glossary)[] },
       intent: Intent.READ_OPENSEARCH,
     });
   } catch (error) {
     // TODO: handle this error in frontend?
     logger.warn(handleSearchGlossary.name, 'warn', error);
-    return json({ payload: [] as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
+    return json({
+      payload: { results: [] as (Paragraph | Glossary)[] },
+      intent: Intent.READ_OPENSEARCH,
+    });
   }
 };
 
