@@ -3,7 +3,14 @@ import type { CreateType, Paragraph, Roll, Reference, CreatedType } from '~/type
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { json, redirect } from '@remix-run/node';
-import { Outlet, useActionData, useLoaderData, useNavigate, useSubmit } from '@remix-run/react';
+import {
+  Outlet,
+  useActionData,
+  useLoaderData,
+  useLocation,
+  useNavigate,
+  useSubmit,
+} from '@remix-run/react';
 import {
   IconButton,
   Flex,
@@ -42,15 +49,11 @@ import { composeIdForParagraph } from '~/models/utils';
 import { utcNow, logger } from '~/utils';
 import {
   handleCreateNewReference,
-  handleUpdateReference,
+  handleGetAllRefBooks,
 } from '~/services/__app/reference/$sutraId/$rollId.staging';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import { useTransitionState } from '../../../../hooks';
+import { useTransitionState } from '../../../../../hooks';
 export const loader = async ({ params, request }: LoaderArgs) => {
-  const user = await assertAuthUser(request);
-  if (!user) {
-    return redirect('/login');
-  }
   const { rollId, sutraId } = params;
   if (!rollId || !sutraId) {
     throw badRequest({ message: 'roll id or sutra id cannot be empty' });
@@ -58,22 +61,33 @@ export const loader = async ({ params, request }: LoaderArgs) => {
   const roll = await getRollByPrimaryKey({ PK: sutraId ?? '', SK: rollId });
   const originParagraphs = await getOriginParagraphsByRollId(rollId);
   const targetReferences = await getTargetReferencesByRollId(rollId);
-  // TODO: update language to match user's profile
+  const refbooks = await handleGetAllRefBooks(sutraId);
+  const targets = targetReferences?.reduce((acc, reference) => {
+    if (!acc[reference.PK]) {
+      acc[reference.PK] = [];
+    }
+    acc[reference.PK].push(reference);
+    return acc;
+  }, {} as { [key: string]: CreatedType<Reference>[] });
 
-  const targets = targetReferences
-    .sort((a, b) => Number(new Date(a.createdAt || '')) - Number(new Date(b.createdAt || '')))
-    .reduce((acc, cur) => {
-      if (cur.paragraphId in acc) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        acc[cur.paragraphId].push(cur);
-      } else {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        acc[cur.paragraphId] = [cur];
-      }
-      return acc;
-    }, {} as { [key: string]: CreatedType<Reference>[] });
+  const sortedRefbooks = refbooks.map((book) => book.name);
+
+  for (const [key, value] of Object.entries(targets)) {
+    const extraRefbooks = refbooks.filter(
+      (refbook) => !value.some((reference) => reference.name === refbook.name)
+    );
+    const newReferences: CreatedType<Reference>[] = extraRefbooks?.map((refbook) => ({
+      ...value[0],
+      name: refbook.name,
+      content: refbook.content,
+      SK: refbook.name,
+    }));
+    targets[key] = [...value, ...newReferences].sort((a, b) => {
+      const indexA = sortedRefbooks.indexOf(a.name);
+      const indexB = sortedRefbooks.indexOf(b.name);
+      return indexA - indexB;
+    });
+  }
 
   const origins = originParagraphs
     .sort((a, b) => {
@@ -134,6 +148,13 @@ export const action = async ({ request, params }: ActionArgs) => {
                 rollId,
                 id: latestSK + index + 1,
               }),
+            originPK: rollId,
+            originSK:
+              paragraph?.SK ??
+              composeIdForParagraph({
+                rollId,
+                id: latestSK + index + 1,
+              }),
             num: paragraph.num,
             order: `${orderTruth?.[0]?.order || paragraph.num}.${index}`,
             content: paragraph.value,
@@ -157,24 +178,13 @@ export const action = async ({ request, params }: ActionArgs) => {
       }
       return created({ data: {}, intent: Intent.CREATE_BULK_PARAGRAPH });
     }
-    if (entryData?.intent === Intent.CREATE_REFERENCE) {
-      return await handleCreateNewReference({
-        paragraphIndex: entryData?.paragraphIndex as string,
-        sentenceIndex: entryData?.sentenceIndex as string,
-        totalSentences: entryData?.totalSentences as string,
-        paragraphId: entryData?.paragraphId as string,
-        content: entryData?.content as string,
-        finish: Boolean(entryData?.finish) || false,
-        sutraId,
-        rollId,
-      });
-    }
     if (entryData?.intent === Intent.UPDATE_REFERENCE) {
-      await handleUpdateReference({
-        id: entryData?.id as string,
-        content: entryData.content as string,
+      logger.log(Intent.UPDATE_REFERENCE, entryData);
+      await handleCreateNewReference({ newReference: { sutraId, rollId, ...entryData }, user });
+      return created({
+        payload: {},
+        intent: Intent.UPDATE_REFERENCE,
       });
-      return json({ intent: Intent.UPDATE_REFERENCE });
     }
     return json({});
   } catch (error) {
@@ -193,6 +203,7 @@ export default function ReferenceRoute() {
     roll?: Roll;
   }>();
 
+  const location = useLocation();
   const navigate = useNavigate();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -201,8 +212,6 @@ export default function ReferenceRoute() {
 
   const paragraphsComp = origins?.map((origin, index) => {
     if (origin) {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
       const references = targets[origin.SK];
       if (references) {
         return (
@@ -249,7 +258,7 @@ export default function ReferenceRoute() {
         gap={4}
         mt={10}
       >
-        <Outlet context={{ modal: true }} />
+        <Outlet />
         <Tooltip placement='left' label='Add a new paragraph'>
           <IconButton
             borderRadius={'50%'}
@@ -280,8 +289,8 @@ export default function ReferenceRoute() {
             colorScheme={'iconButton'}
             onClick={() => {
               if (selectedParagraph) {
-                navigate(`staging?p=${selectedParagraph}`, {
-                  replace: true,
+                navigate(`${location.pathname}/${selectedParagraph}`, {
+                  replace: false,
                 });
               }
             }}

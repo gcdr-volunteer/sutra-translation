@@ -40,6 +40,8 @@ const parsePreface = ({ root, startIndex = 0 }: { root: HTMLElement; startIndex:
       footnotes,
       category: element.getAttribute('class')?.toUpperCase() ?? 'PREFACE',
       content: rawText,
+      originPK: '',
+      originSK: '',
       kind,
     };
   });
@@ -61,6 +63,8 @@ const parseRoll = ({ root, startIndex = 0 }: { root: HTMLElement; startIndex: nu
     content: paragraph?.rawText ?? '',
     footnotes: [],
     category: mapper[paragraph?.getAttribute('class') ?? ''],
+    originPK: '',
+    originSK: '',
     kind,
   }));
 
@@ -79,6 +83,8 @@ const parseRoll = ({ root, startIndex = 0 }: { root: HTMLElement; startIndex: nu
       footnotes,
       category: element.getAttribute('class') === 'lg-row' ? 'VERSE' : 'NORMAL',
       content: rawText,
+      originPK: '',
+      originSK: '',
       kind,
     };
   });
@@ -104,6 +110,8 @@ const parseRollx = ({ root }: { root: HTMLElement; startIndex: number }) => {
       footnotes,
       category: element.getAttribute('class') === 'lg-row' ? 'VERSE' : 'NORMAL',
       content: index === 1 ? rawText.replaceAll('[＊]', '') : rawText,
+      originPK: '',
+      originSK: '',
       kind,
     };
   });

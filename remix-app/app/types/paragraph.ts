@@ -24,13 +24,13 @@ export interface Paragraph {
    */
   finish: boolean;
   /**
-   * current working sentence index
+   * the original paragraph partition key
    */
-  sentenceIndex?: number;
+  originPK: string;
   /**
-   * current working sentence index
+   * the original paragraph sort key
    */
-  paragraphIndex?: number;
+  originSK: string;
   /**
    * the order to sort the paragraph when insert new paragraph in the middle
    */

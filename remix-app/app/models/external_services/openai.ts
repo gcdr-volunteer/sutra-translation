@@ -48,7 +48,7 @@ export const translate = async (
           },
         ],
       },
-      { timeout: 10 * 1000 /* 10 seconds timeout*/ }
+      { timeout: 30 * 1000 /* 30 seconds timeout*/ }
     );
     const message = completion?.choices?.[0]?.message?.content;
     if (message) {

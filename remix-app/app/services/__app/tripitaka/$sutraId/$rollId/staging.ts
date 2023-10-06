@@ -1,10 +1,10 @@
-import type { AsStr, Footnote, Glossary, User } from '~/types';
+import type { AsStr, CreateType, Footnote, Glossary, Reference, User } from '~/types';
 import type { Paragraph } from '~/types/paragraph';
 import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
 import { translateZH2EN } from '~/models/external_services/deepl';
 import { json } from '@remix-run/node';
-import { upsertParagraph, getParagraphByPrimaryKey } from '~/models/paragraph';
+import { upsertParagraph } from '~/models/paragraph';
 import { logger } from '~/utils';
 import {
   getAllGlossary,
@@ -22,6 +22,7 @@ import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { getFootnotesByPartitionKey, upsertFootnote } from '~/models/footnote';
 import { baseGPT, translate } from '~/models/external_services/openai';
 import { dbBulkGetByKeys } from '../../../../../models/external_services/dynamodb';
+import { getSutraByPrimaryKey } from '../../../../../models/sutra';
 
 const newTranslationSchema = () => {
   const baseSchema = initialSchema();
@@ -30,10 +31,22 @@ const newTranslationSchema = () => {
     content: yup
       .string()
       .trim()
-      .transform((value) => value.replace(/\n/g, ' '))
+      .transform((value) => value.replace(/\n/g, ''))
       .required('submitted tranlation cannot be empty'),
-    PK: yup.string().trim().required(),
-    SK: yup.string().trim().required(),
+    rollId: yup
+      .string()
+      .trim()
+      // TODO: update based on user profile
+      .transform((value) => value.replace('ZH', 'EN'))
+      .required(),
+    paragraphId: yup
+      .string()
+      .trim()
+      // TODO: update based on user profile
+      .transform((value) => value.replace('ZH', 'EN'))
+      .required(),
+    category: yup.string().trim().default('NORMAL'),
+    num: yup.number().required(),
     kind: yup.mixed<'PARAGRAPH'>().default('PARAGRAPH'),
   });
   return translationSchema;
@@ -97,14 +110,14 @@ export const hanldeDeepLFetch = async ({ origins }: { origins: Record<string, st
 };
 
 export const handleOpenaiFetch = async ({
-  origins,
+  content,
   category,
 }: {
-  origins: Record<string, string>;
+  content: string;
   category?: string;
 }) => {
   try {
-    logger.log(handleOpenaiFetch.name, 'origins', origins);
+    logger.log(handleOpenaiFetch.name, 'content', content);
 
     // TODO: only fetch working user's profile glossary
     const glossaries = await getAllGlossary();
@@ -113,26 +126,15 @@ export const handleOpenaiFetch = async ({
       value: glossary.target,
     }));
 
-    const results = await Promise.all(
-      Object.values(origins).map((text) => {
-        const glossaries = sourceGlossaries
-          .filter((glossary) => text.indexOf(glossary.key) !== -1)
-          .reduce((acc, cur) => {
-            acc[cur.key] = cur.value;
-            return acc;
-          }, {} as Record<string, string>);
-        return translate({ text, category }, glossaries);
-      })
-    );
-    const obj = Object.keys(origins).reduce((acc, key, index) => {
-      if (results) {
-        acc[key] = results[index];
+    const glossary = sourceGlossaries
+      .filter((glossary) => content.indexOf(glossary.key) !== -1)
+      .reduce((acc, cur) => {
+        acc[cur.key] = cur.value;
         return acc;
-      }
-      return acc;
-    }, {} as Record<string, string>);
-    logger.log(handleOpenaiFetch.name, 'results', obj);
-    return obj;
+      }, {} as Record<string, string>);
+    const translation = await translate({ text: content, category }, glossary);
+    logger.log(handleOpenaiFetch.name, 'results', translation);
+    return translation;
   } catch (error) {
     // TODO: handle error from frontend
     logger.error(handleOpenaiFetch.name, 'error', error);
@@ -144,64 +146,38 @@ export const handleChatGPT = async ({ text }: { text: string }): Promise<string>
   return await baseGPT({ text });
 };
 
-export const handleNewTranslationParagraph = async (
-  newTranslation: {
-    paragraphIndex: string;
-    sentenceIndex: string;
-    PK: string;
-    SK: string;
-    content: string;
-    totalSentences: string;
-  },
-  { sutraId, rollId }: { sutraId?: string; rollId?: string }
-) => {
+export const handleNewTranslationParagraph = async (newTranslation: {
+  content: string;
+  rollId: string;
+  paragraphId: string;
+  sutraId: string;
+  num: number;
+}) => {
+  const { content, sutraId, rollId, paragraphId } = newTranslation;
   logger.log(handleNewTranslationParagraph.name, 'newTranslation', newTranslation);
-  const { sentenceIndex, paragraphIndex, totalSentences } = newTranslation;
   try {
     const result = await schemaValidator({
       schema: newTranslationSchema(),
       obj: newTranslation,
     });
     logger.log(handleNewTranslationParagraph.name, 'result', result);
-    const [originParagraph, roll] = await Promise.all([
-      getParagraphByPrimaryKey({
-        PK: result.PK,
-        SK: result.SK,
-      }),
-      getRollByPrimaryKey({
-        PK: sutraId?.replace('ZH', 'EN') ?? '',
-        SK: rollId?.replace('ZH', 'EN') ?? '',
-      }),
-    ]);
-    if (originParagraph) {
-      const sentenceIndexNum = sentenceIndex ? parseInt(sentenceIndex) : 0;
-      const paragraphIndexNum = paragraphIndex ? parseInt(paragraphIndex) : 0;
-      const totalSentenceIndexNum = totalSentences ? parseInt(totalSentences) : 0;
-
-      const translatedParagraph = {
-        ...originParagraph,
+    const sutra = await getSutraByPrimaryKey({ PK: 'TRIPITAKA', SK: result.sutraId });
+    const roll = await getRollByPrimaryKey({ PK: sutraId, SK: result.rollId });
+    if (content) {
+      const translatedParagraph: CreateType<Paragraph> = {
+        ...result,
         content: result.content,
-        // TODO: this needs to be updated to match user profile language
-        PK: result.PK?.replace('ZH', 'EN'),
-        SK: result.SK?.replace('ZH', 'EN'),
-        sutra: roll?.title ?? '',
+        PK: result.rollId,
+        SK: result.paragraphId,
+        originPK: rollId,
+        originSK: paragraphId,
+        sutra: sutra?.title ?? '',
         roll: roll?.subtitle ?? '',
-        finish: sentenceIndexNum === totalSentenceIndexNum,
-        sentenceIndex: sentenceIndexNum,
-        paragraphIndex: paragraphIndexNum,
+        finish: true,
       };
       logger.log(handleNewTranslationParagraph.name, 'translationParagraph', translatedParagraph);
-      await upsertParagraph(translatedParagraph);
-      return created({
-        payload: {
-          paragraphIndex,
-          sentenceIndex,
-          finish: sentenceIndexNum === totalSentenceIndexNum,
-        },
-        intent: Intent.CREATE_TRANSLATION,
-      });
+      return await upsertParagraph(translatedParagraph);
     }
-    return serverError({ message: 'Oops, something wrong on our end' });
   } catch (errors) {
     logger.error(handleNewTranslationParagraph.name, 'error', errors);
     return json({ errors: { errors } });
@@ -383,7 +359,7 @@ export const handleSearchByTerm = async (term: string) => {
     // TODO: this is just a stub function, refine it when you picking the
     // real ticket
     const client = await esClient();
-    const query = {
+    const body = {
       query: {
         match_phrase: {
           content: term.trim(),
@@ -401,10 +377,15 @@ export const handleSearchByTerm = async (term: string) => {
     const resp = await client.search({
       size: 10,
       index: 'translation',
-      body: query,
+      body,
     });
     if (resp.body.hits?.hits?.length) {
-      logger.log(handleSearchByTerm.name, 'response', resp.body?.hits.hits);
+      logger.log(handleSearchByTerm.name, 'hits', resp.body?.hits.hits);
+      logger.log(
+        handleSearchByTerm.name,
+        'hits.highlight',
+        resp.body?.hits.hits?.[0].highlight?.content
+      );
       // TODO: utiliza highlight result
       logger.log(
         handleSearchByTerm.name,
@@ -442,7 +423,7 @@ export const handleSearchByTerm = async (term: string) => {
 
       return json({
         payload: { results, counterParts } as {
-          results: (Paragraph | Glossary)[];
+          results: (Paragraph | Glossary | Reference)[];
           counterParts: (Paragraph | Glossary)[];
         },
         intent: Intent.READ_OPENSEARCH,

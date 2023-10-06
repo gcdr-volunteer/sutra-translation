@@ -28,7 +28,6 @@ export enum Intent {
   READ_DEEPL = 'read_deepl',
   READ_OPENAI = 'read_openai',
   ASK_OPENAI = 'ask_openai',
-  UPDATE_OPENAI = 'update_openai',
   READ_OPENSEARCH = 'read_opensearch',
   MARK_ROLL_COMPLETE = 'mark_roll_complete',
   CREATE_TRANSLATION = 'create_translation',
@@ -48,4 +47,5 @@ export enum Intent {
   CREATE_TEAM = 'create_team',
   CREATE_LANG = 'create_lang',
   CREATE_REF_BOOK = 'create_ref_book',
+  UPDATE_REF_BOOK = 'update_ref_book',
 }

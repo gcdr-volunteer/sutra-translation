@@ -20,15 +20,16 @@ export const handler = async (event: DynamoDBStreamEvent) => {
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-ignore
               const doc = unmarshall(Record.dynamodb.NewImage);
-              if (doc.PK && doc.SK && ['PARAGRAPH'].includes(doc.kind)) {
+              if (doc.PK && doc.SK && ['PARAGRAPH', 'REFERENCE'].includes(doc.kind)) {
                 const newDoc = {
                   index: {
-                    index: 'translation',
-                    id: `${doc.PK}-${doc.SK}`,
-                    ...doc,
+                    _index: 'translation',
+                    _id: `${doc.PK}-${doc.SK}`,
+                    _type: '_doc',
                   },
                 };
                 bulkActions.push(newDoc);
+                bulkActions.push(doc);
               }
               return null;
             } catch (error) {
@@ -43,9 +44,10 @@ export const handler = async (event: DynamoDBStreamEvent) => {
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-ignore
               const doc = unmarshall(Record.dynamodb.OldImage);
-              if (doc.PK && doc.SK && ['PARAGRAPH'].includes(doc.kind)) {
+              if (doc.PK && doc.SK && ['PARAGRAPH', 'REFERENCE'].includes(doc.kind)) {
                 const newDoc = {
                   delete: {
+                    _index: 'translation',
                     _id: `${doc.PK}-${doc.SK}`,
                   },
                 };
@@ -58,12 +60,36 @@ export const handler = async (event: DynamoDBStreamEvent) => {
             }
           }
         }
+        if (Record.eventName === 'MODIFY') {
+          if (Record.dynamodb?.OldImage) {
+            try {
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore
+              const doc = unmarshall(Record.dynamodb.NewImage);
+              if (doc.PK && doc.SK && ['PARAGRAPH', 'REFERENCE'].includes(doc.kind)) {
+                const newDoc = {
+                  update: {
+                    _index: 'translation',
+                    _id: `${doc.PK}-${doc.SK}`,
+                  },
+                };
+                bulkActions.push(newDoc);
+                bulkActions.push({ doc });
+              }
+              return null;
+            } catch (error) {
+              console.log('ddb-to-es', 'cannot unmarshall', error);
+              return null;
+            }
+          }
+        }
       });
       if (bulkActions.length) {
-        console.log('ddb-to-es', 'bulk deletion', bulkActions);
+        console.log('ddb-to-es', 'bulk actions', bulkActions);
         const resp = await makeBulkActions(bulkActions);
+        console.log('ddb-to-es', 'bulk actions response', resp);
         if (resp.statusCode !== 200) {
-          console.log('ddb-to-es', 'bulk deletion response', resp);
+          console.log('ddb-to-es', 'bulk actions response', resp);
         }
       }
     }
@@ -74,7 +100,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const doc = unmarshall(record.dynamodb.NewImage);
-        if (doc.PK && doc.SK && ['PARAGRAPH'].includes(doc.kind)) {
+        if (doc.PK && doc.SK && ['PARAGRAPH', 'REFERENCE'].includes(doc.kind)) {
           console.info('ddb-to-es', 'single insertion', doc);
           const resp = await singleInsert(doc);
           if (resp.statusCode !== 201) {
@@ -99,7 +125,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const doc = unmarshall(record.dynamodb.NewImage);
-        if (doc.PK && doc.SK && ['PARAGRAPH'].includes(doc.kind)) {
+        if (doc.PK && doc.SK && ['PARAGRAPH', 'REFERENCE'].includes(doc.kind)) {
           console.log('ddb-to-es', 'single update', doc);
           const resp = await singleUpdate(doc);
           if (resp.statusCode !== 200) {

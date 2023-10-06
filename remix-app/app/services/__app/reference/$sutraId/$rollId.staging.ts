@@ -1,85 +1,73 @@
 import * as yup from 'yup';
 import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import { logger } from '~/utils';
-import { created } from 'remix-utils';
-import { Intent } from '~/types/common';
 import { json } from '@remix-run/node';
 import {
+  bulkInsertReference,
   getLatestReference,
   getRefBookBySutraId,
   updateReference,
-  upsertReference,
 } from '~/models/reference';
-import { composeIdForReference } from '~/models/utils';
-const newReferenceSchema = () => {
+import type {
+  AsStr,
+  CreateType,
+  CreatedType,
+  Reference as TReference,
+  User,
+  Reference,
+} from '../../../../types';
+import { getSutraByPrimaryKey } from '../../../../models/sutra';
+import { getRollByPrimaryKey } from '../../../../models/roll';
+const newReferenceSchema = (user: User) => {
   const baseSchema = initialSchema();
   // TODO: using strict().noUnknown() to stop unknown params
   const referenceSchema = baseSchema.shape({
     content: yup
       .string()
       .trim()
-      .optional()
       .transform((value) => {
         return value || 'not provided';
-      }),
-    paragraphId: yup.string().trim().required('paragraphId cannot be empty'),
+      })
+      .required(),
+    sutraId: yup.string().trim().required('sutraId cannot be empty'),
+    rollId: yup.string().trim().required('rollId cannot be empty'),
+    sutra: yup.string().trim().optional(),
+    roll: yup.string().trim().optional(),
+    paragraphId: yup.string().trim().optional(),
+    intent: yup.string().strip(),
+    updatedBy: yup.string().default(user.username),
     kind: yup.mixed<'REFERENCE'>().default('REFERENCE'),
   });
   return referenceSchema;
 };
 
-export const handleCreateNewReference = async (newReference: {
-  paragraphIndex: string;
-  sentenceIndex: string;
-  paragraphId: string;
-  content: string;
-  totalSentences: string;
-  sutraId: string;
-  rollId: string;
-  finish: boolean;
+export const handleCreateNewReference = async ({
+  newReference,
+  user,
+}: {
+  newReference: AsStr<Partial<CreateType<TReference>>>;
+  user: User;
 }) => {
   logger.log(handleCreateNewReference.name, 'newReference', newReference);
-  const { sentenceIndex, paragraphIndex, totalSentences, sutraId, rollId, paragraphId, finish } =
-    newReference;
   try {
     const result = await schemaValidator({
-      schema: newReferenceSchema(),
+      schema: newReferenceSchema(user),
       obj: newReference,
     });
     logger.log(handleCreateNewReference.name, 'result', result);
-    const sentenceIndexNum = sentenceIndex ? parseInt(sentenceIndex) + 1 : 0;
-    const paragraphIndexNum = paragraphIndex ? parseInt(paragraphIndex) + 1 : 0;
-    const totalSentenceIndexNum = totalSentences ? parseInt(totalSentences) : 0;
+    const contents = JSON.parse(result.content) as CreatedType<TReference>[];
 
-    const latestRef = await getLatestReference(paragraphId);
-    const id = parseInt(latestRef?.SK.slice(latestRef.SK.length - 4) || '') + 1;
-    let newSK = undefined;
-    if (id) {
-      newSK = composeIdForReference({ paragraphId, id });
-    }
-    const reference = {
-      content: result.content ?? '',
-      // TODO: this needs to be updated to match user profile language
-      PK: 'REFERENCE',
-      SK: newSK || `${paragraphId}-R0000`,
-      sutraId,
-      rollId,
-      finish: sentenceIndexNum === totalSentenceIndexNum,
-      sentenceIndex: sentenceIndexNum,
-      paragraphIndex: paragraphIndexNum,
-      kind: result.kind,
-      paragraphId,
-    };
-    logger.log(handleCreateNewReference.name, 'new reference', reference);
-    await upsertReference(reference);
-    return created({
-      payload: {
-        paragraphIndex: paragraphIndexNum,
-        sentenceIndex: sentenceIndexNum,
-        finish: finish,
-      },
-      intent: Intent.CREATE_REFERENCE,
-    });
+    const references = contents.map((c) => ({
+      PK: result.paragraphId || c.PK,
+      SK: c.name,
+      name: c.name,
+      ...result,
+      paragraphId: result.paragraphId || c.PK,
+      content: c.content,
+    }));
+
+    logger.log(handleCreateNewReference.name, 'new references', references);
+    await bulkInsertReference(references);
   } catch (errors) {
     logger.error(handleCreateNewReference.name, 'error', errors);
     return json({ errors: { errors } });
@@ -101,25 +89,52 @@ export const handleGetLatestReferenceIdByParagraphId = async (paragraphId: strin
   }
 };
 
-export type Reference = {
-  name: string;
-  content: string[];
-};
-export const handleGetAllRefBooks = async (sutraId: string): Promise<Reference[]> => {
+export const handleGetAllRefBooks = async (
+  sutraId: string
+): Promise<Pick<Reference, 'name' | 'content'>[]> => {
   try {
     const refBooks = await getRefBookBySutraId(sutraId);
-    return refBooks.map((reference) => ({
-      name: reference.bookname,
-      content: ['click to edit'],
-    }));
+    return refBooks
+      .map((refbook) => ({
+        order: refbook.order,
+        name: refbook.bookname,
+        content: 'click to edit',
+      }))
+      .sort((a, b) => {
+        return parseInt(b.order, 10) - parseInt(a.order, 10);
+      });
   } catch (error) {
     logger.error(handleGetAllRefBooks.name, 'error', error);
     return [];
   }
 };
 
-export const handleUpdateReference = async ({ id, content }: { id: string; content: string }) => {
+export const handleUpdateReference = async ({
+  PK,
+  SK,
+  content,
+}: {
+  PK: string;
+  SK: string;
+  content: string;
+}) => {
   try {
-    await updateReference({ PK: 'REFERENCE', SK: id, content });
+    await updateReference({ PK, SK, content });
   } catch (error) {}
+};
+
+export const handleGetSutraAndRoll = async ({
+  sutraId,
+  rollId,
+}: {
+  sutraId: string;
+  rollId: string;
+}) => {
+  try {
+    const sutra = await getSutraByPrimaryKey({ PK: 'TRIPITAKA', SK: sutraId });
+    const roll = await getRollByPrimaryKey({ PK: sutraId, SK: rollId });
+    return { sutra, roll };
+  } catch (error) {
+    console.error(error);
+  }
 };

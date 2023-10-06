@@ -9,7 +9,7 @@ export const splitParagraph = (paragraph: Paragraph | null): string[] => {
 };
 
 const escapeRegexp = (term: string): string =>
-  term.replace(/[|\\{}()[\]^$+*?.-]/g, (char: string) => `\\${char}`);
+  term.replace(/[|\\{}()[\]^$+*?.-]/gm, (char: string) => `\\${char}`);
 
 export function buildRegex(query: string[]) {
   const _query = query.filter((text) => text.length !== 0).map((text) => escapeRegexp(text.trim()));

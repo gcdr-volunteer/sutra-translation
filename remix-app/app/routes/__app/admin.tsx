@@ -1,6 +1,6 @@
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { Team, User, Lang, LangCode, Role, Sutra, CreatedType } from '~/types';
-import { created, unauthorized } from 'remix-utils';
+import { created } from 'remix-utils';
 import {
   Flex,
   Box,

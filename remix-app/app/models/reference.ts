@@ -1,5 +1,6 @@
 import type { CreatedType, CreateType, Key, RefBook, Reference } from '~/types';
 import {
+  dbBulkInsert,
   dbGetByIndexAndKey,
   dbGetByKey,
   dbGetByPartitionKey,
@@ -7,7 +8,6 @@ import {
   dbInsert,
   dbUpdate,
 } from './external_services/dynamodb';
-import { handleGetLatestReferenceIdByParagraphId } from '~/services/__app/reference/$sutraId/$rollId.staging';
 
 export const createReference = async (reference: CreateType<Reference>) => {
   return await dbInsert({ tableName: process.env.REFERENCE_TABLE, doc: reference });
@@ -24,7 +24,7 @@ export const getReferenceByPrimaryKey = async (
 };
 
 export const upsertReference = async (reference: CreateType<Reference>) => {
-  const existingRef = await getReferenceByPrimaryKey({ PK: 'REFERENCE', SK: reference.SK });
+  const existingRef = await getReferenceByPrimaryKey({ PK: reference.PK, SK: reference.SK });
   if (existingRef) {
     const newRef = {
       ...existingRef,
@@ -32,13 +32,20 @@ export const upsertReference = async (reference: CreateType<Reference>) => {
     };
     return await updateReference(newRef);
   }
-  const SK = await handleGetLatestReferenceIdByParagraphId(reference.paragraphId);
-  return await createReference({ ...reference, SK });
+  return await createReference(reference);
+};
+
+export const bulkInsertReference = async (references: CreateType<Reference>[]) => {
+  return await dbBulkInsert({ tableName: process.env.REFERENCE_TABLE, docs: references });
 };
 
 export const createRefBook = async (refBook: RefBook) => {
   const newRefBook = { ...refBook, PK: 'REFBOOK', SK: refBook.bookname };
   return await dbInsert({ tableName: process.env.REFERENCE_TABLE, doc: newRefBook });
+};
+
+export const updateRefBook = async (refBook: Partial<RefBook> & Required<Key>) => {
+  return await dbUpdate({ tableName: process.env.REFERENCE_TABLE, doc: refBook });
 };
 
 export const getReferencesByPartitionKey = async (
@@ -72,6 +79,17 @@ export const getLatestReference = async (
     return references[0];
   }
   return undefined;
+};
+
+export const handleGetReferencesByPK = async (PK: string) => {
+  const references = await dbGetByPartitionKey<CreatedType<Reference>>({
+    tableName: process.env.REFERENCE_TABLE,
+    PK,
+  });
+  if (references?.length) {
+    return references;
+  }
+  return [];
 };
 
 export const getReferencesBySK = async (SK: string) => {

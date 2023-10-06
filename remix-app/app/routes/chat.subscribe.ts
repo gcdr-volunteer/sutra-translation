@@ -20,13 +20,17 @@ export async function loader({ request }: LoaderArgs) {
           n: 1,
           messages: [
             {
+              role: 'system',
+              content: 'You are a professional Chinese to English translator',
+            },
+            {
               role: 'user',
               content: `${message}`,
             },
           ],
           stream: true,
         },
-        { timeout: 15 * 1000 /* 10 seconds timeout*/ }
+        { timeout: 15 * 1000 /* 15 seconds timeout*/ }
       );
       for await (const chunk of completion) {
         send({

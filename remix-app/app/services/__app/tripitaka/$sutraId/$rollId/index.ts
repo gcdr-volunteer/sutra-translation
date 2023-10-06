@@ -76,7 +76,11 @@ const updateCommentSchema = () => {
   const baseSchema = initialSchema();
   return baseSchema.noUnknown().shape({
     before: yup.string().trim().required('previous content cannot be empty'),
-    after: yup.string().trim().required('modified content cannot be empty'),
+    after: yup
+      .string()
+      .trim()
+      .transform((value) => value.replace(/\n/g, ''))
+      .required('modified content cannot be empty'),
     rollId: yup
       .string()
       .trim()
@@ -137,6 +141,7 @@ export const handleResolveComment = async (newComment: {
       schema: updateCommentSchema(),
       obj: newComment,
     });
+    logger.log(handleResolveComment.name, 'result', result);
     await resolveComment(result);
     return json({ data: {}, intent: Intent.UPDATE_COMMENT_AND_PARAGRAPH });
   } catch (error) {

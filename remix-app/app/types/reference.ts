@@ -1,37 +1,36 @@
 export interface Reference {
   /**
+   * The name of the reference
+   */
+  name: string;
+  /**
    * The content of the reference
    */
   content: string;
   /**
-   * The Id to find exact sutra
+   * The sutraId of the reference (can be used for later search use)
    */
   sutraId: string;
   /**
-   * The Id to find exact roll
+   * The rollId of the reference (can be used for later search use)
    */
   rollId: string;
   /**
-   * Indicate if the reference of this paragraph finished, because a paragraph
-   * can contain multiple sentences
+   *
    */
-  finish: boolean;
+  order?: string;
   /**
-   * current working sentence index
-   */
-  sentenceIndex?: number;
-  /**
-   * current working sentence index
-   */
-  paragraphIndex?: number;
-  /**
-   * current paragraph (the accumulated paragraph)
-   */
-  paragraph?: string;
-  /**
-   * current paragraph id
+   * The paragraphId (equal to PK) of the reference (can be used for later search use)
    */
   paragraphId: string;
+  /**
+   * sutra name (can be used for later search use)
+   */
+  sutra?: string;
+  /**
+   * roll name (can be used for later search use)
+   */
+  roll?: string;
   /**
    * The helper type
    */
@@ -42,4 +41,6 @@ export interface RefBook {
   bookname: string;
   team: string;
   sutraId: string;
+  order: string;
+  kind: 'REFBOOK';
 }

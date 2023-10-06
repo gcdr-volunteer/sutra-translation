@@ -206,6 +206,7 @@ export const dbBulkInsert = async ({
               Item: marshall(
                 {
                   ...doc,
+                  updatedAt: utcNow(),
                 },
                 { removeUndefinedValues: true }
               ),
@@ -218,7 +219,13 @@ export const dbBulkInsert = async ({
   return await dbClient().send(new BatchWriteItemCommand(params));
 };
 
-export const dbBulkGetByKeys = async ({ tableName, keys }: { tableName: string; keys: Key[] }) => {
+export const dbBulkGetByKeys = async <T>({
+  tableName,
+  keys,
+}: {
+  tableName: string;
+  keys: Key[];
+}) => {
   const params: BatchGetItemCommandInput = {
     RequestItems: {
       [tableName]: {
@@ -234,6 +241,8 @@ export const dbBulkGetByKeys = async ({ tableName, keys }: { tableName: string; 
 
   const result = await dbClient().send(new BatchGetItemCommand(params));
   if (result.Responses) {
-    return result.Responses[tableName]?.map((item) => unmarshall(item) as Doc);
+    return result.Responses[tableName]?.map((item) => unmarshall(item) as T);
+  } else {
+    return [];
   }
 };

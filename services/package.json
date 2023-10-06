@@ -5,7 +5,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "feed": "esbuild functions/feed/services/index.ts --bundle --platform=node --outfile=functions/feed/services/build/index.js && NODE_ENV=test node functions/feed/services/build/index.js",
-    "test": "vitest"
+    "test": "vitest",
+    "migrate": "node scripts/2023-10-06-migration.js"
   },
   "dependencies": {
     "aws-sdk": "^2.1271.0",

@@ -2,9 +2,9 @@ import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { CreatedType, Footnote, Paragraph as TParagraph, Roll, Comment } from '~/types';
 import type { Message } from '~/types/comment';
 import { json, redirect } from '@remix-run/node';
-import { Outlet, useLoaderData, useNavigate } from '@remix-run/react';
-import { IconButton, Flex, Box, Heading, Tooltip } from '@chakra-ui/react';
-import { useRef } from 'react';
+import { Outlet, useLoaderData, useLocation, useNavigate } from '@remix-run/react';
+import { IconButton, Flex, Box, Heading, Tooltip, RadioGroup } from '@chakra-ui/react';
+import { useState } from 'react';
 import { ParagraphOrigin, ParagraphPair } from '~/components/common/paragraph';
 import { FiEdit } from 'react-icons/fi';
 import { fetchParagraphsByRollId } from '~/models/paragraph';
@@ -96,14 +96,10 @@ export default function ParagraphRoute() {
 
   const { fontSize, fontFamilyOrigin, fontFamilyTarget } = useSetTheme();
 
+  const location = useLocation();
   const navigate = useNavigate();
-  const urlParams = useRef(new URLSearchParams());
 
-  const handleNavigate = () => {
-    navigate(`staging?${urlParams.current.toString()}`, {
-      replace: true,
-    });
-  };
+  const [selectedParagraph, setSelectedParagraph] = useState('');
 
   const paragraphsComp = paragraphs?.map(({ origin, target }, index) => {
     // TODO: handle out of order selection
@@ -111,14 +107,17 @@ export default function ParagraphRoute() {
       return <ParagraphWithComments key={target.SK} origin={origin} target={target} />;
     }
     return (
-      <ParagraphOrigin
-        content={origin?.content}
-        key={origin.SK}
-        index={index}
-        SK={origin.SK}
-        urlParams={urlParams}
-        font={{ fontSize, fontFamilyOrigin, fontFamilyTarget }}
-      />
+      <Flex key={index} w={'85%'} flexDir={'row'} alignItems={'flex-start'} my={2}>
+        <RadioGroup onChange={setSelectedParagraph} value={selectedParagraph}>
+          <ParagraphOrigin
+            content={origin?.content}
+            SK={origin.SK}
+            index={index}
+            selectedParagraph={selectedParagraph}
+            font={{ fontSize, fontFamilyOrigin, fontFamilyTarget }}
+          />
+        </RadioGroup>
+      </Flex>
     );
   });
   if (paragraphs?.length) {
@@ -155,7 +154,13 @@ export default function ParagraphRoute() {
               icon={<FiEdit />}
               aria-label='edit roll'
               colorScheme={'iconButton'}
-              onClick={handleNavigate}
+              onClick={() => {
+                if (selectedParagraph) {
+                  navigate(`${location.pathname}/${selectedParagraph}`, {
+                    replace: false,
+                  });
+                }
+              }}
             />
           </Tooltip>
         </Can>

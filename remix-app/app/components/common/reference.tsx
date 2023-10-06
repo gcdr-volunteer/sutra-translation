@@ -15,11 +15,11 @@ import {
   Text,
   Radio,
 } from '@chakra-ui/react';
-import { useLocation, useNavigate, useSubmit } from '@remix-run/react';
-import { useMemo, useState, useEffect } from 'react';
+import { useActionData, useSubmit } from '@remix-run/react';
+import { useEffect, useState } from 'react';
 import { Intent } from '~/types/common';
 import type { CreatedType, Paragraph, Reference } from '../../types';
-import { splitParagraph } from '../../utils';
+import { useTransitionState } from '../../hooks';
 
 export const OriginReference = ({
   origin,
@@ -30,8 +30,9 @@ export const OriginReference = ({
   SK: string;
   selectedParagraph: string;
 }) => {
+  const { isSubmitting, isLoading } = useTransitionState();
   return (
-    <Radio ml={-6} borderColor={'primary.300'} value={SK}>
+    <Radio ml={-6} borderColor={'primary.300'} value={SK} disabled={isSubmitting || isLoading}>
       <Text
         bg={selectedParagraph === SK ? 'primary.300' : 'inherit'}
         p={selectedParagraph === SK ? 1 : 0}
@@ -43,38 +44,13 @@ export const OriginReference = ({
   );
 };
 
-interface TReference {
-  id?: string;
-  name: string;
-  content: string[];
-}
 export const ReferencePairForStaging = (props: {
   origin: string;
-  references: TReference[];
-  paragraphIndex?: number;
-  sentenceIndex?: number;
-  totalSentences?: number;
-  paragraphId?: string;
-  totalParagraphs?: number;
-  finish: boolean;
+  references: Reference[];
+  sutra?: string;
+  roll?: string;
 }) => {
-  const {
-    origin,
-    references,
-    paragraphIndex = 0,
-    sentenceIndex = 0,
-    totalSentences = 0,
-    paragraphId = '',
-    finish,
-  } = props;
-  const location = useLocation();
-  const navigate = useNavigate();
-  useEffect(() => {
-    if (finish) {
-      const newLocation = location.pathname.replace('/staging', '');
-      navigate(newLocation);
-    }
-  }, [finish, navigate, location]);
+  const { origin, references, sutra, roll } = props;
 
   return (
     <Card bg={'secondary.300'}>
@@ -86,53 +62,63 @@ export const ReferencePairForStaging = (props: {
             </Heading>
             <Text>{origin}</Text>
           </Box>
-          <ReferencePairForStagingElement
-            references={references}
-            paragraphId={paragraphId}
-            paragraphIndex={paragraphIndex}
-            sentenceIndex={sentenceIndex}
-            totalSentences={totalSentences}
-          />
+          <ReferenceElement references={references} sutra={sutra} roll={roll} />
         </Stack>
       </CardBody>
     </Card>
   );
 };
 
-export const ReferencePairForStagingElement = ({
+export const ReferenceElement = ({
   references,
-  paragraphIndex,
-  sentenceIndex,
-  totalSentences,
-  paragraphId,
+  isUpdate = false,
+  sutra = '',
+  roll = '',
 }: {
-  references: TReference[];
-  paragraphIndex: number;
-  sentenceIndex: number;
-  totalSentences: number;
-  paragraphId: string;
+  references: Reference[];
+  sutra?: string;
+  roll?: string;
+  isUpdate?: boolean;
 }) => {
-  const [values, setValues] = useState<TReference[]>([...references]);
+  console.log({ references, sutra, roll, isUpdate });
+  const [values, setValues] = useState<Reference[]>([...references]);
 
   const [isEditing, setIsEditing] = useState(false);
 
   const handelReferenceChanges = (index: number, content: string) => {
     const newValues = [...values];
-    newValues[index]['content'] = [content];
+    newValues[index]['content'] = content;
     setValues(newValues);
     setIsEditing(true);
   };
 
+  const actionData = useActionData();
+
+  useEffect(() => {
+    if (actionData?.intent === Intent.UPDATE_REFERENCE && !actionData?.errors) {
+      setIsEditing(false);
+    }
+    if (actionData?.intent === Intent.CREATE_REFERENCE && !actionData?.errors) {
+      setIsEditing(false);
+    }
+  }, [actionData]);
+
   const submit = useSubmit();
   const handleSubmit = () => {
-    const params = {
-      intent: Intent.CREATE_REFERENCE,
-      paragraphIndex: paragraphIndex.toString(),
-      sentenceIndex: sentenceIndex.toString(),
-      totalSentences: totalSentences.toString(),
-      content: JSON.stringify(values),
-      paragraphId,
-    };
+    let params = {};
+    if (isUpdate) {
+      params = {
+        intent: Intent.UPDATE_REFERENCE,
+        content: JSON.stringify(values),
+      };
+    } else {
+      params = {
+        intent: Intent.CREATE_REFERENCE,
+        content: JSON.stringify(values),
+        sutra,
+        roll,
+      };
+    }
     submit(params, { method: 'post' });
   };
 
@@ -140,13 +126,14 @@ export const ReferencePairForStagingElement = ({
     <Box>
       {references.map((value, i) => (
         <Box key={i}>
-          <Heading size='xs' textTransform='uppercase'>
+          <Heading size='xs' textTransform='uppercase' mt={4}>
             {value.name}
           </Heading>
-          <Flex height={'65px'} justify={'flex-start'} align={'center'}>
-            <Editable defaultValue={'Click to edit'} w={'100%'}>
+          <Flex minH={'65px'} justify={'flex-start'} align={'center'}>
+            <Editable defaultValue={value.content || 'Click to edit'} w={'100%'}>
               <EditablePreview />
               <EditableTextarea
+                height={'65px'}
                 onBlur={(e) => {
                   if (!e.target.value) {
                     handelReferenceChanges(i, 'Click to edit');
@@ -167,7 +154,11 @@ export const ReferencePairForStagingElement = ({
             onClick={handleSubmit}
           />
           <IconButton
-            onClick={() => setIsEditing(false)}
+            onClick={() => {
+              setIsEditing((prev) => {
+                return true;
+              });
+            }}
             size={'sm'}
             icon={<CloseIcon />}
             aria-label='close reference edit button'
@@ -184,11 +175,6 @@ export const ReferencePair = (props: {
 }) => {
   const { origin, references } = props;
 
-  const originSentences = useMemo(() => {
-    const sentences = splitParagraph(origin);
-    return sentences.length > 1 ? sentences : [];
-  }, [origin]);
-
   return (
     <>
       <Card bg={'secondary.300'}>
@@ -200,92 +186,10 @@ export const ReferencePair = (props: {
               </Heading>
               <Text fontSize={'lg'}>{origin.content}</Text>
             </Box>
-            {references?.map((reference, index) => (
-              <Box key={index}>
-                <Heading size='xs' textTransform='uppercase' mb={2} color={'primary.300'}>
-                  {originSentences[index]}
-                </Heading>
-                <ReferenceElement reference={reference} />
-              </Box>
-            ))}
+            <ReferenceElement references={references} isUpdate={true} />
           </Stack>
         </CardBody>
       </Card>
     </>
-  );
-};
-
-export const ReferenceElement = ({ reference }: { reference: CreatedType<Reference> }) => {
-  const [contents, setContents] = useState<{ content: string[]; name: string }[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const submit = useSubmit();
-  const handleSubmit = () => {
-    const params = {
-      intent: Intent.UPDATE_REFERENCE,
-      content: JSON.stringify(contents),
-      id: reference.SK,
-    };
-    submit(params, { method: 'post' });
-    setIsEditing(false);
-  };
-
-  const handleUpdate = (name: string, value: string) => {
-    const updatedContent = contents.map((content) => {
-      if (content.name === name) {
-        return { ...content, content: [value] }; // Create a new object with the updated name
-      }
-      return content; // Return unchanged items
-    });
-    setIsEditing(true);
-    setContents(updatedContent);
-  };
-
-  useEffect(() => {
-    if (reference.content) {
-      const obj = JSON.parse(reference.content) as {
-        content: string[];
-        name: string;
-      }[];
-      setContents(obj);
-    }
-  }, [reference]);
-
-  return (
-    <Box>
-      {contents?.map((content, index) => (
-        <Flex minH={'85px'} direction={'column'} justify={'flex-start'} key={index}>
-          <Heading size='xs' textTransform='uppercase'>
-            {content.name}
-          </Heading>
-          <Editable defaultValue={'Click to edit'} value={contents[index].content[0]}>
-            <EditablePreview />
-            <EditableTextarea
-              onBlur={(e) => {
-                if (!e.target.value) {
-                  handleUpdate(content.name, 'Click to edit');
-                }
-              }}
-              onChange={(e) => handleUpdate(content.name, e.target.value)}
-            />
-          </Editable>
-        </Flex>
-      ))}
-      {isEditing ? (
-        <ButtonGroup>
-          <IconButton
-            size={'sm'}
-            icon={<CheckIcon />}
-            aria-label='update reference'
-            onClick={handleSubmit}
-          />
-          <IconButton
-            onClick={() => setIsEditing(false)}
-            size={'sm'}
-            icon={<CloseIcon />}
-            aria-label='close reference edit button'
-          />
-        </ButtonGroup>
-      ) : null}
-    </Box>
   );
 };

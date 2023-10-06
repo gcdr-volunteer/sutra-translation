@@ -3,15 +3,14 @@ import {
   Box,
   Text,
   Flex,
-  Checkbox,
-  useBoolean,
   useDisclosure,
   Mark,
   useToast,
+  Radio,
+  useHighlight,
 } from '@chakra-ui/react';
 import { FormModal } from '~/components/common';
 import { Comment } from './comment';
-import type { MutableRefObject } from 'react';
 import type { CreatedType, Comment as TComment, Paragraph as TParagraph } from '~/types';
 import { Intent } from '~/types/common';
 import { MessageDialog } from '../comment_dialog';
@@ -19,7 +18,7 @@ import { AppContext } from '~/routes/__app';
 import { Can } from '~/authorisation';
 import { useActionData } from '@remix-run/react';
 import type { ParagraphLoaderData } from '../../models/paragraph';
-import { useHighlight, useSetTheme } from '../../hooks';
+import { useSetTheme } from '../../hooks';
 import { buildRegex } from '../../utils';
 
 export const ParagraphTarget = ({
@@ -86,7 +85,7 @@ export const TextWithComment = ({
     if (selection && selection.rangeCount > 0) {
       const parent = parentRef.current;
       if (parent && selection.toString().trim()) {
-        const cleanedText = selection.toString().trim().replace(/\n/g, ' ');
+        const cleanedText = selection.toString().trim().replace(/\n/g, '');
         setSelectedText(cleanedText);
       }
     }
@@ -96,14 +95,8 @@ export const TextWithComment = ({
     if (selectedText?.length) {
       const regex = buildRegex([selectedText]);
       if (regex) {
-        const withOutNewLine = text.replace(/\n/g, ' ');
+        const withOutNewLine = text.replace(/\n/g, '');
         const matches = withOutNewLine.match(regex);
-        console.log({
-          regex,
-          matches,
-          selectedText,
-          withOutNewLine,
-        });
         if (matches && matches?.length >= 2) {
           toast({
             title: 'Select words failed',
@@ -127,7 +120,7 @@ export const TextWithComment = ({
       .filter((comment) => !comment?.resolved);
   }, [comments]);
   const chunks = useHighlight({
-    text: text.replace(/\n/g, ' '),
+    text,
     query: commentsNotResolved.map((comment) => comment.content),
   });
 
@@ -282,47 +275,31 @@ export const ParagraphOrigin = ({
   content,
   index,
   background,
-  urlParams,
   SK,
+  selectedParagraph,
   font,
 }: {
   content: string;
   index: number;
   background?: string;
-  urlParams: MutableRefObject<URLSearchParams>;
   SK?: string;
+  selectedParagraph: string;
   font: {
     fontSize: string;
     fontFamilyOrigin: string;
     fontFamilyTarget: string;
   };
 }) => {
-  const [toggle, setToggle] = useBoolean(false);
-  useMemo(() => {
-    if (toggle) {
-      const urls = urlParams.current.getAll('p');
-      if (!urls.includes(SK ?? '')) {
-        urlParams.current.append('p', SK ?? '');
-      }
-      const paramsArray = Array.from(urlParams.current.entries());
-      paramsArray.sort((a, b) => a[1].localeCompare(b[1]));
-      urlParams.current = new URLSearchParams(paramsArray);
-    } else {
-      const newParams = new URLSearchParams();
-      for (const [key, value] of urlParams.current.entries()) {
-        if (value !== SK) {
-          newParams.append(key, value);
-        }
-      }
-      urlParams.current = newParams;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toggle]);
   return (
-    <Flex w={'85%'} flexDir={'row'} alignItems={'flex-start'}>
-      <Checkbox ml={-6} borderColor={'primary.300'} onChange={setToggle.toggle}>
-        <Paragraph font={font} content={content} toggle={toggle} background={background} />
-      </Checkbox>
+    <Flex w={'100%'} flexDir={'row'} alignItems={'flex-start'}>
+      <Radio ml={-6} borderColor={'primary.300'} value={SK}>
+        <Paragraph
+          font={font}
+          content={content}
+          toggle={selectedParagraph === SK}
+          background={background}
+        />
+      </Radio>
     </Flex>
   );
 };

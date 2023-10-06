@@ -1,5 +1,5 @@
 import { useRevalidator } from '@remix-run/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useEventSource } from 'remix-utils';
 import type { User } from '~/types';
 
@@ -20,12 +20,14 @@ export const useMessage = (currentUser?: User) => {
 
 export const useGpt = () => {
   const message = useEventSource('/chat/subscribe', { event: 'gpt' });
-  const revalidator = useRevalidator();
+  const translation = useRef('');
 
   useEffect(() => {
     if (message) {
-      revalidator.revalidate();
+      translation.current += message;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message]);
+
+  return translation.current;
 };

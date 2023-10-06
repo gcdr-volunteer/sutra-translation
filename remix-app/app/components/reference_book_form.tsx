@@ -25,10 +25,12 @@ export const ReferenceBookForm = (props: ReferenceBookFormProps) => {
     bookname: string;
     team: Team['name'];
     sutra: string;
+    order: string;
   }>({
     bookname: '',
     team: '',
     sutra: '',
+    order: '1',
   });
 
   const handleFormStateUpdate = (
@@ -91,6 +93,16 @@ export const ReferenceBookForm = (props: ReferenceBookFormProps) => {
           ))}
         </Select>
         {errors?.sutra ? <FormErrorMessage>{errors?.sutra}</FormErrorMessage> : null}
+      </FormControl>
+      <FormControl>
+        <FormLabel>Book Order: (higher earlier)</FormLabel>
+        <Input
+          type='text'
+          value={formState.order}
+          onChange={(e) => handleFormStateUpdate('order', e)}
+          name='order'
+          autoComplete='off'
+        />
       </FormControl>
     </SimpleGrid>
   );

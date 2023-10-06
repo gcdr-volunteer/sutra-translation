@@ -7,7 +7,7 @@ import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
 import { badRequest, created } from 'remix-utils';
 import { Intent } from '~/types/common';
-import { createRefBook } from '~/models/reference';
+import { createRefBook, updateRefBook } from '~/models/reference';
 import type { RefBook } from '~/types';
 
 export const handleIsSutraRollComplete = async ({
@@ -44,6 +44,17 @@ const newRefBookSchema = () => {
     bookname: yup.string().trim().required('book name cannot be empty'),
     team: yup.string().trim().required('team name cannot be empty'),
     sutraId: yup.string().trim().required('sutra name cannot be empty'),
+    order: yup.string().trim().required('order cannot be empty'),
+    kind: yup.mixed<'REFBOOK'>().default('REFBOOK'),
+  });
+  return refBookSchema;
+};
+
+const updateRefBookSchema = () => {
+  const baseSchema = initialSchema();
+  const refBookSchema = baseSchema.shape({
+    bookname: yup.string().trim().required('reference book name cannot be empty'),
+    order: yup.string().trim().required('book order cannot be empty'),
     kind: yup.mixed<'REFBOOK'>().default('REFBOOK'),
   });
   return refBookSchema;
@@ -61,6 +72,25 @@ export const handleCreateRefBook = async (refBook: RefBook) => {
   } catch (errors) {
     logger.error(handleCreateRefBook.name, 'errors', errors);
     return badRequest({ errors: errors, intent: Intent.CREATE_REF_BOOK });
+  }
+};
+
+export const handleUpdateRefBook = async (refBook: Partial<RefBook>) => {
+  try {
+    const result = await schemaValidator({
+      schema: updateRefBookSchema(),
+      obj: refBook,
+    });
+    logger.log(handleUpdateRefBook.name, 'result', result);
+    const updatedRefBook = {
+      PK: 'REFBOOK',
+      SK: result.bookname,
+      order: result.order,
+    };
+    await updateRefBook(updatedRefBook);
+  } catch (errors) {
+    logger.error(handleCreateRefBook.name, 'errors', errors);
+    return badRequest({ errors: errors, intent: Intent.UPDATE_REF_BOOK });
   }
 };
 

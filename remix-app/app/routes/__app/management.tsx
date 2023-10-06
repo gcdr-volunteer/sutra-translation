@@ -19,18 +19,24 @@ import {
   useToast,
   ListItem,
   UnorderedList,
+  Editable,
+  EditablePreview,
+  EditableTextarea,
+  Flex,
+  ButtonGroup,
+  Container,
 } from '@chakra-ui/react';
 import { json, redirect } from '@remix-run/node';
 import type { ActionArgs } from '@remix-run/node';
 import { Intent } from '~/types/common';
-import { EditIcon, CopyIcon } from '@chakra-ui/icons';
+import { EditIcon, CopyIcon, CheckIcon, CloseIcon } from '@chakra-ui/icons';
 import { FormModal } from '~/components/common';
 import { getLoaderData } from '~/services/__app/admin';
 import type { Team, Sutra, CreatedType, RefBook, Glossary } from '~/types';
 import { getAllSutraThatFinished } from '~/models/sutra';
 import { useActionData, useLoaderData, useSubmit } from '@remix-run/react';
 import { ReferenceBookForm } from '~/components/reference_book_form';
-import { handleCreateRefBook } from '~/services/__app/management';
+import { handleCreateRefBook, handleUpdateRefBook } from '~/services/__app/management';
 import { getAllRefBooks } from '~/models/reference';
 import { useCallback, useEffect, useState } from 'react';
 import { BsBook, BsFillCloudUploadFill, BsCloudUpload } from 'react-icons/bs';
@@ -39,6 +45,7 @@ import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
 import { handleCreateBulkGlossary } from '../../services/__app/tripitaka/$sutraId/$rollId/staging';
 import { assertAuthUser } from '../../auth.server';
+import { created } from 'remix-utils';
 export async function loader({ request }: ActionArgs) {
   const user = await assertAuthUser(request);
   if (!user) {
@@ -52,11 +59,12 @@ export async function loader({ request }: ActionArgs) {
     bookname: refbook.bookname,
     team: teams.find((teams) => teams.name === refbook.team)?.alias || '',
     sutra: sutras.find((sutra) => sutra.SK === refbook.sutraId)?.title || '',
+    order: refbook.order || '1',
   }));
   return json<{
     teams: Team[];
     sutras: CreatedType<Sutra>[];
-    refBooks: { bookname: string; sutra: string; team: string }[];
+    refBooks: { bookname: string; sutra: string; team: string; order: string }[];
   }>({
     teams,
     sutras,
@@ -76,8 +84,18 @@ export async function action({ request }: ActionArgs) {
       bookname: entryData?.bookname as string,
       sutraId: entryData?.sutra as string,
       team: entryData?.team as string,
+      order: entryData?.order as string,
+      kind: 'REFBOOK' as const,
     };
     return await handleCreateRefBook(refBook);
+  }
+  if (entryData?.intent === Intent.UPDATE_REF_BOOK) {
+    const refBook = {
+      bookname: entryData?.bookname as string,
+      order: entryData?.order as string,
+    };
+    await handleUpdateRefBook(refBook);
+    return created({ data: {}, intent: Intent.UPDATE_REF_BOOK });
   }
   if (entryData?.intent === Intent.BULK_CREATE_GLOSSARY) {
     const glossaries = JSON.parse(entryData.glossaries as string) as Glossary[];
@@ -97,16 +115,22 @@ export default function ManagementRoute() {
               <Th>Reference Book Name</Th>
               <Th>Sutra Name</Th>
               <Th>Team Name</Th>
+              <Th>Book Order (click edit)</Th>
             </Tr>
           </Thead>
           <Tbody>
-            {refBooks.map((refbook) => (
-              <Tr key={refbook.bookname}>
-                <Td>{refbook.bookname}</Td>
-                <Td>{refbook.sutra}</Td>
-                <Td>{refbook.team}</Td>
-              </Tr>
-            ))}
+            {refBooks
+              .sort((a, b) => b.order.localeCompare(a.order))
+              .map((refbook) => (
+                <Tr key={refbook.bookname}>
+                  <Td>{refbook.bookname}</Td>
+                  <Td>{refbook.sutra}</Td>
+                  <Td>{refbook.team}</Td>
+                  <Td>
+                    <EditOrder order={refbook.order} bookname={refbook.bookname} />
+                  </Td>
+                </Tr>
+              ))}
           </Tbody>
         </Table>
       </TableContainer>
@@ -114,6 +138,73 @@ export default function ManagementRoute() {
     </Box>
   );
 }
+
+const EditOrder = ({ order, bookname }: { order: string; bookname: string }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [orderValue, setOrderValue] = useState(order);
+  const [error, setError] = useState('');
+  const submit = useSubmit();
+  const actionData = useActionData();
+  useEffect(() => {
+    if (actionData?.intent === Intent.UPDATE_REF_BOOK && !actionData?.errors) {
+      setIsEditing(false);
+    }
+  }, [actionData]);
+
+  const handleSubmit = () => {
+    if (!/^\d+$/.test(orderValue)) {
+      setError('order value must be a number');
+    } else {
+      submit(
+        {
+          intent: Intent.UPDATE_REF_BOOK,
+          bookname,
+          order: orderValue,
+        },
+        { method: 'post' }
+      );
+    }
+  };
+
+  return (
+    <Container>
+      {error && <Text color={'red'}>{error}</Text>}
+      <Flex justify={'flex-start'} align={'center'}>
+        <Editable defaultValue={orderValue} w={'100%'}>
+          <EditablePreview />
+          <EditableTextarea
+            onFocus={() => setIsEditing(true)}
+            onChange={(e) => {
+              if (!e.target.value) {
+                setError('order value cannot be empty, refresh page');
+              } else {
+                setOrderValue(e.target.value);
+              }
+            }}
+          />
+        </Editable>
+        {isEditing ? (
+          <ButtonGroup ml={2}>
+            <IconButton
+              size={'sm'}
+              icon={<CheckIcon />}
+              aria-label='submit reference'
+              onClick={handleSubmit}
+            />
+            <IconButton
+              onClick={() => {
+                setIsEditing(false);
+              }}
+              size={'sm'}
+              icon={<CloseIcon />}
+              aria-label='close reference edit button'
+            />
+          </ButtonGroup>
+        ) : null}
+      </Flex>
+    </Container>
+  );
+};
 
 type ManagementButtonsProps = {
   teams: Team[];

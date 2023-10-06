@@ -3,14 +3,7 @@ import { Can } from '~/authorisation';
 import type { ChangeEvent } from 'react';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { Paragraph, Glossary as TGlossary, CreatedType, Reference, Glossary } from '~/types';
-import {
-  useActionData,
-  useLocation,
-  useSubmit,
-  Form,
-  useNavigate,
-  useLoaderData,
-} from '@remix-run/react';
+import { useActionData, useSubmit, Form, useNavigate, useLoaderData } from '@remix-run/react';
 import {
   Tag,
   Box,
@@ -48,9 +41,14 @@ import {
   InputRightElement,
   Skeleton,
   Stack,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionIcon,
+  AccordionPanel,
 } from '@chakra-ui/react';
 import { RepeatIcon, CopyIcon } from '@chakra-ui/icons';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { json, redirect } from '@remix-run/node';
 import { BiTable, BiSearch, BiNote, BiCheck, BiGlasses } from 'react-icons/bi';
 import { AiFillGoogleCircle, AiOutlineGoogle } from 'react-icons/ai';
@@ -67,62 +65,69 @@ import {
 import { Intent } from '~/types/common';
 import { assertAuthUser } from '~/auth.server';
 import { useDebounce, useKeyPress, useSetTheme, useTransitionState } from '~/hooks';
-import { logger, splitParagraph } from '~/utils';
-import { getParagraphByPrimaryKey, getParagraphsByRollId } from '~/models/paragraph';
-import { getFootnotesByPartitionKey } from '~/models/footnote';
-import { getReferencesBySK } from '~/models/reference';
+import { getParagraphByPrimaryKey } from '~/models/paragraph';
+import { handleGetReferencesByPK } from '~/models/reference';
 import { GlossaryForm } from '~/components/common/glossary_form';
 import { getAllGlossary } from '~/models/glossary';
 import { translate } from '~/models/external_services/openai';
-import { unauthorized } from 'remix-utils';
 import { useModalErrors } from '~/hooks/useError';
+import { handleGetAllRefBooks } from '../../../../../../services/__app/reference/$sutraId/$rollId.staging';
+import { badRequest, created } from 'remix-utils';
 
 export const loader = async ({ params, request }: LoaderArgs) => {
-  const user = await assertAuthUser(request);
-  if (!user) {
-    return redirect('/login');
+  const { rollId, sutraId, paragraphId } = params;
+  if (!rollId) {
+    throw badRequest('roll id cannot be empty');
   }
+  if (!sutraId) {
+    throw badRequest('sutra id cannot be empty');
+  }
+  if (!paragraphId) {
+    throw badRequest('paragraph id cannot be empty');
+  }
+  const paragraph = await getParagraphByPrimaryKey({ PK: rollId, SK: paragraphId });
+  const references = await handleGetReferencesByPK(paragraphId);
+  const refbooks = await handleGetAllRefBooks(sutraId);
+  const sortedBooks = refbooks.map((refbook) => refbook.name);
 
-  const { rollId } = params;
-  const url = new URL(request.url);
-  const ps = [...new Set(url.searchParams.getAll('p'))];
-  const paragraphs = await Promise.all(
-    ps.map((p) => getParagraphByPrimaryKey({ PK: rollId ?? '', SK: p }))
-  );
-  const references = await Promise.all(ps.map((p) => getReferencesBySK(p)));
-  const rollIdInTargetLang = rollId?.replace('ZH', 'EN') ?? '';
-  const targetParagraphs = await getParagraphsByRollId(rollIdInTargetLang);
-  const footnotes = await getFootnotesByPartitionKey(rollIdInTargetLang);
-  const paragraph = targetParagraphs.find((paragraph) => !paragraph.finish);
   return json({
-    sentenceIndex: paragraph?.sentenceIndex ?? -1,
-    paragraphIndex: paragraph?.paragraphIndex ?? -1,
     paragraph,
-    footnotes: footnotes.filter((footnote) => footnote.paragraphId === paragraph?.SK),
-    paragraphs,
-    references,
+    references: references.sort((a, b) => {
+      const indexA = sortedBooks.indexOf(a.name);
+      const indexB = sortedBooks.indexOf(b.name);
+      return indexA - indexB;
+    }),
   });
 };
 
 export const action = async ({ request, params }: ActionArgs) => {
-  const { sutraId, rollId } = params;
+  const { sutraId, rollId, paragraphId } = params;
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
   }
+  if (!sutraId) {
+    throw badRequest('sutraId cannot be empty');
+  }
+  if (!rollId) {
+    throw badRequest('roll id cannot be empty');
+  }
+  if (!paragraphId) {
+    throw badRequest('paragraph id cannot be empty');
+  }
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
   if (entryData?.intent === Intent.READ_OPENAI) {
-    const { intent, category, ...rest } = entryData;
+    const { category, content } = entryData;
     // Uncomment the following line when doing debug
-    // return json({ data: {}, intent: Intent.READ_DEEPL });
-    if (Object.keys(rest)?.length) {
+    // return json({ payload: {}, intent: Intent.READ_OPENAI });
+    if (content) {
       // const origins = await replaceWithGlossary(rest as Record<string, string>);
-      const obj = await handleOpenaiFetch({
-        origins: rest as Record<string, string>,
+      const translation = await handleOpenaiFetch({
+        content: content as string,
         category: category as string,
       });
-      return json({ payload: obj, intent: Intent.READ_OPENAI });
+      return json({ payload: { translation }, intent: Intent.READ_OPENAI });
     }
   }
 
@@ -134,44 +139,38 @@ export const action = async ({ request, params }: ActionArgs) => {
       return json({ errors: { deepl: (error as unknown as Error)?.message } }, { status: 400 });
     }
   }
-  if (entryData?.intent === Intent.UPDATE_OPENAI) {
-    const origin = entryData?.origin as string;
-    const category = entryData?.category as string;
-    const glossaries = await getAllGlossary();
-    const sourceGlossaries = glossaries
-      ?.filter((glossary) => origin?.includes(glossary.origin))
-      ?.reduce((acc, glossary) => {
-        acc[glossary.origin] = glossary.target;
-        return acc;
-      }, {} as Record<string, string>);
-
-    const translation = await translate({ text: origin, category }, sourceGlossaries);
-    return json({ intent: Intent.UPDATE_OPENAI, origin, translation });
-  }
 
   if (entryData?.intent === Intent.CREATE_TRANSLATION) {
     // Uncomment the following line when doing debug
     // return json({ payload: { index: entryData?.index }, intent: Intent.CREATE_TRANSLATION });
+    const prevParagraph = await getParagraphByPrimaryKey({
+      PK: rollId.replace('ZH', 'EN'),
+      SK: paragraphId.replace('ZH', 'EN'),
+    });
+    if (prevParagraph?.finish) {
+      return json({
+        intent: Intent.CREATE_TRANSLATION,
+        errors: { finish: true },
+      });
+    }
 
-    return await handleNewTranslationParagraph(
-      {
-        paragraphIndex: entryData?.paragraphIndex as string,
-        sentenceIndex: entryData?.sentenceIndex as string,
-        totalSentences: entryData?.totalSentences as string,
-        PK: entryData?.PK as string,
-        SK: entryData?.SK as string,
-        content: entryData?.content as string,
-      },
-      // TODO: using frontend route props passing
-      { sutraId, rollId }
-    );
+    await handleNewTranslationParagraph({
+      sutraId,
+      rollId,
+      paragraphId,
+      content: entryData?.content as string,
+      num: parseInt(entryData?.num as string, 10) as number,
+    });
+    return created({
+      intent: Intent.CREATE_TRANSLATION,
+      payload: { finish: true },
+    });
   }
 
   if (entryData?.intent === Intent.CREATE_GLOSSARY) {
     return await handleCreateNewGlossary({ newGlossary: entryData, user });
   }
   if (entryData?.intent === Intent.READ_OPENSEARCH) {
-    logger.log('action', 'value', entryData);
     if (entryData?.value) {
       if (entryData?.glossary_only === 'true') {
         return await handleSearchGlossary({ text: entryData?.value as string, filter: 'origin' });
@@ -184,224 +183,52 @@ export const action = async ({ request, params }: ActionArgs) => {
 
 export default function ParagraphStagingRoute() {
   const loaderData = useLoaderData<typeof loader>();
-  const { references } = loaderData;
-  const actionData = useActionData<{
-    payload: { paragraphIndex: number; sentenceIndex: number } | Record<string, string>;
-    intent: Intent;
-    type: 'paragraph' | 'sentence';
-  }>();
-  const [translation, setTranslation] = useState<Record<string, string>>({});
-  const [sentenceFinish, setSentenceFinish] = useState<Record<string, boolean>>({});
-  const [paragraphFinish, setParagraphFinish] = useState<Record<string, boolean>>({});
-
-  const paragraphs = loaderData.paragraphs;
-  const ref = useRef(paragraphs);
-  useEffect(() => {
-    paragraphs?.reduce(
-      (acc, cur, i) => {
-        const sentences = splitParagraph(cur);
-        if (sentences.length > 1) {
-          sentences.reduce(
-            (accu, curr, j) => {
-              acc[`${i}.${j}`] = curr;
-              return accu;
-            },
-            { acc }
-          );
-        } else {
-          acc[`${i}`] = cur?.content || '';
-        }
-        acc['category'] = cur?.category ?? 'PARAGRAPH';
-        return acc;
-      },
-      { intent: Intent.READ_OPENAI } as Record<string, string>
-    );
-    const paragraphFinish = paragraphs?.reduce((acc, _, index) => {
-      acc[index] = false;
-      return acc;
-    }, {} as Record<string, boolean>);
-    setParagraphFinish(paragraphFinish);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const navigate = useNavigate();
+  const [collapse, setCollapse] = useState(true);
+  const { references, paragraph } = loaderData;
+  const actionData = useActionData();
 
   useEffect(() => {
-    if (loaderData) {
-      const { sentenceIndex, paragraphIndex } = loaderData;
-      const sentenceFinish: Record<string, boolean> = {};
-      for (let i = 0; i <= paragraphIndex; i++) {
-        for (let j = 0; j <= sentenceIndex; j++) {
-          sentenceFinish[`${i}.${j}`] = true;
-        }
-      }
-      setSentenceFinish((prev) => ({ ...prev, ...sentenceFinish }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaderData]);
-
-  useEffect(() => {
-    if (actionData?.intent === Intent.READ_OPENAI) {
-      setTranslation(actionData.payload as Record<string, string>);
-    }
-    if (actionData?.intent === Intent.CREATE_TRANSLATION) {
-      const { paragraphIndex = 0, finish } = actionData.payload as {
-        paragraphIndex: number;
-        sentenceIndex: number;
-        finish: boolean;
-      };
-      if (actionData) {
-        setParagraphFinish((prev) => ({ ...prev, [paragraphIndex]: finish }));
-      }
+    if (actionData?.intent === Intent.CREATE_TRANSLATION && actionData?.payload?.finish) {
+      setCollapse(false);
+      navigate(-2);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData]);
 
-  const { fontFamilyOrigin, fontFamilyTarget, fontSize } = useSetTheme();
-
-  const paragraphsComp = ref.current?.map((paragraph, i, arr) => {
-    const sentences = splitParagraph(paragraph);
-    // const paragraphIndex = actionData?.data?.paragraphIndex ?? 0;
-    if (sentences.length >= 2) {
-      return (
-        // collapse only when paragraph finish and all sentences finish
-        <Box key={i}>
-          <Collapse in={!paragraphFinish[i]} unmountOnExit={true}>
-            <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
-              <Text fontSize={fontSize} fontFamily={fontFamilyOrigin}>
-                <Highlight
-                  query={
-                    sentences[loaderData.paragraphIndex >= i ? loaderData.sentenceIndex + 1 : 0]
-                  }
-                  styles={{ px: '1', py: '1', bg: 'orange.100', whiteSpace: 'wrap' }}
-                >
-                  {paragraph?.content || ''}
-                </Highlight>
-              </Text>
-            </Box>
-            {loaderData?.paragraph?.content ? (
-              <Box mt={4} w='100%' p={4} background={'primary.300'} borderRadius={16} mb={4}>
-                <Text fontSize={fontSize} fontFamily={fontFamilyTarget}>
-                  {loaderData?.paragraph?.content}
-                </Text>
-              </Box>
-            ) : null}
-          </Collapse>
-          {sentences.map((sentence, j, arr) => {
-            if (j >= loaderData.sentenceIndex && paragraph) {
-              const newParagraph = { ...paragraph, content: sentence };
-              return (
-                <Collapse
-                  key={j}
-                  in={paragraphFinish[i] === true ? false : !sentenceFinish[`${i}.${j}`]}
-                  animateOpacity={true}
-                  unmountOnExit={true}
-                  style={{ overflow: 'visible' }}
-                >
-                  <TranlationWorkspace
-                    isFirst={j === loaderData.sentenceIndex + 1}
-                    origin={newParagraph}
-                    paragraphIndex={i}
-                    sentenceIndex={j}
-                    totalSentences={sentences.length - 1}
-                    translation={Object.keys(translation).length ? translation[`${i}.${j}`] : ''}
-                    reference={references?.[i]?.[j] ?? ''}
-                    totalParagraphs={ref?.current.length - 1}
-                  />
-                  {j !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
-                </Collapse>
-              );
-            }
-            return null;
-          })}
-        </Box>
-      );
-    }
+  if (paragraph) {
     return (
-      <Collapse
-        key={i}
-        in={!paragraphFinish[i]}
-        unmountOnExit={i !== arr.length - 1}
-        animateOpacity={true}
-      >
-        <TranlationWorkspace
-          isFirst={paragraphFinish[i - 1] || i === 0}
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          origin={paragraph!}
-          paragraphIndex={i}
-          translation={Object.keys(translation).length ? translation[`${i}`] : ''}
-          reference={references?.[i]?.[0] ?? ''}
-          totalParagraphs={ref?.current.length - 1}
-        />
-        {i !== arr.length - 1 ? <Divider mt={4} mb={4} /> : null}
+      <Collapse key={paragraph.content} in={collapse} animateOpacity>
+        <TranlationWorkspace origin={paragraph} references={references} />
       </Collapse>
     );
-  });
-  if (ref.current?.length) {
-    return <Box px={16}>{paragraphsComp}</Box>;
   } else {
     return <Warning content='Please select at least one paragraph from the roll' />;
   }
 }
 
-type FN = {
-  paragraphId: string;
-  offset: number;
-  content: string;
-  sentence: string;
-};
 interface WorkSpaceProps {
   origin: CreatedType<Paragraph>;
-  paragraphIndex: number;
-  translation: string;
-  reference: CreatedType<Reference>;
-  totalParagraphs: number;
-  sentenceIndex?: number;
-  totalSentences?: number;
-  isFirst: boolean;
+  references: CreatedType<Reference>[];
 }
-function TranlationWorkspace({
-  origin,
-  translation,
-  paragraphIndex,
-  reference,
-  totalParagraphs,
-  sentenceIndex,
-  totalSentences,
-  isFirst,
-}: WorkSpaceProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const loaderData = useLoaderData<typeof loader>();
+function TranlationWorkspace({ origin, references }: WorkSpaceProps) {
+  const { content, category } = origin;
   const actionData = useActionData();
-  const [content, setContent] = useState('');
+  const [workspaceText, setWorkspaceText] = useState('');
   const submit = useSubmit();
   const [glossary, setGlossary] = useBoolean(false);
-  const [cursorPos, setCursorPos] = useState(-1);
-  const [footnotes, setFootnotes] = useState<FN[]>([]);
   const { isSubmitting } = useTransitionState();
-  const [refresh, setRefresh] = useState<number>(0);
-  const [latestTranslation, setLatestTranslation] = useState<string>('');
-  const [prevTranslation, setPrevTranslation] = useState<string>('');
+  const [refresh, setRefresh] = useState<number>(1);
+  const [openaiTranslation, setOpenaiTranslation] = useState<string>('');
 
   const [text, setText] = useState('');
 
-  useEffect(() => {
-    if (translation) {
-      setPrevTranslation(translation);
-    }
-  }, [translation]);
-
-  const refce = useRef();
   const handleSubmitTranslation = () => {
-    setContent('');
+    setWorkspaceText('');
     submit(
       {
-        PK: origin.PK,
-        SK: origin.SK,
-        paragraphIndex: paragraphIndex.toString(),
-        sentenceIndex: sentenceIndex?.toString() ?? '',
-        totalSentences: totalSentences?.toString() ?? '',
-        content: text || content,
-        prevParagraph: loaderData?.paragraph?.content || '',
+        num: origin.num,
+        content: text || workspaceText,
         intent: Intent.CREATE_TRANSLATION,
       },
       { replace: false, method: 'post' }
@@ -409,62 +236,43 @@ function TranlationWorkspace({
   };
 
   useEffect(() => {
-    if (actionData?.intent === Intent.UPDATE_OPENAI && actionData?.origin === origin.content) {
-      setContent(prevTranslation);
-      setLatestTranslation(actionData.translation);
-      setPrevTranslation(actionData.translation);
+    if (refresh) {
+      submit(
+        {
+          intent: Intent.READ_OPENAI,
+          content: content,
+          category: category,
+        },
+        { method: 'post', replace: false }
+      );
+    }
+  }, [refresh, submit, content, category]);
+
+  useEffect(() => {
+    if (actionData?.intent === Intent.READ_OPENAI && actionData?.payload?.translation) {
+      setOpenaiTranslation(actionData.payload.translation);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData]);
 
+  const toast = useToast();
   useEffect(() => {
-    if (refresh || isFirst) {
-      submit(
-        { intent: Intent.UPDATE_OPENAI, origin: origin.content, category: origin.category },
-        { method: 'post', replace: false }
-      );
+    if (actionData?.intent === Intent.CREATE_TRANSLATION && actionData?.errors?.finish) {
+      toast({
+        title: 'Already translated',
+        description: 'This paragraph has been translated, please select another paragraph.',
+        status: 'warning',
+        duration: 4000,
+        isClosable: false,
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refresh, isFirst]);
-
-  useEffect(() => {
-    if (actionData?.intent === Intent.CREATE_TRANSLATION) {
-      const { finish, paragraphIndex } = actionData.payload as {
-        finish: boolean;
-        paragraphIndex: number;
-      };
-      if (finish && totalParagraphs == paragraphIndex) {
-        const newLocation = location.pathname.replace('/staging', '');
-        navigate(newLocation);
-      }
-    }
-  }, [actionData, location.pathname, navigate, totalParagraphs]);
-
-  useEffect(() => {
-    const footnotesAfterCursor = footnotes.filter((footnote) => footnote.offset > cursorPos);
-    const footnotesBeforeCursor = footnotes.filter((footnote) => footnote.offset < cursorPos);
-
-    const newFootnotesAfterCursor = footnotesAfterCursor?.map((footnote) => {
-      const length = content?.length - footnote.sentence.length;
-      return {
-        ...footnote,
-        sentence: content,
-        offset: length + footnote.offset,
-      };
-    });
-    setFootnotes([...footnotesBeforeCursor, ...newFootnotesAfterCursor]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cursorPos, content]);
-
-  const handleCursorChange = (e: React.MouseEvent<HTMLTextAreaElement, MouseEvent>) => {
-    setCursorPos((e.target as HTMLTextAreaElement)?.selectionStart);
-  };
+  }, [actionData, toast]);
 
   const { fontSize, fontFamilyOrigin, fontFamilyTarget } = useSetTheme();
 
   // TODO: refactor this code to sub components
   return (
-    <Flex gap={4} flexDir='column' justifyContent='space-between'>
+    <Flex gap={4} flexDir='column' justifyContent='space-between' overflowY={'auto'}>
       <Card
         w='100%'
         pos={'sticky'}
@@ -488,10 +296,11 @@ function TranlationWorkspace({
           <Heading size='sm'>OpenAI</Heading>
           <ButtonGroup variant='outline' spacing='6'>
             <IconButton
-              isLoading={isSubmitting && isFirst}
+              isLoading={isSubmitting}
               icon={<RepeatIcon />}
               onClick={() => {
                 setRefresh((pre) => pre + 1);
+                setWorkspaceText(openaiTranslation);
               }}
               aria-label='refresh'
             />
@@ -500,40 +309,58 @@ function TranlationWorkspace({
               icon={<CopyIcon />}
               aria-label='copy'
               onClick={() => {
-                setContent(latestTranslation || translation);
+                setWorkspaceText(openaiTranslation);
               }}
             />
           </ButtonGroup>
         </CardHeader>
         <CardBody>
           <Text fontFamily={fontFamilyTarget} fontSize={fontSize}>
-            {latestTranslation || translation}
+            {openaiTranslation}
           </Text>
         </CardBody>
       </Card>
-      {reference?.content
-        ? JSON.parse(reference.content)?.map((reference: { name: string; content: string }) => (
-            <Card key={reference.content} w='100%' background={'secondary.400'} borderRadius={12}>
-              <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
-                <Heading size='sm'>{reference.name}</Heading>
-                <ButtonGroup variant='outline' spacing='6'>
-                  <IconButton
-                    icon={<CopyIcon />}
-                    aria-label='copy'
-                    onClick={() => {
-                      setContent(reference.content);
-                    }}
-                  />
-                </ButtonGroup>
-              </CardHeader>
-              <CardBody>
-                <Text fontFamily={fontFamilyTarget} fontSize={fontSize}>
-                  {reference?.content ?? ''}
-                </Text>
-              </CardBody>
-            </Card>
-          ))
-        : null}
+      <Accordion defaultIndex={[0]} allowMultiple>
+        <AccordionItem>
+          <AccordionButton _expanded={{ bg: 'iconButton.500', color: 'white' }}>
+            <Box as='span' flex='1' textAlign='left' fontWeight={'bold'}>
+              References
+            </Box>
+            <AccordionIcon />
+          </AccordionButton>
+          <AccordionPanel pb={4}>
+            {references.length
+              ? references?.map((reference: { name: string; content: string }) => (
+                  <Card
+                    key={reference.content}
+                    w='100%'
+                    background={'secondary.400'}
+                    borderRadius={12}
+                    mb={4}
+                  >
+                    <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
+                      <Heading size='sm'>{reference.name}</Heading>
+                      <ButtonGroup variant='outline' spacing='6'>
+                        <IconButton
+                          icon={<CopyIcon />}
+                          aria-label='copy'
+                          onClick={() => {
+                            setWorkspaceText(reference.content);
+                          }}
+                        />
+                      </ButtonGroup>
+                    </CardHeader>
+                    <CardBody>
+                      <Text fontFamily={fontFamilyTarget} fontSize={fontSize}>
+                        {reference?.content ?? ''}
+                      </Text>
+                    </CardBody>
+                  </Card>
+                ))
+              : null}
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
       <Can I='Update' this='Paragraph'>
         <Card background={'secondary.500'} w='100%' borderRadius={12}>
           <CardHeader as={Flex} justifyContent='space-between' alignItems='center'>
@@ -564,7 +391,7 @@ function TranlationWorkspace({
                 height={'150px'}
                 fontFamily={fontFamilyTarget}
                 fontSize={fontSize}
-                value={text || content}
+                value={text || workspaceText}
                 onChange={(e) => setText(e.target.value)}
               />
             </Form>
@@ -670,12 +497,6 @@ const GlossaryModal = () => {
   );
 };
 
-type FootnoteModalProps = {
-  cursorPos?: number;
-  content: string;
-  paragraphId: string;
-  setFootnotes: React.Dispatch<React.SetStateAction<FN[]>>;
-};
 const OpenAIModal = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -788,7 +609,7 @@ const SearchModal = () => {
   const { isOpen: isOpenSearch, onOpen: onOpenSearch, onClose: onCloseSearch } = useDisclosure();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<{
-    results: (Paragraph | TGlossary)[];
+    results: (Paragraph | TGlossary | Reference)[];
     counterParts: (Paragraph | TGlossary)[];
   }>({ counterParts: [], results: [] });
   const [focusIndex, setFocusIndex] = useState<number>(-1);
@@ -858,6 +679,9 @@ const SearchModal = () => {
     }
     if (result?.kind === 'GLOSSARY') {
       return <GlossaryDetails glossary={result} />;
+    }
+    if (result?.kind === 'REFERENCE') {
+      return <Text mb={2} dangerouslySetInnerHTML={{ __html: result.content }} />;
     }
     return '';
   };
@@ -947,6 +771,31 @@ const SearchModal = () => {
                             </Heading>
                             <Text pt='2' fontSize='sm'>
                               {result.target}
+                            </Text>
+                          </Box>
+                        </ListItem>
+                      );
+                    }
+                    if (result?.kind === 'REFERENCE') {
+                      return (
+                        <ListItem
+                          px={2}
+                          onClick={() => setFocusIndex(index)}
+                          key={index}
+                          onFocus={() => setFocusIndex(index)}
+                          cursor='pointer'
+                          bgColor={focusIndex === index ? 'gray.300' : 'inherit'}
+                        >
+                          <Box>
+                            <Heading size='s' textTransform='uppercase'>
+                              <Tag size={'sm'} colorScheme='green' verticalAlign={'middle'} mr={1}>
+                                Reference
+                              </Tag>
+                              {result.name}
+                            </Heading>
+                            <Text pt='2' fontSize='sm'>
+                              {result.sutra},{`${result.roll}`},
+                              {` p.${result?.paragraphId.slice(-4)}`}
                             </Text>
                           </Box>
                         </ListItem>

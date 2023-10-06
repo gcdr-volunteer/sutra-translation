@@ -140,6 +140,8 @@ type Doc = {
   }[];
   category: string;
   content: string;
+  originPK: string;
+  originSK: string;
   kind: 'PARAGRAPH';
 };
 
