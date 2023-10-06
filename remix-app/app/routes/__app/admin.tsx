@@ -35,7 +35,7 @@ import {
   getLoaderData,
   feedSutra,
   handleUpdateUser,
-  // handleSendRegistrationEmail,
+  handleSendRegistrationEmail,
 } from '~/services/__app/admin';
 import { UserForm, TeamForm } from '~/components';
 import { LangForm } from '~/components/lang_form';
@@ -112,7 +112,7 @@ export const action = async ({ request }: ActionArgs) => {
         target_lang,
         first_login: true,
       });
-      // await handleSendRegistrationEmail({ username, email });
+      await handleSendRegistrationEmail({ username, email });
       return created({ data: {}, intent: Intent.CREATE_USER });
     }
     if (intent && intent === Intent.UPDATE_USER) {

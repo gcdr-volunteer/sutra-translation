@@ -4,7 +4,7 @@ import { logger } from '../../utils';
 
 const sesClient = () => new SESv2Client({ region: process.env.REGION });
 
-const getRegistrationTemplate = (username: string) => `
+const getRegistrationTemplate = (username: string, email: string) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,13 +19,22 @@ const getRegistrationTemplate = (username: string) => `
 </div>
 
 <div style="padding: 20px; text-align: center;">
-    <p style="font-size: 16px; margin-bottom: 20px;">Dear ${username},</p>
+    <p style="font-size: 16px; margin-bottom: 20px;">Dear <span style="font-weight: bold;">${username}</span></p>
     <p style="font-size: 16px; margin-bottom: 20px;">Thank you for joining our community! Your registration was successful.</p>
-    <a href="https://www.example.com" style="display: inline-block; background-color: #BF8A54; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 16px; border: none; cursor: pointer;">Explore Our Website</a>
+    <p style="font-size: 16px; margin-bottom: 20px;">Your initial login credential is:</p>
+    <p style="font-size: 16px; margin-bottom: 20px;">
+    <span>username:</span>
+    <span style="font-weight: bold;">${email}</span><br />
+    </p>
+    <p style="font-size: 16px; margin-bottom: 20px;">
+    <span>password:</span>
+    <span style="font-weight: bold;">123456789</span><br />
+    </p>
+    <a href="https://btts-kumarajiva.org" style="display: inline-block; background-color: #BF8A54; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 16px; border: none; cursor: pointer;">Explore Our Website</a>
 </div>
 
 <div style="position: absolute; bottom: 0; width: 100%; background-color: #BF8A54; color: #ffffff; text-align: center; padding: 10px; border-top: 1px solid #dee2e6;">
-    <p style="margin: 0; font-size: 14px;">If you have any questions, feel free to contact us at <a href="mailto:kumarajiva.translation@gmail.com" style="color: #ffffff; text-decoration: underline;">info@example.com</a>.</p>
+    <p style="margin: 0; font-size: 14px;">If you have any questions, feel free to contact us at <a href="mailto:kumarajiva.translation@gmail.com" style="color: #ffffff; text-decoration: underline;">kumarajiva.translation@gmail.com</a>.</p>
 </div>
 
 </body>
@@ -43,7 +52,9 @@ export const sendRegistrationEmail = async ({
     const input: SendEmailCommandInput = {
       FromEmailAddress: senderAddress,
       FromEmailAddressIdentityArn:
-        'arn:aws:ses:ap-southeast-2:649946320078:identity/kumarajiva.translation@gmail.com',
+        process.env.ENV === 'prod'
+          ? 'arn:aws:ses:ap-southeast-2:737505490804:identity/kumarajiva.translation@gmail.com'
+          : 'arn:aws:ses:ap-southeast-2:649946320078:identity/kumarajiva.translation@gmail.com',
       Destination: {
         ToAddresses: [email],
         BccAddresses: [senderAddress],
@@ -57,7 +68,7 @@ export const sendRegistrationEmail = async ({
           },
           Body: {
             Html: {
-              Data: getRegistrationTemplate(username),
+              Data: getRegistrationTemplate(username, email),
               Charset: 'UTF-8',
             },
           },
