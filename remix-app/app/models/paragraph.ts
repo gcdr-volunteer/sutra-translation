@@ -109,14 +109,24 @@ export const fetchParagraphsByRollId = async (rollId: string): Promise<Paragraph
       return acc;
     }, {} as Record<string, Paragraphs[0]['target']>);
 
-    const paragraphs = originParagraphs?.reduce((acc, cur) => {
-      const newParagraph = {
-        origin: cur,
-        target: transformedTargets[cur.SK] as Paragraphs[0]['target'],
-      };
-      acc = [...acc, newParagraph];
-      return acc;
-    }, [] as Paragraphs);
+    const paragraphs = originParagraphs
+      ?.sort((a, b) => {
+        if (a.num !== b.num) {
+          return a.num - b.num;
+        }
+        if (a.order && b.order) {
+          return a?.order.localeCompare(b?.order);
+        }
+        return a.num - b.num;
+      })
+      .reduce((acc, cur) => {
+        const newParagraph = {
+          origin: cur,
+          target: transformedTargets[cur.SK] as Paragraphs[0]['target'],
+        };
+        acc = [...acc, newParagraph];
+        return acc;
+      }, [] as Paragraphs);
 
     return paragraphs;
   } catch (error) {
