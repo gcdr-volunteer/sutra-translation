@@ -3,7 +3,14 @@ import { Can } from '~/authorisation';
 import type { ChangeEvent } from 'react';
 import type { ActionArgs, LoaderArgs } from '@remix-run/node';
 import type { Paragraph, Glossary as TGlossary, CreatedType, Reference, Glossary } from '~/types';
-import { useActionData, useSubmit, Form, useNavigate, useLoaderData } from '@remix-run/react';
+import {
+  useActionData,
+  useSubmit,
+  Form,
+  useNavigate,
+  useLoaderData,
+  useLocation,
+} from '@remix-run/react';
 import {
   Tag,
   Box,
@@ -68,8 +75,6 @@ import { useDebounce, useKeyPress, useSetTheme, useTransitionState } from '~/hoo
 import { getParagraphByPrimaryKey } from '~/models/paragraph';
 import { handleGetReferencesByPK } from '~/models/reference';
 import { GlossaryForm } from '~/components/common/glossary_form';
-import { getAllGlossary } from '~/models/glossary';
-import { translate } from '~/models/external_services/openai';
 import { useModalErrors } from '~/hooks/useError';
 import { handleGetAllRefBooks } from '../../../../../../services/__app/reference/$sutraId/$rollId.staging';
 import { badRequest, created } from 'remix-utils';
@@ -183,6 +188,7 @@ export const action = async ({ request, params }: ActionArgs) => {
 
 export default function ParagraphStagingRoute() {
   const loaderData = useLoaderData<typeof loader>();
+  const location = useLocation();
   const navigate = useNavigate();
   const [collapse, setCollapse] = useState(true);
   const { references, paragraph } = loaderData;
@@ -191,14 +197,15 @@ export default function ParagraphStagingRoute() {
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_TRANSLATION && actionData?.payload?.finish) {
       setCollapse(false);
-      navigate(-2);
+      const newloc = location.pathname.split('/').slice(0, -1).join('/');
+      navigate(newloc);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData]);
 
   if (paragraph) {
     return (
-      <Collapse key={paragraph.content} in={collapse} animateOpacity>
+      <Collapse key={paragraph.content} in={collapse} animateOpacity style={{ overflow: 'none' }}>
         <TranlationWorkspace origin={paragraph} references={references} />
       </Collapse>
     );
@@ -272,7 +279,7 @@ function TranlationWorkspace({ origin, references }: WorkSpaceProps) {
 
   // TODO: refactor this code to sub components
   return (
-    <Flex gap={4} flexDir='column' justifyContent='space-between' overflowY={'auto'}>
+    <Flex gap={4} flexDir='column' justifyContent='space-between'>
       <Card
         w='100%'
         pos={'sticky'}
