@@ -156,7 +156,9 @@ export const action = async ({ request, params }: ActionArgs) => {
                 id: latestSK + index + 1,
               }),
             num: paragraph.num,
-            order: `${orderTruth?.[0]?.order || paragraph.num}.${index}`,
+            order: orderTruth?.[0]?.order
+              ? `${orderTruth?.[0]?.order}.${index}`
+              : `${paragraph.num}`,
             content: paragraph.value,
             category: 'NORMAL',
             sutra: sutraId,

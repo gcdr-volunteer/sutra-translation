@@ -80,7 +80,6 @@ export const ReferenceElement = ({
   roll?: string;
   isUpdate?: boolean;
 }) => {
-  console.log({ references, sutra, roll, isUpdate });
   const [values, setValues] = useState<Reference[]>([...references]);
 
   const [isEditing, setIsEditing] = useState(false);
