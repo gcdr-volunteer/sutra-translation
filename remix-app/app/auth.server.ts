@@ -41,7 +41,10 @@ export const assertAuthUser = async (request: LoaderArgs['request']) => {
   });
   const session = await getSession(request.headers.get('Cookie'));
   const latestUser = await getUserByEmail(result?.email as string);
-  if (!latestUser?.roles.includes(result?.roles[0] as RoleType)) {
+  if (
+    !latestUser?.roles.includes(result?.roles[0] as RoleType) ||
+    latestUser?.working_sutra !== result?.working_sutra
+  ) {
     await destroySession(session);
     return undefined;
   }
