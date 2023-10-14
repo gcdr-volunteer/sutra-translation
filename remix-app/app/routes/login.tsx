@@ -15,12 +15,16 @@ import {
   Button,
   FormErrorMessage,
   Spinner,
+  InputGroup,
+  InputRightElement,
 } from '@chakra-ui/react';
 import { useActionData, Form } from '@remix-run/react';
 import { commitSession, getSession } from '~/session.server';
 import { onlyCreateAdminUserWhenFirstSystemUp } from '~/models/user';
 import { Error } from '~/components/common/errors';
 import { useTransitionState } from '../hooks';
+import { useState } from 'react';
+import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 
 export const loader = async () => {
   await onlyCreateAdminUserWhenFirstSystemUp();
@@ -117,6 +121,7 @@ type LoginFormProps = {
 };
 const LoginForm = (props: LoginFormProps) => {
   const { isLoading } = useTransitionState();
+  const [showpassword, setShowpassword] = useState(false);
   const { username, password } = props.actionData || {};
   return (
     <Box my={8} textAlign='left'>
@@ -129,7 +134,16 @@ const LoginForm = (props: LoginFormProps) => {
 
         <FormControl mt={4} isInvalid={Boolean(password)}>
           <FormLabel>Password</FormLabel>
-          <Input type='password' placeholder='Enter your password' name='password' />
+          <InputGroup>
+            <Input
+              type={showpassword ? 'text' : 'password'}
+              placeholder='Enter your password'
+              name='password'
+            />
+            <InputRightElement width='3rem' onClick={() => setShowpassword((prev) => !prev)}>
+              {showpassword ? <ViewOffIcon /> : <ViewIcon />}
+            </InputRightElement>
+          </InputGroup>
           {password ? <FormErrorMessage>{password}</FormErrorMessage> : null}
         </FormControl>
 
