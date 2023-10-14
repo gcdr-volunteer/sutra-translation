@@ -1,7 +1,7 @@
 import { Text, Tag, Input, Select, Textarea, VStack } from '@chakra-ui/react';
 import { useLocation } from '@remix-run/react';
 import { useContext } from 'react';
-import { AppContext } from '~/routes/__app';
+import { AppContext } from '~/routes/_app';
 type CommentProps = {
   selectedText?: string;
   paragraphId: string;

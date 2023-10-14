@@ -15,7 +15,7 @@ import {
   SimpleGrid,
 } from '@chakra-ui/react';
 import { json, redirect } from '@remix-run/node';
-import type { LoaderArgs } from '@remix-run/node';
+import type { LoaderFunctionArgs } from '@remix-run/node';
 import { useLoaderData, Link } from '@remix-run/react';
 import { getAllNotResolvedCommentsForMe } from '~/models/comment';
 import type { AlertStatus } from '@chakra-ui/react';
@@ -45,7 +45,7 @@ type TripitakaStat = {
   };
 };
 
-export const loader = async ({ request }: LoaderArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');

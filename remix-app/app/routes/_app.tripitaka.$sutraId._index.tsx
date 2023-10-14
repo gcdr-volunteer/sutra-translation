@@ -1,16 +1,16 @@
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import type { CreateType, Roll as TRoll } from '~/types';
 import { json } from '@remix-run/node';
-import { useCatch, useLoaderData } from '@remix-run/react';
+import { isRouteErrorResponse, useLoaderData, useRouteError } from '@remix-run/react';
 import { Box, Flex } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
 import { Warning } from '~/components/common/errors';
 import { getRollByPrimaryKey, upsertRoll } from '~/models/roll';
 import { Intent } from '~/types/common';
 import { badRequest, created } from 'remix-utils';
-import { handleGetAllRollsBySutraId } from '../../../../services/__app/reference/$sutraId';
+import { handleGetAllRollsBySutraId } from '~/services/__app/reference/$sutraId';
 
-export const loader = async ({ params }: LoaderArgs) => {
+export const loader = async ({ params }: LoaderFunctionArgs) => {
   const { sutraId } = params;
   if (!sutraId) {
     throw badRequest({ message: 'sutra id is not provided' });
@@ -19,7 +19,7 @@ export const loader = async ({ params }: LoaderArgs) => {
   return json({ data: rolls });
 };
 
-export const action = async ({ request }: ActionArgs) => {
+export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries()) as Pick<
     TRoll,
@@ -70,10 +70,10 @@ export default function SutraRoute() {
   }
 }
 
-export function CatchBoundary() {
-  const caught = useCatch();
+export function ErrorBoundary() {
+  const error = useRouteError();
 
-  if (caught.status === 400) {
-    return <Warning content={caught.data} />;
+  if (isRouteErrorResponse(error)) {
+    return <Warning content={error.data} />;
   }
 }

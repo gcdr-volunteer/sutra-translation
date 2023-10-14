@@ -1,7 +1,7 @@
 import { redirect } from '@remix-run/node';
-import type { LoaderArgs } from '@remix-run/node';
+import type { LoaderFunctionArgs } from '@remix-run/node';
 
-export const loader = async ({ request }: LoaderArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   return redirect('/dashboard');
 };
 export default function HomeRoute() {

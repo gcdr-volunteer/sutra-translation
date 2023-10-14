@@ -8,10 +8,10 @@ import { defineAbilityFor, AbilityContext } from '~/authorisation';
 import { LangCode, RoleType } from '~/types';
 import { getAllUsers } from '~/models/user';
 import { Kind } from '~/types/common';
-import type { LoaderArgs } from '@remix-run/node';
+import type { LoaderFunctionArgs } from '@remix-run/node';
 import type { User } from '~/types/user';
 import { notFound } from 'remix-utils';
-export const loader = async ({ request }: LoaderArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');

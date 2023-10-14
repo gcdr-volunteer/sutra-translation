@@ -27,7 +27,7 @@ import {
   Container,
 } from '@chakra-ui/react';
 import { json, redirect } from '@remix-run/node';
-import type { ActionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs } from '@remix-run/node';
 import { Intent } from '~/types/common';
 import { EditIcon, CopyIcon, CheckIcon, CloseIcon } from '@chakra-ui/icons';
 import { FormModal } from '~/components/common';
@@ -43,10 +43,10 @@ import { BsBook, BsFillCloudUploadFill, BsCloudUpload } from 'react-icons/bs';
 import { FaBook } from 'react-icons/fa';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
-import { handleCreateBulkGlossary } from '../../services/__app/tripitaka/$sutraId/$rollId/staging';
-import { assertAuthUser } from '../../auth.server';
 import { created } from 'remix-utils';
-export async function loader({ request }: ActionArgs) {
+import { assertAuthUser } from '~/auth.server';
+import { handleCreateBulkGlossary } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
+export async function loader({ request }: ActionFunctionArgs) {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -72,7 +72,7 @@ export async function loader({ request }: ActionArgs) {
   });
 }
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -144,7 +144,7 @@ const EditOrder = ({ order, bookname }: { order: string; bookname: string }) => 
   const [orderValue, setOrderValue] = useState(order);
   const [error, setError] = useState('');
   const submit = useSubmit();
-  const actionData = useActionData();
+  const actionData = useActionData<{ intent: Intent; errors: { error: string } }>();
   useEffect(() => {
     if (actionData?.intent === Intent.UPDATE_REF_BOOK && !actionData?.errors) {
       setIsEditing(false);
@@ -218,7 +218,7 @@ export const ManagementButtons = ({ teams, sutras }: ManagementButtonsProps) => 
     onOpen: onReferenceBookOpen,
   } = useDisclosure();
   const { isOpen: isUploadOpen, onClose: onUploadClose, onOpen: onUploadOpen } = useDisclosure();
-  const actionData = useActionData();
+  const actionData = useActionData<{ intent: Intent; payload: { report: string[] } }>();
   const toast = useToast();
 
   useEffect(() => {
@@ -231,7 +231,7 @@ export const ManagementButtons = ({ teams, sutras }: ManagementButtonsProps) => 
       if (report.length) {
         const copyTextToClipboard = () => {
           try {
-            navigator.clipboard.writeText(report);
+            navigator.clipboard.writeText(JSON.stringify(report));
           } catch (error) {
             console.log(error);
           }

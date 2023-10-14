@@ -2,13 +2,13 @@ import { json } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 import { Flex, Heading, Box } from '@chakra-ui/react';
 import { Paragraph } from '~/components/common/paragraph';
-import type { LoaderArgs } from '@remix-run/node';
+import type { LoaderFunctionArgs } from '@remix-run/node';
 import { getParagraphsByRollId } from '~/models/paragraph';
 import { getFootnotesByRollId } from '~/models/footnote';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { useSetTheme } from '~/hooks';
 
-export const loader = async ({ params }: LoaderArgs) => {
+export const loader = async ({ params }: LoaderFunctionArgs) => {
   const { sutraId = '', rollId = '' } = params;
   const roll = await getRollByPrimaryKey({ PK: sutraId, SK: rollId });
   const paragraphs = await getParagraphsByRollId(rollId);

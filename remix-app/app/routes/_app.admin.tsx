@@ -1,4 +1,4 @@
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import type { Team, User, Lang, LangCode, Role, Sutra, CreatedType } from '~/types';
 import { created } from 'remix-utils';
 import {
@@ -42,10 +42,10 @@ import { LangForm } from '~/components/lang_form';
 import { Intent } from '~/types/common';
 import { getAllSutraThatFinished } from '~/models/sutra';
 import { useEffect, useState } from 'react';
-import { logger } from '../../utils';
-import { assertAuthUser } from '../../auth.server';
+import { logger } from '~/utils';
+import { assertAuthUser } from '~/auth.server';
 
-export const loader = async ({ request }: LoaderArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -75,7 +75,7 @@ type EntryData = {
   working_sutra: string;
   roles: Role['name'];
 };
-export const action = async ({ request }: ActionArgs) => {
+export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const authUser = await assertAuthUser(request);
     if (!authUser) {

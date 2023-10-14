@@ -1,11 +1,11 @@
-import { json, type ActionArgs } from '@remix-run/node';
-import { Intent } from '../../types/common';
+import { json, type ActionFunctionArgs } from '@remix-run/node';
+import { Intent } from '~/types/common';
 import {
   handleSearchByTerm,
   handleSearchGlossary,
-} from '../../services/__app/tripitaka/$sutraId/$rollId/staging';
+} from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 
-export const action = async ({ request }: ActionArgs) => {
+export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
   if (entryData?.intent === Intent.READ_OPENSEARCH) {

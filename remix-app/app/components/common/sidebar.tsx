@@ -38,10 +38,10 @@ import {
 import { MdOutlineManageAccounts } from 'react-icons/md';
 import { Can } from '~/authorisation';
 import { useContext, useState, useEffect } from 'react';
-import { AppContext } from '~/routes/__app';
+import { AppContext } from '~/routes/_app';
 import { useDebounce, useSearchResultsNavigator, useTransitionState } from '../../hooks';
 import { ArrowRightIcon, ArrowLeftIcon } from '@chakra-ui/icons';
-import type { Glossary, GlossarySearchResult, SearchResults } from '../../types';
+import type { GlossarySearchResult, SearchResults } from '../../types';
 import { match } from 'ts-pattern';
 import { Intent } from '../../types/common';
 export const Sidebar = () => {
@@ -311,14 +311,14 @@ const SearchModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
           value: debouncedSearchTerm.value,
           glossary_only: String(show),
         },
-        { method: 'post', replace: true, action: '/search' }
+        { method: 'post', action: '/search' }
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, show]);
 
   useEffect(() => {
-    const { intent, payload } = fetcher.data || {};
+    const { intent, payload } = fetcher.data || { intent: '', payload: [] };
     if (intent === Intent.READ_OPENSEARCH) {
       setSearchResults(payload);
     }

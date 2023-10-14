@@ -1,5 +1,5 @@
 import { Center, IconButton, SimpleGrid, Tooltip, useDisclosure } from '@chakra-ui/react';
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { json, redirect } from '@remix-run/node';
 import { useActionData, useLoaderData } from '@remix-run/react';
 import { FiBook } from 'react-icons/fi';
@@ -16,7 +16,7 @@ import { RoleType } from '~/types';
 import { Can } from '~/authorisation';
 import { useEffect } from 'react';
 
-export const loader = async ({ request }: LoaderArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -53,7 +53,7 @@ export const loader = async ({ request }: LoaderArgs) => {
   });
 };
 
-export const action = async ({ request, params }: ActionArgs) => {
+export const action = async ({ request, params }: ActionFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -72,7 +72,7 @@ export const action = async ({ request, params }: ActionArgs) => {
 export default function ReferenceRoute() {
   const { sutras } = useLoaderData<typeof loader>();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const actionData = useActionData();
+  const actionData = useActionData<{ intent: Intent }>();
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_SUTRA) {
       onClose();

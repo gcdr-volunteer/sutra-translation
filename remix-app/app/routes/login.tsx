@@ -1,4 +1,4 @@
-import type { ActionArgs } from '@remix-run/node';
+import type { ActionFunctionArgs } from '@remix-run/node';
 import { json, redirect } from '@remix-run/node';
 import { authenticator } from '~/auth.server';
 import { emailRegex, logger } from '~/utils';
@@ -27,7 +27,7 @@ export const loader = async () => {
   return json({});
 };
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   try {
     const clonedRequest = request.clone();
     const form = await clonedRequest.formData();

@@ -1,6 +1,6 @@
 import type { SutraProps } from '~/components/common/sutra';
 import type { CreatedType, CreateType, Sutra as TSutra } from '~/types';
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { RoleType, LangCode } from '~/types';
 import { Center, SimpleGrid } from '@chakra-ui/react';
 import { json, redirect } from '@remix-run/node';
@@ -11,7 +11,7 @@ import { Intent } from '~/types/common';
 import { created } from 'remix-utils';
 import { assertAuthUser } from '~/auth.server';
 
-export const loader = async ({ request }: LoaderArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   // TODO: use user profile, instead of hard code here
   const user = await assertAuthUser(request);
   if (!user) {
@@ -41,7 +41,7 @@ export const loader = async ({ request }: LoaderArgs) => {
   return json({ data: extractedSutras });
 };
 
-export const action = async ({ request }: ActionArgs) => {
+export const action = async ({ request }: ActionFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');

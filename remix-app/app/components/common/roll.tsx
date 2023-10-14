@@ -1,4 +1,3 @@
-import type { RollProps } from '~/routes/__app/tripitaka/$sutraId';
 import {
   LinkBox,
   Card,
@@ -18,9 +17,10 @@ import { FormModal } from './modal';
 import { Intent } from '~/types/common';
 import { useContext, useEffect } from 'react';
 import { useSetTheme } from '~/hooks';
-import { AppContext } from '~/routes/__app';
+import { AppContext } from '~/routes/_app';
 import { RoleType } from '~/types';
 import { Can } from '~/authorisation';
+import type { RollProps } from '../../routes/_app.tripitaka.$sutraId._index';
 export function Roll(props: RollProps) {
   const actionData = useActionData<{ intent: Intent; payload: string }>();
   const { currentUser } = useContext(AppContext);

@@ -1,4 +1,4 @@
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import type { CreatedType, Footnote, Paragraph as TParagraph, Roll, Comment } from '~/types';
 import type { Message } from '~/types/comment';
 import { json, redirect } from '@remix-run/node';
@@ -20,7 +20,7 @@ import { badRequest } from 'remix-utils';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { Can } from '~/authorisation';
 import { useScrollToParagraph, useSetTheme } from '~/hooks';
-export const loader = async ({ params, request }: LoaderArgs) => {
+export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -39,7 +39,7 @@ export const loader = async ({ params, request }: LoaderArgs) => {
   return badRequest({ errors: { error: 'rollId is not provided' } });
 };
 
-export const action = async ({ request, params }: ActionArgs) => {
+export const action = async ({ request, params }: ActionFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');

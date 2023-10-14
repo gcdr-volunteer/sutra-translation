@@ -23,7 +23,7 @@ import { useActionData, useSubmit } from '@remix-run/react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Comment } from '~/types';
 import { Intent } from '~/types/common';
-import { AppContext } from '~/routes/__app';
+import { AppContext } from '~/routes/_app';
 import { useMessage } from '~/hooks/useMessage';
 import { Can } from '~/authorisation';
 import { HighlightWithinTextareaCC } from 'react-highlight-within-textarea';

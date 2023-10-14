@@ -16,22 +16,16 @@ import {
   ScrollRestoration,
   useLoaderData,
 } from '@remix-run/react';
-import type { MetaFunction, LinksFunction, LoaderArgs } from '@remix-run/node';
+import type { LinksFunction, LoaderFunctionArgs } from '@remix-run/node';
 import { ServerStyleContext, ClientStyleContext } from './context';
 import { customTheme } from './theme';
 import fontStyles from './styles/fonts.css';
 
-export const loader = async ({ request }: LoaderArgs): Promise<string> => {
+export const loader = async ({ request }: LoaderFunctionArgs): Promise<string> => {
   // first time users will not have any cookies and you may not return
   // undefined here, hence ?? is necessary
   return request.headers.get('cookie') ?? '';
 };
-
-export const meta: MetaFunction = () => ({
-  charset: 'utf-8',
-  title: 'Sutra Translation',
-  viewport: 'width=device-width,initial-scale=1',
-});
 
 export const links: LinksFunction = () => {
   return [
@@ -87,6 +81,8 @@ const Document = withEmotionCache(({ children }: DocumentProps, emotionCache) =>
   return (
     <html lang='en'>
       <head>
+        <meta charSet='utf-8' />
+        <meta name='viewport' content='width=device-width,initial-scale=1' />
         <Meta />
         <Links />
         {serverStyleData?.map(({ key, ids, css }) => (

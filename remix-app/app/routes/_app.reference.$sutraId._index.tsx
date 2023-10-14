@@ -1,7 +1,12 @@
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import type { AsStr, Roll as TRoll } from '~/types';
 import { json, redirect } from '@remix-run/node';
-import { useActionData, useCatch, useLoaderData } from '@remix-run/react';
+import {
+  isRouteErrorResponse,
+  useActionData,
+  useLoaderData,
+  useRouteError,
+} from '@remix-run/react';
 import { Box, Flex, IconButton, Tooltip, useDisclosure } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
 import { Warning } from '~/components/common/errors';
@@ -18,7 +23,7 @@ import {
 } from '~/services/__app/reference/$sutraId';
 import { useEffect } from 'react';
 
-export const loader = async ({ params, request }: LoaderArgs) => {
+export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -31,7 +36,7 @@ export const loader = async ({ params, request }: LoaderArgs) => {
   return json({ data: rolls });
 };
 
-export const action = async ({ request, params }: ActionArgs) => {
+export const action = async ({ request, params }: ActionFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -58,7 +63,7 @@ export default function SutraRoute() {
     data: RollProps[];
   }>();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const actionData = useActionData();
+  const actionData = useActionData<{ intent: Intent }>();
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_ROLL) {
       onClose();
@@ -97,10 +102,9 @@ export default function SutraRoute() {
   );
 }
 
-export function CatchBoundary() {
-  const caught = useCatch();
-
-  if (caught.status === 400) {
-    return <Warning content={caught.data} />;
+export function ErrorBoundary() {
+  const error = useRouteError();
+  if (isRouteErrorResponse(error)) {
+    return <Warning content={error.data} />;
   }
 }

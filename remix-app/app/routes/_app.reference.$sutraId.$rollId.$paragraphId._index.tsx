@@ -1,4 +1,4 @@
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { useActionData, useLoaderData, useLocation, useNavigate } from '@remix-run/react';
 import { Box, Collapse } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
@@ -13,10 +13,10 @@ import {
 } from '~/services/__app/reference/$sutraId/$rollId.staging';
 import { ReferencePairForStaging } from '~/components/common/reference';
 import { badRequest, created } from 'remix-utils';
-import { assertAuthUser } from '../../../../../../auth.server';
+import { assertAuthUser } from '~/auth.server';
 import { logger } from '~/utils';
 
-export async function loader({ params, request }: LoaderArgs) {
+export async function loader({ params, request }: LoaderFunctionArgs) {
   const { rollId, sutraId, paragraphId } = params;
   if (!rollId) {
     throw badRequest({ message: 'roll id cannot be empty' });
@@ -40,7 +40,7 @@ export async function loader({ params, request }: LoaderArgs) {
   });
 }
 
-export const action = async ({ request, params }: ActionArgs) => {
+export const action = async ({ request, params }: ActionFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');

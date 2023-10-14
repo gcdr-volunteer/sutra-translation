@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Can } from '~/authorisation';
 import type { ChangeEvent } from 'react';
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import type { Paragraph, Glossary as TGlossary, CreatedType, Reference, Glossary } from '~/types';
 import {
   useActionData,
@@ -73,10 +73,10 @@ import { getParagraphByPrimaryKey } from '~/models/paragraph';
 import { handleGetReferencesByPK } from '~/models/reference';
 import { GlossaryForm } from '~/components/common/glossary_form';
 import { useModalErrors } from '~/hooks/useError';
-import { handleGetAllRefBooks } from '../../../../../../services/__app/reference/$sutraId/$rollId.staging';
 import { badRequest, created } from 'remix-utils';
+import { handleGetAllRefBooks } from '~/services/__app/reference/$sutraId/$rollId.staging';
 
-export const loader = async ({ params, request }: LoaderArgs) => {
+export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const { rollId, sutraId, paragraphId } = params;
   if (!rollId) {
     throw badRequest('roll id cannot be empty');
@@ -102,7 +102,7 @@ export const loader = async ({ params, request }: LoaderArgs) => {
   });
 };
 
-export const action = async ({ request, params }: ActionArgs) => {
+export const action = async ({ request, params }: ActionFunctionArgs) => {
   const { sutraId, rollId, paragraphId } = params;
   const user = await assertAuthUser(request);
   if (!user) {
@@ -181,7 +181,7 @@ export default function ParagraphStagingRoute() {
   const navigate = useNavigate();
   const [collapse, setCollapse] = useState(true);
   const { references, paragraph } = loaderData;
-  const actionData = useActionData();
+  const actionData = useActionData<{ intent: Intent; payload: { finish: boolean } }>();
 
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_TRANSLATION && actionData?.payload?.finish) {
@@ -209,7 +209,11 @@ interface WorkSpaceProps {
 }
 function TranlationWorkspace({ origin, references }: WorkSpaceProps) {
   const { content, category } = origin;
-  const actionData = useActionData();
+  const actionData = useActionData<{
+    intent: Intent;
+    payload: { translation: string };
+    errors: { finish: boolean };
+  }>();
   const [workspaceText, setWorkspaceText] = useState('');
   const submit = useSubmit();
   const [glossary, setGlossary] = useBoolean(false);
@@ -499,7 +503,7 @@ const OpenAIModal = () => {
   const [conversations, setConversations] = useState<string[]>([]);
   const submit = useSubmit();
 
-  const actionData = useActionData();
+  const actionData = useActionData<{ intent: Intent; payload: string }>();
 
   useEffect(() => {
     if (actionData?.intent === Intent.ASK_OPENAI) {

@@ -14,7 +14,7 @@ import { Comment } from './comment';
 import type { CreatedType, Comment as TComment, Paragraph as TParagraph } from '~/types';
 import { Intent } from '~/types/common';
 import { MessageDialog } from '../comment_dialog';
-import { AppContext } from '~/routes/__app';
+import { AppContext } from '~/routes/_app';
 import { Can } from '~/authorisation';
 import { useActionData } from '@remix-run/react';
 import type { ParagraphLoaderData } from '../../models/paragraph';
@@ -124,7 +124,7 @@ export const TextWithComment = ({
     query: commentsNotResolved.map((comment) => comment.content),
   });
 
-  const actionData = useActionData();
+  const actionData = useActionData<{ intent: Intent }>();
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_COMMENT) {
       onNewCommentClose();

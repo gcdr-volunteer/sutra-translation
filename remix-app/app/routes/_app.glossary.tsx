@@ -1,4 +1,4 @@
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { json, redirect } from '@remix-run/node';
 import { useRef, useEffect } from 'react';
 import { getGlossariesByTerm, getGlossaryByPage } from '~/models/glossary';
@@ -40,7 +40,7 @@ import { useGlossary, useGlossarySearch } from '~/hooks';
 import { logger } from '~/utils';
 import { useModalErrors } from '~/hooks/useError';
 
-export const loader = async ({ request }: LoaderArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -56,7 +56,7 @@ export const loader = async ({ request }: LoaderArgs) => {
   return json({ glossaries: glossaries, nextPage, intent: Intent.READ_GLOSSARY });
 };
 
-export const action = async ({ request }: ActionArgs) => {
+export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const user = await assertAuthUser(request);
     if (!user) {

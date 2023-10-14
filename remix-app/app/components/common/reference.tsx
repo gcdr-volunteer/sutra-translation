@@ -91,7 +91,7 @@ export const ReferenceElement = ({
     setIsEditing(true);
   };
 
-  const actionData = useActionData();
+  const actionData = useActionData<{ intent: Intent; errors: { error: string } }>();
 
   useEffect(() => {
     if (actionData?.intent === Intent.UPDATE_REFERENCE && !actionData?.errors) {

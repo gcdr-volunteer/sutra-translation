@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 import { getUserByEmail } from './models/user';
 import { logger } from '~/utils';
 import type { User } from './types/user';
-import type { LoaderArgs } from '@remix-run/node';
+import type { LoaderFunctionArgs } from '@remix-run/node';
 import type { RoleType } from './types';
 export const authenticator = new Authenticator<User | undefined>(sessionStorage);
 
@@ -35,7 +35,7 @@ authenticator.use(
   })
 );
 
-export const assertAuthUser = async (request: LoaderArgs['request']) => {
+export const assertAuthUser = async (request: LoaderFunctionArgs['request']) => {
   const result = await authenticator.isAuthenticated(request, {
     failureRedirect: '/login',
   });

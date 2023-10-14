@@ -1,5 +1,5 @@
 import { useContext, useMemo } from 'react';
-import { AppContext } from '../routes/__app';
+import { AppContext } from '../routes/_app';
 import type { Comment } from '../types';
 
 export const useCommentMessage = (comments: Comment[]) => {

@@ -1,14 +1,14 @@
 import { Flex, Text, Box, Button, VStack, HStack, Select } from '@chakra-ui/react';
 import { Form } from '@remix-run/react';
 import { assertAuthUser, authenticator } from '~/auth.server';
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { fontFamilyList, fontFamilyPlaceholder, langCodeFullVersion } from '~/utils/contants';
 import { useSetTheme } from '~/hooks';
-import { AppContext } from '../__app';
+import { AppContext } from '~/routes/_app';
 import { useContext } from 'react';
 import { json, redirect } from '@remix-run/node';
 
-export const loader = async ({ request }: LoaderArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -16,7 +16,7 @@ export const loader = async ({ request }: LoaderArgs) => {
   return json({});
 };
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   await authenticator.logout(request, { redirectTo: '/login' });
 }
 export default function SettingRoute() {

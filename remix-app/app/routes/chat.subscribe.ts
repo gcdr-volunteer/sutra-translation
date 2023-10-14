@@ -1,10 +1,10 @@
-import type { LoaderArgs } from '@remix-run/node';
+import type { LoaderFunctionArgs } from '@remix-run/node';
 import type { Comment } from '~/types';
 import { eventStream } from 'remix-utils';
 import { emitter, EVENTS } from '~/utils';
 import { openai } from '../models/external_services/openai';
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
   return eventStream(request.signal, (send) => {
     function handle(message: Comment) {
       send({

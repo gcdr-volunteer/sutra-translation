@@ -16,10 +16,10 @@ import { assertAuthUser, authenticator } from '~/auth.server';
 import { updateUserPassword } from '~/models/user';
 import { commitSession, getSession } from '~/session.server';
 import { logger } from '~/utils';
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { useTransitionState } from '../hooks';
 
-export const loader = async ({ request }: LoaderArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
@@ -27,7 +27,7 @@ export const loader = async ({ request }: LoaderArgs) => {
   return json({});
 };
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   try {
     const clonedRequest = request.clone();
     const form = await clonedRequest.formData();

@@ -1,4 +1,4 @@
-import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import type { CreateType, Paragraph, Roll, Reference, CreatedType } from '~/types';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -52,8 +52,8 @@ import {
   handleGetAllRefBooks,
 } from '~/services/__app/reference/$sutraId/$rollId.staging';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import { useTransitionState } from '../../../../../hooks';
-export const loader = async ({ params, request }: LoaderArgs) => {
+import { useTransitionState } from '~/hooks';
+export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const { rollId, sutraId } = params;
   if (!rollId || !sutraId) {
     throw badRequest({ message: 'roll id or sutra id cannot be empty' });
@@ -115,7 +115,7 @@ export const loader = async ({ params, request }: LoaderArgs) => {
   });
 };
 
-export const action = async ({ request, params }: ActionArgs) => {
+export const action = async ({ request, params }: ActionFunctionArgs) => {
   try {
     const user = await assertAuthUser(request);
     if (!user) {
