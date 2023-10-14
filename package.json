@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "frontend": "npm run dev -w remix-app",
-    "backend": "sst start --stage $ENV",
+    "backend": "sst dev --stage $ENV",
     "build": "sst build --stage $ENV",
     "deploy": "sst deploy --stage $ENV",
     "remove": "sst remove --stage $ENV",
@@ -20,12 +20,9 @@
   "devDependencies": {
     "@commitlint/cli": "^17.3.0",
     "@commitlint/config-conventional": "^17.3.0",
-    "@serverless-stack/cli": "^1.18.4",
-    "@serverless-stack/resources": "^1.18.4",
     "@tsconfig/node16": "^1.0.3",
     "@typescript-eslint/eslint-plugin": "^5.48.0",
     "@typescript-eslint/parser": "^5.48.0",
-    "aws-cdk-lib": "2.50.0",
     "eslint": "^8.31.0",
     "husky": "^8.0.2",
     "lint-staged": "^13.1.0",
@@ -41,8 +38,12 @@
     ]
   },
   "dependencies": {
+    "@aws-sdk/credential-provider-node": "^3.428.0",
     "@lexical/react": "^0.9.0",
-    "@serverless-stack/node": "^1.18.4"
+    "aws-sdk": "^2.1473.0",
+    "sst": "^2.28.6",
+    "aws-cdk-lib": "2.95.1",
+    "constructs": "10.2.69"
   },
   "workspaces": [
     "services",

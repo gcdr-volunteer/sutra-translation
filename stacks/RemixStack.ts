@@ -1,11 +1,4 @@
-import {
-  dependsOn,
-  StackContext,
-  RemixSite,
-  use,
-  Topic,
-  Function,
-} from '@serverless-stack/resources';
+import { dependsOn, StackContext, RemixSite, use, Topic, Function } from 'sst/constructs';
 import {
   createUserTable,
   createReferenceTable,
@@ -14,14 +7,13 @@ import {
 } from './database';
 import { Domain, EngineVersion } from 'aws-cdk-lib/aws-opensearchservice';
 import { isProd } from '../utils';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { BlockPublicAccess, BucketAccessControl } from 'aws-cdk-lib/aws-s3';
 
 const ddb_to_es = (stack: StackContext['stack'], url: string) => {
   return new Function(stack, 'Function', {
-    srcPath: 'services/functions/ddb-to-es',
-    handler: 'index.handler',
+    permissions: ['es'],
+    handler: 'services/functions/ddb-to-es/index.handler',
     timeout: '15 minutes',
     environment: {
       ES_URL: url,
@@ -69,11 +61,6 @@ export async function TableStack({ stack }: StackContext) {
   dependsOn(ESStack);
   const { domain } = use(ESStack);
   const esfunc = ddb_to_es(stack, domain.domainEndpoint);
-  const esAccess = new iam.PolicyStatement({
-    actions: ['es:ESHttpPost', 'es:ESHttpPut', 'es:ESHttpDelete'],
-    resources: ['*'],
-  });
-  esfunc.addToRolePolicy(esAccess);
   const userTable = await createUserTable(stack);
   const referenceTable = await createReferenceTable(stack, esfunc);
   const translationTable = await createTranslationTable(stack, esfunc);
@@ -94,8 +81,7 @@ export async function SNSStack({ stack }: StackContext) {
     subscribers: {
       subscriber: {
         function: {
-          srcPath: 'services/functions/feed',
-          handler: 'index.handler',
+          handler: 'services/functions/feed/index.handler',
           environment: {
             TRANSLATION_TABLE: translationTable.tableName,
             REFERENCE_TABLE: referenceTable.tableName,
@@ -116,7 +102,11 @@ export async function RemixStack({ stack }: StackContext) {
   const { translationTable, userTable, referenceTable, historyTable } = use(TableStack);
   const { topic } = use(SNSStack);
   const site = new RemixSite(stack, 'Site', {
+    permissions: ['ses', 'es'],
     path: 'remix-app/',
+    nodejs: {
+      format: 'cjs',
+    },
     environment: {
       SESSION_SECRET: process.env.SESSION_SECRET ?? '',
       USER_TABLE: userTable.tableName,
@@ -130,11 +120,7 @@ export async function RemixStack({ stack }: StackContext) {
       ES_URL: domain.domainEndpoint,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
     },
-    defaults: {
-      function: {
-        timeout: 30,
-      },
-    },
+    runtime: 'nodejs16.x',
     cdk: {
       bucket: {
         blockPublicAccess: BlockPublicAccess.BLOCK_ACLS,
@@ -142,24 +128,8 @@ export async function RemixStack({ stack }: StackContext) {
       },
     },
   });
-  const esAccess = new iam.PolicyStatement({
-    actions: ['es:Search', 'es:ESHttpPost', 'es:ESHttpGet'],
-    resources: ['*'],
-  });
-  const sesAccess = new iam.PolicyStatement({
-    actions: ['ses:SendEmail', 'ses:SendRawEmail'],
-    resources: ['*'],
-  });
-  site.attachPermissions([
-    userTable,
-    referenceTable,
-    translationTable,
-    historyTable,
-    topic,
-    esAccess,
-    sesAccess,
-  ]);
+  site.attachPermissions([userTable, referenceTable, translationTable, historyTable, topic]);
   stack.addOutputs({
-    URL: site.url,
+    URL: site.url || 'localhost',
   });
 }

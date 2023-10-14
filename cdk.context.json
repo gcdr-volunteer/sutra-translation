@@ -1,1 +1,6 @@
-{}
+{
+  "hosted-zone:account=737505490804:domainName=btts-kumarajiva.org:region=ap-southeast-2": {
+    "Id": "/hostedzone/Z06743655J9BZYJ4ALYL",
+    "Name": "btts-kumarajiva.org."
+  }
+}

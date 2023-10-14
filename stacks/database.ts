@@ -1,5 +1,5 @@
-import { StackContext, Table } from '@serverless-stack/resources';
-import type { FunctionDefinition } from '@serverless-stack/resources';
+import { StackContext, Table } from 'sst/constructs';
+import type { FunctionDefinition } from 'sst/constructs';
 
 /**
  * This table contains all the user related information
