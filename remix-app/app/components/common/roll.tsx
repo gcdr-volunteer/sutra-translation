@@ -22,7 +22,7 @@ import { AppContext } from '~/routes/__app';
 import { RoleType } from '~/types';
 import { Can } from '~/authorisation';
 export function Roll(props: RollProps) {
-  const actionData = useActionData<{ intent: Intent; data: string }>();
+  const actionData = useActionData<{ intent: Intent; payload: string }>();
   const { currentUser } = useContext(AppContext);
   const location = useLocation();
   const { slug, subtitle, title, firstTime } = props;
@@ -33,7 +33,7 @@ export function Roll(props: RollProps) {
     location?.pathname.includes('tripitaka');
   const { isOpen, onOpen, onClose } = useDisclosure();
   useEffect(() => {
-    if (actionData?.intent === Intent.CREATE_ROLL_META && actionData?.data) {
+    if (actionData?.intent === Intent.CREATE_ROLL_META && actionData?.payload) {
       onClose();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,15 +72,24 @@ export function Roll(props: RollProps) {
           body={
             <Box>
               <FormControl>
-                <FormLabel>{props.title}</FormLabel>
+                <FormLabel>
+                  {props.title}
+                  <span style={{ color: 'red' }}>*</span>
+                </FormLabel>
                 <Input type='text' name='title' />
               </FormControl>
               <FormControl>
-                <FormLabel>{props.subtitle}</FormLabel>
+                <FormLabel>
+                  {props.subtitle}
+                  <span style={{ color: 'red' }}>*</span>
+                </FormLabel>
                 <Input type='text' name='subtitle' />
               </FormControl>
               <FormControl>
-                <FormLabel>{props.category}</FormLabel>
+                <FormLabel>
+                  {props.category}
+                  <span style={{ color: 'red' }}>*</span>
+                </FormLabel>
                 <Input type='text' name='category' />
               </FormControl>
               <Input name='SK' value={props.SK} readOnly hidden />

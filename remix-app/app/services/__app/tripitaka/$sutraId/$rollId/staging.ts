@@ -1,11 +1,24 @@
-import type { AsStr, CreateType, Footnote, Glossary, Reference, User } from '~/types';
+import type {
+  AsStr,
+  CreateType,
+  CreatedType,
+  Footnote,
+  Glossary,
+  GlossarySearchResult,
+  Reference,
+  ReferenceSearchResult,
+  Roll,
+  Sutra,
+  SutraSearchResult,
+  User,
+} from '~/types';
 import type { Paragraph } from '~/types/paragraph';
 import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
 import { translateZH2EN } from '~/models/external_services/deepl';
 import { json } from '@remix-run/node';
 import { upsertParagraph } from '~/models/paragraph';
-import { logger } from '~/utils';
+import { getRollId, getSutraId, logger } from '~/utils';
 import {
   getAllGlossary,
   getGlossariesByTerm,
@@ -23,6 +36,7 @@ import { getFootnotesByPartitionKey, upsertFootnote } from '~/models/footnote';
 import { baseGPT, translate } from '~/models/external_services/openai';
 import { dbBulkGetByKeys } from '../../../../../models/external_services/dynamodb';
 import { getSutraByPrimaryKey } from '../../../../../models/sutra';
+import { match } from 'ts-pattern';
 
 const newTranslationSchema = () => {
   const baseSchema = initialSchema();
@@ -354,7 +368,9 @@ export const handleGetGlossary = async (lastPage: string) => {
   }
 };
 
-export const handleSearchByTerm = async (term: string) => {
+export const handleSearchByTerm = async (
+  term: string
+): Promise<(ReferenceSearchResult | SutraSearchResult)[]> => {
   try {
     // TODO: this is just a stub function, refine it when you picking the
     // real ticket
@@ -392,68 +408,174 @@ export const handleSearchByTerm = async (term: string) => {
         'highlight',
         resp.body?.hits.hits?.[0].highlight?.content
       );
-      const hits = resp.body.hits.hits;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const results = hits.map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (hit: any) => ({ ...hit._source, content: hit.highlight?.content } as Paragraph | Glossary)
-      );
+      const hits = resp.body.hits.hits as {
+        _source: CreatedType<Paragraph> | CreatedType<Reference>;
+        highlight?: { content: string };
+      }[];
 
-      const counterParts = await dbBulkGetByKeys({
-        tableName: process.env.TRANSLATION_TABLE,
-        keys: results.map((result: { PK: string; SK: string }) => {
-          let PK = result.PK;
-          let SK = result.SK;
-          if (PK.includes('ZH')) {
-            PK = PK.replace('ZH', 'EN');
-          } else {
-            PK = PK.replace('EN', 'ZH');
-          }
-          if (SK.includes('ZH')) {
-            SK = SK.replace('ZH', 'EN');
-          } else {
-            SK = SK.replace('EN', 'ZH');
-          }
-          return {
-            PK,
-            SK,
-          };
+      const results = hits.map((hit) => ({
+        ...hit._source,
+        content: hit.highlight?.content,
+      }));
+
+      logger.log(handleSearchByTerm.name, { searchResults: results });
+
+      const paragraphKeys = results
+        .map((value) =>
+          match(value)
+            .with({ kind: 'PARAGRAPH' }, ({ PK, SK }) => ({
+              // TODO: change according user's profile
+              PK: PK.startsWith('ZH') ? PK.replace('ZH', 'EN') : PK.replace('EN', 'ZH'),
+              SK: SK.startsWith('ZH') ? SK.replace('ZH', 'EN') : SK.replace('EN', 'ZH'),
+            }))
+            .with({ kind: 'REFERENCE' }, ({ rollId, paragraphId }) => ({
+              // TODO: change according user's profile
+              PK: rollId,
+              SK: paragraphId,
+            }))
+            .otherwise(() => ({ PK: '', SK: '' }))
+        )
+        .filter((value) => value.PK && value.SK)
+        .filter(
+          (value, index, self) =>
+            index === self.findIndex((v) => v.PK === value.PK && v.SK === value.SK)
+        );
+
+      const sutraKeys = results
+        .map((value) => {
+          return match(value)
+            .with({ kind: 'PARAGRAPH' }, ({ SK }) => ({
+              PK: 'TRIPITAKA',
+              SK: getSutraId(SK),
+            }))
+            .with({ kind: 'REFERENCE' }, ({ sutraId }) => ({
+              PK: 'TRIPITAKA',
+              SK: sutraId,
+            }))
+            .otherwise(() => ({ PK: '', SK: '' }));
+        })
+        .filter((value) => value.PK && value.SK)
+        .filter(
+          (value, index, self) =>
+            index === self.findIndex((v) => v.PK === value.PK && v.SK === value.SK)
+        );
+
+      const rollKeys = results
+        .map((value) => {
+          return match(value)
+            .with({ kind: 'PARAGRAPH' }, ({ SK }) => ({
+              PK: getSutraId(SK),
+              SK: getRollId(SK),
+            }))
+            .with({ kind: 'REFERENCE' }, ({ sutraId, rollId }) => ({
+              PK: sutraId,
+              SK: rollId,
+            }))
+            .otherwise(() => ({ PK: '', SK: '' }));
+        })
+        .filter((value) => value.PK && value.SK)
+        .filter(
+          (value, index, self) =>
+            index === self.findIndex((v) => v.PK === value.PK && v.SK === value.SK)
+        );
+
+      logger.log(handleSearchByTerm.name, { sutraKeys, rollKeys, paragraphKeys });
+
+      const [sutras, rolls, paragraphs] = await Promise.all([
+        dbBulkGetByKeys<CreatedType<Sutra>>({
+          tableName: process.env.TRANSLATION_TABLE,
+          keys: sutraKeys,
         }),
-      });
+        dbBulkGetByKeys<CreatedType<Roll>>({
+          tableName: process.env.TRANSLATION_TABLE,
+          keys: rollKeys,
+        }),
+        dbBulkGetByKeys<Paragraph>({
+          tableName: process.env.TRANSLATION_TABLE,
+          keys: paragraphKeys,
+        }),
+      ]);
 
-      return json({
-        payload: { results, counterParts } as {
-          results: (Paragraph | Glossary | Reference)[];
-          counterParts: (Paragraph | Glossary)[];
-        },
-        intent: Intent.READ_OPENSEARCH,
+      const finalResults = results.map((value) => {
+        return match(value)
+          .with({ kind: 'PARAGRAPH' }, ({ content, PK, SK, originPK, originSK }) => {
+            const counterpart = paragraphs?.find(
+              (counterPart) =>
+                (counterPart.originPK === PK && counterPart.originSK === SK) ||
+                (counterPart.originPK === originPK && counterPart.originSK === originSK)
+            );
+            const title = sutras?.find((sutra) => sutra.SK === getSutraId(SK))?.title;
+            const subtitle = rolls?.find((roll) => roll.SK === getRollId(SK))?.subtitle;
+            return {
+              kind: 'sutra',
+              data: {
+                title,
+                subtitle: `${subtitle} | P${SK.slice(-4)}`,
+                origin: content,
+                target: counterpart?.content,
+              },
+            } as SutraSearchResult;
+          })
+          .with({ kind: 'REFERENCE' }, ({ content, sutraId, name, rollId, paragraphId, SK }) => {
+            const title = sutras?.find((sutra) => sutra.SK === sutraId)?.title;
+            const subtitle = rolls?.find((roll) => roll.SK === rollId)?.subtitle;
+            return {
+              kind: 'reference',
+              data: {
+                title: name,
+                subtitle: `${title} | ${subtitle} | ${paragraphId.slice(-5)}`,
+                origin: content,
+                target: '',
+              },
+            } as ReferenceSearchResult;
+          })
+          .exhaustive();
       });
+      logger.log(handleSearchByTerm.name, { finalResults });
+      return finalResults;
     }
     logger.info(handleSearchByTerm.name, 'did not get any result');
     return [];
   } catch (error) {
     // TODO: handle this error in frontend?
     logger.warn(handleSearchByTerm.name, 'warn', error);
-    return json({ payload: [] as (Paragraph | Glossary)[], intent: Intent.READ_OPENSEARCH });
+    return [];
   }
 };
 
-export const handleSearchGlossary = async ({ text, filter }: { text: string; filter: string }) => {
+export const handleSearchGlossary = async ({
+  text,
+  filter,
+}: {
+  text: string;
+  filter: string;
+}): Promise<GlossarySearchResult[]> => {
   try {
     logger.log(handleSearchGlossary.name, 'params', { text, filter });
     const glossaries = await getGlossariesByTerm({ term: text?.toLowerCase() });
     logger.log(handleSearchGlossary.name, 'glossaries', glossaries);
-    return json({
-      payload: { results: glossaries as (Paragraph | Glossary)[] },
-      intent: Intent.READ_OPENSEARCH,
-    });
+    return glossaries?.map(
+      (glossary) =>
+        ({
+          kind: 'glossary',
+          data: {
+            title: glossary.origin,
+            subtitle: glossary.target,
+            origin: glossary.origin,
+            target: glossary.target,
+            short_definition: glossary.short_definition,
+            example_use: glossary.example_use,
+            related_terms: glossary.related_terms,
+            terms_to_avoid: glossary.terms_to_avoid,
+            options: glossary.options,
+            discussion: glossary.discussion,
+          },
+        } as GlossarySearchResult)
+    );
   } catch (error) {
     // TODO: handle this error in frontend?
     logger.warn(handleSearchGlossary.name, 'warn', error);
-    return json({
-      payload: { results: [] as (Paragraph | Glossary)[] },
-      intent: Intent.READ_OPENSEARCH,
-    });
+    return [];
   }
 };
 

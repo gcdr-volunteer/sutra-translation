@@ -13,16 +13,37 @@ import {
   useMediaQuery,
   Circle,
   useBoolean,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  InputGroup,
+  Input,
+  InputRightElement,
+  List,
+  ListItem,
+  Tag,
 } from '@chakra-ui/react';
-import { NavLink } from '@remix-run/react';
+import { NavLink, useFetcher } from '@remix-run/react';
 import { FiHome } from 'react-icons/fi';
-import { AiOutlineBook, AiOutlineSetting, AiOutlineRead, AiOutlineTable } from 'react-icons/ai';
+import {
+  AiOutlineBook,
+  AiOutlineSetting,
+  AiOutlineRead,
+  AiOutlineTable,
+  AiOutlineSearch,
+  AiOutlineGoogle,
+  AiFillGoogleCircle,
+} from 'react-icons/ai';
 import { MdOutlineManageAccounts } from 'react-icons/md';
 import { Can } from '~/authorisation';
-import { useContext } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { AppContext } from '~/routes/__app';
-import { useTransitionState } from '../../hooks';
+import { useDebounce, useSearchResultsNavigator, useTransitionState } from '../../hooks';
 import { ArrowRightIcon, ArrowLeftIcon } from '@chakra-ui/icons';
+import type { Glossary, GlossarySearchResult, SearchResults } from '../../types';
+import { match } from 'ts-pattern';
+import { Intent } from '../../types/common';
 export const Sidebar = () => {
   const { isLoading, isSubmitting } = useTransitionState();
   const { currentUser } = useContext(AppContext);
@@ -39,6 +60,8 @@ export const Sidebar = () => {
   const [expand, setExpand] = useBoolean(true);
 
   const [isLargerThan800] = useMediaQuery('(min-width: 800px)');
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   if (expand && !isLargerThan800) {
     return (
@@ -96,150 +119,149 @@ export const Sidebar = () => {
           </VStack>
           {/* menu section */}
           <Flex w='70%' flexDir={'column'} justifyContent={'space-between'}>
-            <Box
-              px={6}
-              py={2}
-              _hover={{
-                color: 'secondary.500',
-                background: 'whiteAlpha.300',
-                borderRadius: 8,
-              }}
+            <NavLink
+              to='dashboard'
+              style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
             >
-              <NavLink
-                to='dashboard'
-                style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+              <Box
+                px={6}
+                py={2}
+                _hover={{
+                  color: 'secondary.500',
+                  background: 'whiteAlpha.300',
+                  borderRadius: 8,
+                }}
               >
                 <HStack justifyContent={'flex-start'}>
                   <Icon as={FiHome} />
                   <Text as='b'>Home</Text>
                 </HStack>
-              </NavLink>
-            </Box>
+              </Box>
+            </NavLink>
             <Can I='Read' this='Translation'>
-              <Box
-                px={6}
-                py={2}
-                _hover={{
-                  color: 'secondary.500',
-                  background: 'whiteAlpha.300',
-                  borderRadius: 8,
-                }}
+              <NavLink
+                to='tripitaka'
+                style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
               >
-                <NavLink
-                  to='tripitaka'
-                  style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+                <Box
+                  px={6}
+                  py={2}
+                  _hover={{
+                    color: 'secondary.500',
+                    background: 'whiteAlpha.300',
+                    borderRadius: 8,
+                  }}
                 >
                   <HStack justifyContent={'flex-start'}>
                     <Icon as={AiOutlineBook} />
                     <Text as='b'>Translation</Text>
                   </HStack>
-                </NavLink>
-              </Box>
-            </Can>
-            {/* <Box
-              px={6}
-              py={2}
-              _hover={{
-                color: 'secondary.500',
-                background: 'whiteAlpha.300',
-                borderRadius: 8,
-              }}
-            >
-              <NavLink
-                to='sutra'
-                style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
-              >
-                <HStack justifyContent={'flex-start'}>
-                  <Icon as={AiOutlineTranslation} />
-                  <Text as='b' w='100%'>
-                    Sutra
-                  </Text>
-                </HStack>
+                </Box>
               </NavLink>
-            </Box> */}
-            <Box
-              px={6}
-              py={2}
-              _hover={{
-                color: 'secondary.500',
-                background: 'whiteAlpha.300',
-                borderRadius: 8,
-              }}
+            </Can>
+            <NavLink
+              to='glossary'
+              style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
             >
-              <NavLink
-                to='glossary'
-                style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+              <Box
+                px={6}
+                py={2}
+                _hover={{
+                  color: 'secondary.500',
+                  background: 'whiteAlpha.300',
+                  borderRadius: 8,
+                }}
               >
                 <HStack justifyContent={'flex-start'}>
                   <Icon as={AiOutlineTable} />
                   <Text as='b'>Glossary</Text>
                 </HStack>
-              </NavLink>
-            </Box>
+              </Box>
+            </NavLink>
             <Can I='Read' this='Reference'>
-              <Box
-                px={6}
-                py={2}
-                _hover={{
-                  color: 'secondary.500',
-                  background: 'whiteAlpha.300',
-                  borderRadius: 8,
-                }}
+              <NavLink
+                to='reference'
+                style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
               >
-                <NavLink
-                  to='reference'
-                  style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+                <Box
+                  px={6}
+                  py={2}
+                  _hover={{
+                    color: 'secondary.500',
+                    background: 'whiteAlpha.300',
+                    borderRadius: 8,
+                  }}
                 >
                   <HStack justifyContent={'flex-start'}>
                     <Icon as={AiOutlineRead} />
                     <Text as='b'>Reference</Text>
                   </HStack>
-                </NavLink>
-              </Box>
+                </Box>
+              </NavLink>
             </Can>
             <Can I='Read' this='Management'>
-              <Box
-                px={6}
-                py={2}
-                _hover={{
-                  color: 'secondary.500',
-                  background: 'whiteAlpha.300',
-                  borderRadius: 8,
-                }}
+              <NavLink
+                to='management'
+                style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
               >
-                <NavLink
-                  to='management'
-                  style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+                <Box
+                  px={6}
+                  py={2}
+                  _hover={{
+                    color: 'secondary.500',
+                    background: 'whiteAlpha.300',
+                    borderRadius: 8,
+                  }}
                 >
                   <HStack justifyContent={'flex-start'}>
                     <Icon as={MdOutlineManageAccounts} />
                     <Text as='b'>Management</Text>
                   </HStack>
-                </NavLink>
-              </Box>
+                </Box>
+              </NavLink>
             </Can>
             <Can I='Read' this='Administration'>
-              <Box
-                px={6}
-                py={2}
-                _hover={{
-                  color: 'secondary.500',
-                  background: 'whiteAlpha.300',
-                  borderRadius: 8,
-                }}
+              <NavLink
+                to='admin'
+                style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
               >
-                <NavLink
-                  to='admin'
-                  style={({ isActive }) => (isActive ? activeLinkColor : nonActiveLinkColor)}
+                <Box
+                  px={6}
+                  py={2}
+                  _hover={{
+                    color: 'secondary.500',
+                    background: 'whiteAlpha.300',
+                    borderRadius: 8,
+                  }}
                 >
                   <HStack justifyContent={'flex-start'}>
                     <Icon as={AiOutlineSetting} />
                     <Text as='b'>Admin</Text>
                   </HStack>
-                </NavLink>
-              </Box>
+                </Box>
+              </NavLink>
             </Can>
+            <Box
+              onClick={onOpen}
+              px={6}
+              py={2}
+              color={'white'}
+              cursor={'pointer'}
+              _hover={{
+                color: 'secondary.500',
+                background: 'whiteAlpha.300',
+                borderRadius: 8,
+              }}
+            >
+              <HStack justifyContent={'flex-start'}>
+                <Icon as={AiOutlineSearch} />
+                <Text as='b' w='100%'>
+                  Search
+                </Text>
+              </HStack>
+            </Box>
           </Flex>
+          <SearchModal isOpen={isOpen} onClose={onClose} />
         </VStack>
         {/* user profile section */}
         <Flex flexDir='column' w='100%' alignItems='center' mb={4}>
@@ -268,5 +290,239 @@ export const Sidebar = () => {
         </Flex>
       </Flex>
     </Box>
+  );
+};
+
+const SearchModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResults>([]);
+  const { setFocusIndex, focusIndex } = useSearchResultsNavigator(searchResults.length);
+  const fetcher = useFetcher();
+  const [show, setShow] = useState(false);
+  const handleClick = () => setShow(!show);
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
+
+  useEffect(() => {
+    if (debouncedSearchTerm.length > 3) {
+      fetcher.submit(
+        {
+          intent: Intent.READ_OPENSEARCH,
+          value: debouncedSearchTerm.value,
+          glossary_only: String(show),
+        },
+        { method: 'post', replace: true, action: '/search' }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchTerm, show]);
+
+  useEffect(() => {
+    const { intent, payload } = fetcher.data || {};
+    if (intent === Intent.READ_OPENSEARCH) {
+      setSearchResults(payload);
+    }
+    if (!isOpen) {
+      setSearchTerm('');
+      setSearchResults([]);
+    }
+  }, [fetcher?.data, isOpen]);
+
+  const getContent = (index: number) => {
+    return match(searchResults[index])
+      .with({ kind: 'glossary' }, ({ data }) => {
+        return <GlossaryDetails {...data} />;
+      })
+      .with({ kind: 'reference' }, ({ data }) => {
+        return (
+          <>
+            <Text mb={2} dangerouslySetInnerHTML={{ __html: data.origin }} />
+            {data.target && <Text mb={2} dangerouslySetInnerHTML={{ __html: data.target }} />}
+          </>
+        );
+      })
+      .with({ kind: 'sutra' }, ({ data }) => {
+        return (
+          <>
+            <Text mb={2} dangerouslySetInnerHTML={{ __html: data.origin }} />
+            {data.target && <Text mb={2} dangerouslySetInnerHTML={{ __html: data.target }} />}
+          </>
+        );
+      })
+      .otherwise(() => <div></div>);
+  };
+  return (
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} size='3xl'>
+        <ModalOverlay />
+        <ModalContent>
+          <VStack>
+            <InputGroup>
+              <Input
+                variant={'filled'}
+                boxShadow='none'
+                size='lg'
+                type={'text'}
+                placeholder='Search'
+                border={'none'}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <InputRightElement
+                h={'100%'}
+                onClick={handleClick}
+                children={
+                  !show ? (
+                    <Icon mr={2} as={AiOutlineGoogle} boxSize={'2rem'} />
+                  ) : (
+                    <Icon mr={2} as={AiFillGoogleCircle} boxSize={'2rem'} />
+                  )
+                }
+              />
+            </InputGroup>
+            {searchResults?.length ? (
+              <HStack w='100%' alignItems={'flex-start'}>
+                <List flex='1' borderRight={'1px solid lightgray'}>
+                  {searchResults.map((result, index) =>
+                    match(result)
+                      .with(
+                        { kind: 'glossary' },
+                        { kind: 'reference' },
+                        { kind: 'sutra' },
+                        ({ data, kind }) => {
+                          return (
+                            <ListItem
+                              px={2}
+                              onClick={() => setFocusIndex(index)}
+                              key={index}
+                              onFocus={() => setFocusIndex(index)}
+                              cursor='pointer'
+                              bgColor={focusIndex === index ? 'gray.300' : 'inherit'}
+                            >
+                              <Box>
+                                <Heading size='s' textTransform='uppercase'>
+                                  <Tag
+                                    size={'sm'}
+                                    colorScheme={
+                                      {
+                                        glossary: 'green',
+                                        reference: 'blue',
+                                        sutra: 'purple',
+                                      }[kind]
+                                    }
+                                    verticalAlign={'middle'}
+                                    mr={1}
+                                  >
+                                    {kind}
+                                  </Tag>
+                                  {data.title}
+                                </Heading>
+                                <Text pt='2' fontSize='sm'>
+                                  {data.subtitle}
+                                </Text>
+                              </Box>
+                            </ListItem>
+                          );
+                        }
+                      )
+                      .otherwise(() => {
+                        return <ListItem key={index}>unknown type</ListItem>;
+                      })
+                  )}
+                </List>
+                <Box flex='1' h='100%' p={2}>
+                  {focusIndex >= 0 ? getContent(focusIndex) : <></>}
+                </Box>
+              </HStack>
+            ) : null}
+          </VStack>
+        </ModalContent>
+      </Modal>
+    </>
+  );
+};
+
+export const GlossaryDetails = (glossary: GlossarySearchResult['data']) => {
+  const {
+    origin,
+    target,
+    short_definition,
+    example_use,
+    related_terms,
+    terms_to_avoid,
+    options,
+    discussion,
+  } = glossary;
+  return (
+    <>
+      {origin && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Origin:
+          </Heading>
+          <Text p={1} bg={'green.100'} mb={2}>
+            {origin}
+          </Text>
+        </>
+      )}
+      {target && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Target:
+          </Heading>
+          <Text p={1} bg={'blue.100'} mb={2}>
+            {target}
+          </Text>
+        </>
+      )}
+      {short_definition && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Short definition:
+          </Heading>
+          <Text mb={2}>{short_definition}</Text>
+        </>
+      )}
+      {example_use && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Example use:
+          </Heading>
+          <Text mb={2}>{example_use}</Text>
+        </>
+      )}
+      {related_terms && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Related terms:
+          </Heading>
+          <Text mb={2}>{related_terms}</Text>
+        </>
+      )}
+      {terms_to_avoid && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Terms to avoid:
+          </Heading>
+          <Text mb={2}>{terms_to_avoid}</Text>
+        </>
+      )}
+      {options && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Options:
+          </Heading>
+          <Text mb={2}>{options}</Text>
+        </>
+      )}
+      {discussion && (
+        <>
+          <Heading as='h6' size={'xs'}>
+            Discussion:
+          </Heading>
+          <Text mb={2}>{discussion}</Text>
+        </>
+      )}
+    </>
   );
 };

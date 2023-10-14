@@ -7,7 +7,10 @@ AWS.config.update({ region: 'ap-southeast-2' }); // Replace with your AWS region
 // Create a DynamoDB Document Client
 const docClient = new AWS.DynamoDB.DocumentClient();
 
-const TableName = 'prod-sutra-translation-TRANSLATION'; // Replace with your DynamoDB table name
+const TableName =
+  process.env.ENV === 'sirius'
+    ? 'sirius-sutra-translation-TRANSLATION'
+    : 'prod-sutra-translation-TRANSLATION'; // Replace with your DynamoDB table name
 
 async function migrateTable() {
   const params = {
@@ -33,8 +36,8 @@ async function migrateTable() {
           Key: { PK: item.PK, SK: item.SK },
           UpdateExpression: `SET originPK = :originPK, originSK = :originSK`,
           ExpressionAttributeValues: {
-            ':originPK': item.PK.startsWith('ZH') ? item.PK : item.PK.replace('ZH', 'EN'),
-            ':originSK': item.SK.startsWith('ZH') ? item.SK : item.SK.replace('ZH', 'EN'),
+            ':originPK': item.PK.startsWith('ZH') ? item.PK : item.PK.replace('EN', 'ZH'),
+            ':originSK': item.SK.startsWith('ZH') ? item.SK : item.SK.replace('EN', 'ZH'),
           }, // Replace with the value for the new field
         };
 

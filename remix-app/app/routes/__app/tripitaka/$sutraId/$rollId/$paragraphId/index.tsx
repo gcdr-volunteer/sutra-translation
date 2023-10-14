@@ -57,8 +57,7 @@ import {
 import { RepeatIcon, CopyIcon } from '@chakra-ui/icons';
 import { useState, useEffect, useCallback } from 'react';
 import { json, redirect } from '@remix-run/node';
-import { BiTable, BiSearch, BiNote, BiCheck, BiGlasses } from 'react-icons/bi';
-import { AiFillGoogleCircle, AiOutlineGoogle } from 'react-icons/ai';
+import { BiTable, BiNote, BiCheck, BiGlasses } from 'react-icons/bi';
 import { Warning } from '~/components/common/errors';
 import { FormModal } from '~/components/common';
 import {
@@ -66,12 +65,10 @@ import {
   handleCreateNewGlossary,
   handleNewTranslationParagraph,
   handleOpenaiFetch,
-  handleSearchByTerm,
-  handleSearchGlossary,
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { Intent } from '~/types/common';
 import { assertAuthUser } from '~/auth.server';
-import { useDebounce, useKeyPress, useSetTheme, useTransitionState } from '~/hooks';
+import { useSetTheme, useTransitionState } from '~/hooks';
 import { getParagraphByPrimaryKey } from '~/models/paragraph';
 import { handleGetReferencesByPK } from '~/models/reference';
 import { GlossaryForm } from '~/components/common/glossary_form';
@@ -174,14 +171,6 @@ export const action = async ({ request, params }: ActionArgs) => {
 
   if (entryData?.intent === Intent.CREATE_GLOSSARY) {
     return await handleCreateNewGlossary({ newGlossary: entryData, user });
-  }
-  if (entryData?.intent === Intent.READ_OPENSEARCH) {
-    if (entryData?.value) {
-      if (entryData?.glossary_only === 'true') {
-        return await handleSearchGlossary({ text: entryData?.value as string, filter: 'origin' });
-      }
-      return await handleSearchByTerm(entryData.value as string);
-    }
   }
   return json({});
 };
@@ -382,7 +371,6 @@ function TranlationWorkspace({ origin, references }: WorkSpaceProps) {
                   aria-label='glossary button'
                 />
               </Tooltip>
-              <SearchModal />
               <Button
                 disabled={isSubmitting}
                 marginLeft={'auto'}
@@ -609,304 +597,5 @@ const Conversation = ({ text, index }: { text: string; index: number }) => {
         {text}
       </Text>
     </VStack>
-  );
-};
-
-const SearchModal = () => {
-  const { isOpen: isOpenSearch, onOpen: onOpenSearch, onClose: onCloseSearch } = useDisclosure();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<{
-    results: (Paragraph | TGlossary | Reference)[];
-    counterParts: (Paragraph | TGlossary)[];
-  }>({ counterParts: [], results: [] });
-  const [focusIndex, setFocusIndex] = useState<number>(-1);
-  const submit = useSubmit();
-  const actionData = useActionData();
-  const [show, setShow] = useState(false);
-  const handleClick = () => setShow(!show);
-
-  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
-
-  useEffect(() => {
-    if (debouncedSearchTerm.length > 3) {
-      submit(
-        {
-          intent: Intent.READ_OPENSEARCH,
-          value: debouncedSearchTerm.value,
-          glossary_only: String(show),
-        },
-        { method: 'post', replace: true }
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm, show]);
-  const arrowUpPressed = useKeyPress('ArrowUp');
-  const arrowDownPressed = useKeyPress('ArrowDown');
-
-  useEffect(() => {
-    if (arrowUpPressed) {
-      if (focusIndex > 0) {
-        setFocusIndex((pre) => pre - 1);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [arrowUpPressed]);
-
-  useEffect(() => {
-    if (arrowDownPressed) {
-      if (focusIndex < searchResults.results.length - 1) {
-        setFocusIndex((pre) => pre + 1);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [arrowDownPressed]);
-
-  useEffect(() => {
-    if (actionData?.intent === Intent.READ_OPENSEARCH) {
-      setSearchResults(actionData.payload);
-    }
-    if (!isOpenSearch) {
-      setSearchTerm('');
-      setSearchResults({ counterParts: [], results: [] });
-    }
-  }, [actionData, isOpenSearch]);
-
-  const getContent = (index: number) => {
-    const result = searchResults.results[index];
-    if (result?.kind === 'PARAGRAPH') {
-      const counterPart = searchResults.counterParts.find(
-        (counterPart) => counterPart.kind === 'PARAGRAPH' && counterPart?.num === result.num
-      );
-      return (result.content as unknown as string[])?.map((text) => (
-        <div key={text}>
-          <Text mb={2} dangerouslySetInnerHTML={{ __html: text }} />
-          <Text mb={2}>{counterPart?.content}</Text>
-        </div>
-      ));
-    }
-    if (result?.kind === 'GLOSSARY') {
-      return <GlossaryDetails glossary={result} />;
-    }
-    if (result?.kind === 'REFERENCE') {
-      return <Text mb={2} dangerouslySetInnerHTML={{ __html: result.content }} />;
-    }
-    return '';
-  };
-  return (
-    <>
-      <Tooltip label='open searchbar' openDelay={1000}>
-        <IconButton onClick={onOpenSearch} icon={<BiSearch />} aria-label='search button' />
-      </Tooltip>
-      <Modal isOpen={isOpenSearch} onClose={onCloseSearch} size='3xl'>
-        <ModalOverlay />
-        <ModalContent>
-          <VStack>
-            <InputGroup>
-              <Input
-                variant={'filled'}
-                boxShadow='none'
-                size='lg'
-                type={'text'}
-                placeholder='Search'
-                border={'none'}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <InputRightElement
-                h={'100%'}
-                onClick={handleClick}
-                children={
-                  !show ? (
-                    <Icon mr={2} as={AiOutlineGoogle} boxSize={'2rem'} />
-                  ) : (
-                    <Icon mr={2} as={AiFillGoogleCircle} boxSize={'2rem'} />
-                  )
-                }
-              />
-            </InputGroup>
-            {searchResults.results?.length ? (
-              <HStack w='100%' alignItems={'flex-start'}>
-                <List flex='1' borderRight={'1px solid lightgray'}>
-                  {searchResults.results.map((result, index) => {
-                    if (result?.kind === 'PARAGRAPH') {
-                      return (
-                        <ListItem
-                          px={2}
-                          onClick={() => setFocusIndex(index)}
-                          key={index}
-                          onFocus={() => setFocusIndex(index)}
-                          cursor='pointer'
-                          bgColor={focusIndex === index ? 'gray.300' : 'inherit'}
-                        >
-                          <HStack justifyContent={'space-between'}>
-                            <Box>
-                              <Heading size='s' textTransform='uppercase'>
-                                <Tag
-                                  size={'sm'}
-                                  colorScheme='yellow'
-                                  verticalAlign={'middle'}
-                                  mr={1}
-                                >
-                                  Sutra
-                                </Tag>
-                                {result.sutra}
-                              </Heading>
-                              <Text pt='2' fontSize='sm'>
-                                {result.roll},{` p.${result.num}`}
-                              </Text>
-                            </Box>
-                          </HStack>
-                        </ListItem>
-                      );
-                    }
-                    if (result?.kind === 'GLOSSARY') {
-                      return (
-                        <ListItem
-                          px={2}
-                          onClick={() => setFocusIndex(index)}
-                          key={index}
-                          onFocus={() => setFocusIndex(index)}
-                          cursor='pointer'
-                          bgColor={focusIndex === index ? 'gray.300' : 'inherit'}
-                        >
-                          <Box>
-                            <Heading size='s' textTransform='uppercase'>
-                              <Tag size={'sm'} colorScheme='green' verticalAlign={'middle'} mr={1}>
-                                Glossary
-                              </Tag>
-                              {result.origin}
-                            </Heading>
-                            <Text pt='2' fontSize='sm'>
-                              {result.target}
-                            </Text>
-                          </Box>
-                        </ListItem>
-                      );
-                    }
-                    if (result?.kind === 'REFERENCE') {
-                      return (
-                        <ListItem
-                          px={2}
-                          onClick={() => setFocusIndex(index)}
-                          key={index}
-                          onFocus={() => setFocusIndex(index)}
-                          cursor='pointer'
-                          bgColor={focusIndex === index ? 'gray.300' : 'inherit'}
-                        >
-                          <Box>
-                            <Heading size='s' textTransform='uppercase'>
-                              <Tag size={'sm'} colorScheme='green' verticalAlign={'middle'} mr={1}>
-                                Reference
-                              </Tag>
-                              {result.name}
-                            </Heading>
-                            <Text pt='2' fontSize='sm'>
-                              {result.sutra},{`${result.roll}`},
-                              {` p.${result?.paragraphId.slice(-4)}`}
-                            </Text>
-                          </Box>
-                        </ListItem>
-                      );
-                    }
-                    return <ListItem key={index}>unknown type</ListItem>;
-                  })}
-                </List>
-                <Box flex='1' h='100%' p={2}>
-                  {focusIndex >= 0 ? getContent(focusIndex) : ''}
-                </Box>
-              </HStack>
-            ) : null}
-          </VStack>
-        </ModalContent>
-      </Modal>
-    </>
-  );
-};
-
-type GlossaryDetailsProps = {
-  glossary: Glossary;
-};
-export const GlossaryDetails = ({ glossary }: GlossaryDetailsProps) => {
-  const {
-    origin,
-    target,
-    short_definition,
-    example_use,
-    related_terms,
-    terms_to_avoid,
-    options,
-    discussion,
-  } = glossary;
-  return (
-    <>
-      {origin && (
-        <>
-          <Heading as='h6' size={'xs'}>
-            Origin:
-          </Heading>
-          <Text p={1} bg={'green.100'} mb={2}>
-            {origin}
-          </Text>
-        </>
-      )}
-      {target && (
-        <>
-          <Heading as='h6' size={'xs'}>
-            Target:
-          </Heading>
-          <Text p={1} bg={'blue.100'} mb={2}>
-            {target}
-          </Text>
-        </>
-      )}
-      {short_definition && (
-        <>
-          <Heading as='h6' size={'xs'}>
-            Short definition:
-          </Heading>
-          <Text mb={2}>{short_definition}</Text>
-        </>
-      )}
-      {example_use && (
-        <>
-          <Heading as='h6' size={'xs'}>
-            Example use:
-          </Heading>
-          <Text mb={2}>{example_use}</Text>
-        </>
-      )}
-      {related_terms && (
-        <>
-          <Heading as='h6' size={'xs'}>
-            Related terms:
-          </Heading>
-          <Text mb={2}>{related_terms}</Text>
-        </>
-      )}
-      {terms_to_avoid && (
-        <>
-          <Heading as='h6' size={'xs'}>
-            Terms to avoid:
-          </Heading>
-          <Text mb={2}>{terms_to_avoid}</Text>
-        </>
-      )}
-      {options && (
-        <>
-          <Heading as='h6' size={'xs'}>
-            Options:
-          </Heading>
-          <Text mb={2}>{options}</Text>
-        </>
-      )}
-      {discussion && (
-        <>
-          <Heading as='h6' size={'xs'}>
-            Discussion:
-          </Heading>
-          <Text mb={2}>{discussion}</Text>
-        </>
-      )}
-    </>
   );
 };

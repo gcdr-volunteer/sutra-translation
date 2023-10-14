@@ -22,6 +22,7 @@ export * from './glossary';
 export * from './paragraph';
 export * from './footnote';
 export * from './reference';
+export * from './search_results';
 
 export type AsStr<T> = {
   [K in keyof T]: string;

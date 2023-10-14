@@ -42,7 +42,7 @@ export const action = async ({ request }: ActionArgs) => {
         finish: false,
       };
       await upsertRoll(newRollMeta);
-      return created({ data: {}, intent: Intent.CREATE_ROLL_META });
+      return created({ payload: {}, intent: Intent.CREATE_ROLL_META });
     }
     // TODO: handle failed case
   }

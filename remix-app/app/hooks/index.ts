@@ -10,3 +10,4 @@ export * from './useHightlight';
 export * from './useCommentMessage';
 export * from './useCurrentUser';
 export * from './useTransitionState';
+export * from './useSearchResultsNavigator';
