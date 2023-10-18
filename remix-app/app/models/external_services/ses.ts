@@ -98,7 +98,7 @@ const getResetPasswordLinkTemplate = (link: string, email: string) => `
 </div>
 
 <div style="padding: 20px; text-align: center;">
-    <p style="font-size: 16px; margin-bottom: 20px;">Here is your reset password <a href=${link}>link</a></p>
+    <p style="font-size: 16px; margin-bottom: 20px;">Here is your reset password <a href=${link}>${link}</a></p>
     <p>This link will be expire in 30 minutes</p>
 </div>
 
