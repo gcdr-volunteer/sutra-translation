@@ -117,6 +117,8 @@ export const sendResetPasswordLinkEmail = async ({
   link: string;
 }) => {
   try {
+    const template = getResetPasswordLinkTemplate(link, email);
+    logger.info('sendResetPasswordLinkEmail', template);
     const senderAddress = 'kumarajiva.translation@gmail.com';
     const input: SendEmailCommandInput = {
       FromEmailAddress: senderAddress,
@@ -137,7 +139,7 @@ export const sendResetPasswordLinkEmail = async ({
           },
           Body: {
             Html: {
-              Data: getResetPasswordLinkTemplate(email, link),
+              Data: template,
               Charset: 'UTF-8',
             },
           },
