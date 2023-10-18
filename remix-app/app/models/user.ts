@@ -4,7 +4,7 @@ import type {
   UpdateItemCommandInput,
   QueryCommandInput,
 } from '@aws-sdk/client-dynamodb';
-import type { UpdateType } from '~/types';
+import type { CreatedType, UpdateType } from '~/types';
 import type { User } from '~/types/user';
 import type { Team } from '~/types/team';
 import type { Lang } from '~/types/lang';
@@ -59,9 +59,9 @@ export const onlyCreateAdminUserWhenFirstSystemUp = async (): Promise<void> => {
   }
 };
 
-export const getUserByEmail = async (email: string): Promise<DBUser | undefined> => {
+export const getUserByEmail = async (email: string): Promise<CreatedType<DBUser> | undefined> => {
   const SK = composeSKForUser({ email });
-  const user = await dbGetByKey<DBUser>({
+  const user = await dbGetByKey<CreatedType<DBUser>>({
     key: { PK: 'TEAM', SK },
     tableName: process.env.USER_TABLE,
   });
@@ -96,8 +96,10 @@ export const updateUserPassword = async ({
     ExpressionAttributeValues: marshall({
       ':password': hashedPassword,
       ':first_login': false,
+      ':linkValidUtil': '',
     }),
-    UpdateExpression: 'Set #password = :password, first_login = :first_login',
+    UpdateExpression:
+      'Set #password = :password, first_login = :first_login, linkValidUtil = :linkValidUtil',
   };
 
   await dbClient().send(new UpdateItemCommand(params));

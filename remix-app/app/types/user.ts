@@ -56,6 +56,10 @@ export interface User extends CommonMeta {
    */
   working_sutra?: string;
   /**
+   * This is the time stamp when the user's reset password link will be expired
+   */
+  linkValidUtil?: string;
+  /**
    * The helper type
    */
   kind: 'USER';

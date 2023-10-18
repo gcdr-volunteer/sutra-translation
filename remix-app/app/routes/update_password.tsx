@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -8,23 +8,41 @@ import {
   FormLabel,
   Heading,
   Input,
+  InputGroup,
+  InputRightElement,
   Spinner,
 } from '@chakra-ui/react';
 import { json, redirect } from '@remix-run/node';
-import { useActionData, Form } from '@remix-run/react';
-import { assertAuthUser, authenticator } from '~/auth.server';
-import { updateUserPassword } from '~/models/user';
-import { commitSession, getSession } from '~/session.server';
-import { logger } from '~/utils';
+import { useFetcher, useLoaderData } from '@remix-run/react';
+import { getUserByEmail, updateUser, updateUserPassword } from '~/models/user';
+import { destroySession, getSession } from '~/session.server';
+import { logger, rawUtc } from '~/utils';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
-import { useTransitionState } from '../hooks';
+import dayjs from 'dayjs';
+import { generateResetPasswordToken } from '../services/__app/reset_password';
+import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const user = await assertAuthUser(request);
-  if (!user) {
+  const url = new URL(request.url);
+  const email = url.searchParams.get('email');
+  const hash = url.searchParams.get('hash');
+  if (!email || !hash) {
     return redirect('/login');
   }
-  return json({});
+  const user = await getUserByEmail(email);
+  if (!user || !user.linkValidUtil) {
+    return redirect('/login');
+  }
+  const isLinkExpired = rawUtc().isAfter(dayjs(user.linkValidUtil));
+  if (isLinkExpired) {
+    return json({ validLink: false });
+  }
+  const verifyhash = generateResetPasswordToken(user.password);
+  if (verifyhash !== hash) {
+    return redirect('/login');
+  }
+
+  return json({ validLink: true, email });
 };
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -33,28 +51,36 @@ export async function action({ request }: ActionFunctionArgs) {
     const form = await clonedRequest.formData();
     const newPass = form.get('new_pass') as string;
     const confirmPass = form.get('confirm_pass') as string;
+    const url = new URL(clonedRequest.url);
+    const email = url.searchParams.get('email');
+    logger.log('update_password', 'email', email);
     logger.info('update_password', 'before validation');
+    if (!email) {
+      return redirect('/login');
+    }
     if (!newPass || !confirmPass) {
-      return json({ password: 'password cannot be empty' }, { status: 400 });
+      return json({ validLink: true, password: 'password cannot be empty' }, { status: 400 });
     }
     if (newPass !== confirmPass) {
-      return json({ password: 'two passwords are not equal' }, { status: 400 });
+      return json({ validLink: true, password: 'two passwords are not equal' }, { status: 400 });
     }
     logger.info('update_password', 'after validation');
 
     logger.info('update_password', 'before authentication');
-    const user = await authenticator.isAuthenticated(request);
+    const user = await getUserByEmail(email);
     logger.info('update_password', 'after authentication');
     if (user) {
       logger.info('update_password', 'before update password');
       await updateUserPassword({ email: user.email, password: confirmPass });
+      await updateUser({ PK: user.PK, SK: user.SK, linkValidUtil: '' });
       logger.info('update_password', 'after update password');
 
+      logger.info('update_password', 'before destroy session');
       const session = await getSession(clonedRequest.headers.get('cookie'));
-      session.set(authenticator.sessionKey, user);
+      await destroySession(session);
+      logger.info('update_password', 'after destroy session');
 
-      const headers = new Headers({ 'Set-Cookie': await commitSession(session) });
-      return redirect('/', { headers });
+      return redirect('/login');
     }
     return redirect('/login');
   } catch (error) {
@@ -65,23 +91,29 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function UpdatePasswordRoute() {
-  const actionData = useActionData<{ password: string }>();
+  const loaderData = useLoaderData<typeof loader>();
   return (
     <Flex minHeight='100vh' width='full' align='center' justifyContent='center'>
-      <Box
-        borderWidth={1}
-        px={4}
-        width='full'
-        maxWidth='500px'
-        borderRadius={4}
-        textAlign='center'
-        boxShadow='lg'
-      >
-        <Box p={4}>
-          <UpdatePasswordHeader />
-          <UpdatePasswordForm actionData={actionData} />
+      {loaderData.validLink ? (
+        <Box
+          borderWidth={1}
+          px={4}
+          width='full'
+          maxWidth='500px'
+          borderRadius={4}
+          textAlign='center'
+          boxShadow='lg'
+        >
+          <Box p={4}>
+            <UpdatePasswordHeader />
+            <UpdatePasswordForm />
+          </Box>
         </Box>
-      </Box>
+      ) : (
+        <Heading as='h4' size='md'>
+          Link is expired, please reset your password again
+        </Heading>
+      )}
     </Flex>
   );
 }
@@ -93,32 +125,53 @@ const UpdatePasswordHeader = () => {
   );
 };
 
-type LoginFormProps = {
-  actionData?: {
-    password: string;
-  };
-};
-const UpdatePasswordForm = (props: LoginFormProps) => {
-  const { isLoading } = useTransitionState();
-  const { password } = props.actionData || {};
+const UpdatePasswordForm = () => {
+  const fetcher = useFetcher<{ password: string }>();
+  const [showpassword, setShowpassword] = useState(false);
   return (
     <Box my={8} textAlign='left'>
-      <Form method='post'>
-        <FormControl isInvalid={Boolean(password)}>
+      <fetcher.Form method='post'>
+        <FormControl isInvalid={Boolean(fetcher.data?.password)}>
           <FormLabel>New Password</FormLabel>
-          <Input type='password' placeholder='Enter your new password' name='new_pass' />
+          <InputGroup>
+            <Input
+              type={showpassword ? 'text' : 'password'}
+              placeholder='Enter your new password'
+              name='new_pass'
+            />
+            <InputRightElement width='3rem' onClick={() => setShowpassword((prev) => !prev)}>
+              {showpassword ? <ViewOffIcon /> : <ViewIcon />}
+            </InputRightElement>
+          </InputGroup>
         </FormControl>
 
-        <FormControl mt={4} isInvalid={Boolean(password)}>
+        <FormControl mt={4} isInvalid={Boolean(fetcher.data?.password)}>
           <FormLabel>Confirm Password</FormLabel>
-          <Input type='password' placeholder='Confirm your new password' name='confirm_pass' />
-          {password ? <FormErrorMessage>{password}</FormErrorMessage> : null}
+          <InputGroup>
+            <Input
+              type={showpassword ? 'text' : 'password'}
+              placeholder='Confirm your new password'
+              name='confirm_pass'
+            />
+            <InputRightElement width='3rem' onClick={() => setShowpassword((prev) => !prev)}>
+              {showpassword ? <ViewOffIcon /> : <ViewIcon />}
+            </InputRightElement>
+          </InputGroup>
+          {fetcher.data?.password ? (
+            <FormErrorMessage>{fetcher.data?.password}</FormErrorMessage>
+          ) : null}
         </FormControl>
 
-        <Button colorScheme={'iconButton'} width='full' mt={4} type='submit' disabled={isLoading}>
-          {isLoading ? <Spinner /> : 'Save'}
+        <Button
+          colorScheme={'iconButton'}
+          width='full'
+          mt={4}
+          type='submit'
+          disabled={fetcher.state === 'submitting'}
+        >
+          {fetcher.state === 'submitting' ? <Spinner /> : 'Save'}
         </Button>
-      </Form>
+      </fetcher.Form>
     </Box>
   );
 };

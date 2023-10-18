@@ -18,7 +18,7 @@ import {
   InputGroup,
   InputRightElement,
 } from '@chakra-ui/react';
-import { useActionData, Form } from '@remix-run/react';
+import { useActionData, Form, NavLink } from '@remix-run/react';
 import { commitSession, getSession } from '~/session.server';
 import { onlyCreateAdminUserWhenFirstSystemUp } from '~/models/user';
 import { Error } from '~/components/common/errors';
@@ -151,9 +151,9 @@ const LoginForm = (props: LoginFormProps) => {
           <Box>
             <Checkbox>Remember Me</Checkbox>
           </Box>
-          <Box>
+          <NavLink to='/reset_password'>
             <Link color={`primary.500`}>Forgot your password?</Link>
-          </Box>
+          </NavLink>
         </Stack>
 
         <Button colorScheme={'iconButton'} width='full' mt={4} type='submit' disabled={isLoading}>
