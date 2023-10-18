@@ -89,7 +89,7 @@ const getResetPasswordLinkTemplate = (link: string, email: string) => `
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reset Password</title>
+<title>Reset Your Password</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4; position: relative; min-height: 100vh;">
 
@@ -98,7 +98,7 @@ const getResetPasswordLinkTemplate = (link: string, email: string) => `
 </div>
 
 <div style="padding: 20px; text-align: center;">
-    <p style="font-size: 16px; margin-bottom: 20px;">Here is your reset password <a href=${link}>${link}</a></p>
+    <p style="font-size: 16px; margin-bottom: 20px;">Here is your reset password ${link} <a href=${link}>${link}</a></p>
     <p>This link will be expire in 30 minutes</p>
 </div>
 
@@ -134,7 +134,7 @@ export const sendResetPasswordLinkEmail = async ({
       Content: {
         Simple: {
           Subject: {
-            Data: 'Reset password',
+            Data: 'Reset your password',
             Charset: 'UTF-8',
           },
           Body: {
