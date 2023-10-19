@@ -4,28 +4,32 @@ import {
   handleSearchByTerm,
   handleSearchGlossary,
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
+import { match } from 'ts-pattern';
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
+  console.log(entryData);
   if (entryData?.intent === Intent.READ_OPENSEARCH) {
-    if (entryData?.value) {
-      if (entryData?.glossary_only === 'true') {
-        const payload = await handleSearchGlossary({
-          text: entryData?.value as string,
+    const searchType = entryData?.type as 'reference' | 'glossary' | 'sutra' | 'all';
+    const searchValue = entryData?.value as string;
+
+    const payload = await match({ searchType, searchValue })
+      .with({ searchType: 'glossary' }, async ({ searchValue }) => {
+        console.log('searching glossary');
+        return handleSearchGlossary({
+          text: searchValue,
           filter: 'origin',
         });
-        return json({
-          payload,
-          intent: Intent.READ_OPENSEARCH,
-        });
-      }
-      const payload = await handleSearchByTerm(entryData.value as string);
-      return json({
-        payload,
-        intent: Intent.READ_OPENSEARCH,
+      })
+      .otherwise(async ({ searchValue }) => {
+        console.log('searching term');
+        return await handleSearchByTerm(searchValue);
       });
-    }
+    return json({
+      payload,
+      intent: Intent.READ_OPENSEARCH,
+    });
   }
   return json({});
 };

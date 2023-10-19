@@ -23,17 +23,19 @@ import {
   List,
   ListItem,
   Tag,
+  IconButton,
+  InputLeftElement,
+  Kbd,
 } from '@chakra-ui/react';
 import { NavLink, useFetcher } from '@remix-run/react';
 import { FiHome } from 'react-icons/fi';
+import { TbSquareLetterG, TbSquareLetterR, TbSquareLetterS } from 'react-icons/tb';
 import {
   AiOutlineBook,
   AiOutlineSetting,
   AiOutlineRead,
   AiOutlineTable,
   AiOutlineSearch,
-  AiOutlineGoogle,
-  AiFillGoogleCircle,
 } from 'react-icons/ai';
 import { MdOutlineManageAccounts } from 'react-icons/md';
 import { Can } from '~/authorisation';
@@ -62,6 +64,32 @@ export const Sidebar = () => {
   const [isLargerThan800] = useMediaQuery('(min-width: 800px)');
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+
+  const [os, setOs] = useState<'Mac' | 'Win'>('Mac');
+
+  useEffect(() => {
+    const platform = navigator.platform;
+    if (platform.includes('Mac')) {
+      setOs('Mac');
+    } else if (platform.includes('Win')) {
+      setOs('Win');
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (os === 'Mac' && event.metaKey && event.key === 'k') {
+        onOpen();
+      }
+    };
+    document.addEventListener('keydown', (e) => {
+      handleKeyDown(e);
+    });
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (expand && !isLargerThan800) {
     return (
@@ -258,6 +286,14 @@ export const Sidebar = () => {
                 <Text as='b' w='100%'>
                   Search
                 </Text>
+                <Box ml={0.5} display={'table'}>
+                  <Kbd bg={'inherit'} mr={1} display={'table-cell'}>
+                    {os === 'Mac' ? '⌘' : 'C^'}
+                  </Kbd>
+                  <Kbd bg={'inherit'} display={'table-cell'}>
+                    k
+                  </Kbd>
+                </Box>
               </HStack>
             </Box>
           </Flex>
@@ -294,12 +330,29 @@ export const Sidebar = () => {
 };
 
 const SearchModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const fetcher = useFetcher();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResults>([]);
   const { setFocusIndex, focusIndex } = useSearchResultsNavigator(searchResults.length);
-  const fetcher = useFetcher();
-  const [show, setShow] = useState(false);
-  const handleClick = () => setShow(!show);
+  const [searchType, setSearchType] = useState<'glossary' | 'sutra' | 'reference' | 'all'>('all');
+  const typeToIcon = {
+    glossary: (
+      <InputLeftElement bg='iconButton.500' fontSize={'x-large'} h='100%'>
+        <TbSquareLetterG color='white' />
+      </InputLeftElement>
+    ),
+    sutra: (
+      <InputLeftElement bg='iconButton.500' fontSize={'x-large'} h='100%'>
+        <TbSquareLetterS color='white' />
+      </InputLeftElement>
+    ),
+    reference: (
+      <InputLeftElement bg='iconButton.500' fontSize={'x-large'} h='100%'>
+        <TbSquareLetterR color='white' />
+      </InputLeftElement>
+    ),
+    all: <></>,
+  };
 
   const debouncedSearchTerm = useDebounce(searchTerm, 1000);
 
@@ -309,24 +362,75 @@ const SearchModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
         {
           intent: Intent.READ_OPENSEARCH,
           value: debouncedSearchTerm.value,
-          glossary_only: String(show),
+          type: searchType,
         },
         { method: 'post', action: '/search' }
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm, show]);
+  }, [debouncedSearchTerm]);
 
   useEffect(() => {
     const { intent, payload } = fetcher.data || { intent: '', payload: [] };
     if (intent === Intent.READ_OPENSEARCH) {
       setSearchResults(payload);
     }
+  }, [fetcher?.data]);
+
+  useEffect(() => {
     if (!isOpen) {
-      setSearchTerm('');
       setSearchResults([]);
+      setSearchType('all');
+      setSearchTerm('');
     }
-  }, [fetcher?.data, isOpen]);
+    return () => {
+      setSearchResults([]);
+      setSearchType('all');
+      setSearchTerm('');
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', (e) => handleKeyDown(e));
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSearchType = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      if (
+        searchTerm.startsWith('g') ||
+        searchTerm.startsWith('gl') ||
+        searchTerm.startsWith('glo')
+      ) {
+        setSearchType('glossary');
+      } else if (
+        searchTerm.startsWith('r') ||
+        searchTerm.startsWith('re') ||
+        searchTerm.startsWith('ref')
+      ) {
+        setSearchType('reference');
+      } else if (
+        searchTerm.startsWith('s') ||
+        searchTerm.startsWith('su') ||
+        searchTerm.startsWith('sut')
+      ) {
+        setSearchType('sutra');
+      }
+      setSearchTerm('');
+    } else if (event.key === 'Backspace' && searchTerm.length === 0) {
+      event.preventDefault();
+      setSearchType('all');
+    }
+  };
 
   const getContent = (index: number) => {
     return match(searchResults[index])
@@ -358,7 +462,9 @@ const SearchModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
         <ModalContent>
           <VStack>
             <InputGroup>
+              {typeToIcon[searchType]}
               <Input
+                ml={searchType === 'all' ? 0 : 2}
                 variant={'filled'}
                 boxShadow='none'
                 size='lg'
@@ -366,19 +472,12 @@ const SearchModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
                 placeholder='Search'
                 border={'none'}
                 value={searchTerm}
+                onKeyDown={(e) => handleSearchType(e)}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <InputRightElement
-                h={'100%'}
-                onClick={handleClick}
-                children={
-                  !show ? (
-                    <Icon mr={2} as={AiOutlineGoogle} boxSize={'2rem'} />
-                  ) : (
-                    <Icon mr={2} as={AiFillGoogleCircle} boxSize={'2rem'} />
-                  )
-                }
-              />
+              <InputRightElement h='100%'>
+                {fetcher.state === 'loading' || fetcher.state === 'submitting' ? <Spinner /> : null}
+              </InputRightElement>
             </InputGroup>
             {searchResults?.length ? (
               <HStack w='100%' alignItems={'flex-start'}>
