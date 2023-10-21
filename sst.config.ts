@@ -10,7 +10,7 @@ export default {
   },
   async stacks(app) {
     app.setDefaultFunctionProps({
-      runtime: 'nodejs16.x',
+      runtime: 'nodejs18.x',
       nodejs: {
         format: 'cjs',
       },
