@@ -23,7 +23,6 @@ import {
   List,
   ListItem,
   Tag,
-  IconButton,
   InputLeftElement,
   Kbd,
 } from '@chakra-ui/react';
