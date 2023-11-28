@@ -146,6 +146,7 @@ export const handleOpenaiFetch = async ({
         acc[cur.key] = cur.value;
         return acc;
       }, {} as Record<string, string>);
+    logger.log(handleOpenaiFetch.name, 'glossary', glossary);
     const translation = await translate({ text: content, category }, glossary);
     logger.log(handleOpenaiFetch.name, 'results', translation);
     return translation;

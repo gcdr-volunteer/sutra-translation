@@ -104,7 +104,7 @@ export async function RemixStack({ stack }: StackContext) {
   const site = new RemixSite(stack, 'Site', {
     permissions: ['ses', 'es'],
     path: 'remix-app/',
-    timeout: '180 seconds',
+    timeout: '60 seconds',
     nodejs: {
       format: 'cjs',
     },

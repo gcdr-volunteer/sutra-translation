@@ -5,6 +5,8 @@ import type { AxiosError } from 'axios';
 export const openai = () =>
   new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
+    timeout: 30 * 1000 /* 30 seconds */,
+    maxRetries: 0,
   });
 
 export const translate = async (
@@ -48,7 +50,10 @@ export const translate = async (
           },
         ],
       },
-      { timeout: 30 * 1000 /* 30 seconds timeout*/ }
+      {
+        timeout: 15 * 1000 /* 15 seconds timeout*/,
+        maxRetries: 2,
+      }
     );
     const message = completion?.choices?.[0]?.message?.content;
     if (message) {
