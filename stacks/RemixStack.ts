@@ -108,6 +108,7 @@ export async function RemixStack({ stack }: StackContext) {
     nodejs: {
       format: 'cjs',
     },
+    customDomain: process.env.ENV === 'prod' ? 'btts-kumarajiva.org' : undefined,
     environment: {
       SESSION_SECRET: process.env.SESSION_SECRET ?? '',
       USER_TABLE: userTable.tableName,
@@ -132,5 +133,6 @@ export async function RemixStack({ stack }: StackContext) {
   site.attachPermissions([userTable, referenceTable, translationTable, historyTable, topic]);
   stack.addOutputs({
     URL: site.url || 'localhost',
+    Site: site.customDomainUrl || 'localhost',
   });
 }

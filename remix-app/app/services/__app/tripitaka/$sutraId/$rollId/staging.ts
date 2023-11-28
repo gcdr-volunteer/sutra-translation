@@ -135,6 +135,7 @@ export const handleOpenaiFetch = async ({
 
     // TODO: only fetch working user's profile glossary
     const glossaries = await getAllGlossary();
+    logger.log(handleOpenaiFetch.name, 'glossary', glossaries);
     const sourceGlossaries = glossaries?.map((glossary) => ({
       key: glossary.origin,
       value: glossary.target,

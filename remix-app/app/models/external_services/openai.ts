@@ -1,4 +1,4 @@
-import { OpenAI } from 'openai';
+import { OpenAI, APIConnectionTimeoutError } from 'openai';
 import { logger } from '~/utils';
 import type { AxiosError } from 'axios';
 
@@ -51,8 +51,8 @@ export const translate = async (
         ],
       },
       {
-        timeout: 15 * 1000 /* 15 seconds timeout*/,
-        maxRetries: 2,
+        timeout: 20 * 1000 /* 15 seconds timeout*/,
+        maxRetries: 1,
       }
     );
     const message = completion?.choices?.[0]?.message?.content;
@@ -68,10 +68,15 @@ export const translate = async (
       logger.warn(translate.name, 'openai server timeout');
       return 'openai server timeout, please refresh or edit by yourself';
     }
+    if (error instanceof APIConnectionTimeoutError) {
+      logger.warn(translate.name, 'openai server timeout');
+      return 'openai server timeout, please refresh or edit by yourself';
+    }
     if (axiosError.response) {
       logger.error(translate.name, 'response', axiosError.response);
       return axiosError.response?.statusText;
     }
+    logger.error(translate.name, error);
     return 'not available';
   }
 };
