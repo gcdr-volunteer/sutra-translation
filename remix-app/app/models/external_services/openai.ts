@@ -1,4 +1,4 @@
-import { OpenAI, APIConnectionTimeoutError } from 'openai';
+import { OpenAI } from 'openai';
 import { logger } from '~/utils';
 import type { AxiosError } from 'axios';
 
@@ -15,7 +15,7 @@ export const translate = async (
     category?: string;
   },
   glossaries: Record<string, string>
-): Promise<string> => {
+) => {
   let glossary = [] as { role: 'system' | 'assistant' | 'user'; content: string }[];
   if (Object.entries(glossaries).length) {
     glossary = Object.entries(glossaries).reduce<
@@ -34,51 +34,27 @@ export const translate = async (
       ];
     }, []);
   }
-  try {
-    const completion = await openai().chat.completions.create(
-      {
-        model: 'gpt-4-0613',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a professional Chinese to English translator',
-          },
-          ...glossary,
-          {
-            role: 'user',
-            content: `${input.text}`,
-          },
-        ],
-      },
-      {
-        timeout: 20 * 1000 /* 15 seconds timeout*/,
-        maxRetries: 1,
-      }
-    );
-    const message = completion?.choices?.[0]?.message?.content;
-    if (message) {
-      const result = message.trim().replace(/^,/, '').replace(/^"|"$/g, '') ?? '';
-      logger.log(translate.name, 'completetion result', result);
-      return result;
+  return openai().chat.completions.create(
+    {
+      model: 'gpt-4-0613',
+      stream: true,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional Chinese to English translator',
+        },
+        ...glossary,
+        {
+          role: 'user',
+          content: `${input.text}`,
+        },
+      ],
+    },
+    {
+      timeout: 20 * 1000 /* 15 seconds timeout*/,
+      maxRetries: 1,
     }
-    return '';
-  } catch (error) {
-    const axiosError = error as AxiosError;
-    if (axiosError.code === 'ECONNABORTED' && axiosError?.message?.includes('timeout')) {
-      logger.warn(translate.name, 'openai server timeout');
-      return 'openai server timeout, please refresh or edit by yourself';
-    }
-    if (error instanceof APIConnectionTimeoutError) {
-      logger.warn(translate.name, 'openai server timeout');
-      return 'openai server timeout, please refresh or edit by yourself';
-    }
-    if (axiosError.response) {
-      logger.error(translate.name, 'response', axiosError.response);
-      return axiosError.response?.statusText;
-    }
-    logger.error(translate.name, error);
-    return 'not available';
-  }
+  );
 };
 
 export const baseGPT = async ({

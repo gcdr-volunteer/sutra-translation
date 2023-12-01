@@ -2,7 +2,7 @@
 import { Can } from '~/authorisation';
 import type { ChangeEvent } from 'react';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
-import type { Paragraph, Glossary as TGlossary, CreatedType, Reference, Glossary } from '~/types';
+import type { Paragraph, CreatedType, Reference } from '~/types';
 import {
   useActionData,
   useSubmit,
@@ -12,7 +12,6 @@ import {
   useLocation,
 } from '@remix-run/react';
 import {
-  Tag,
   Box,
   Flex,
   Text,
@@ -36,16 +35,11 @@ import {
   ModalContent,
   InputGroup,
   Collapse,
-  List,
-  ListItem,
   useToast,
-  Highlight,
   ModalHeader,
   ModalCloseButton,
   ModalFooter,
   ModalBody,
-  Icon,
-  InputRightElement,
   Skeleton,
   Stack,
   Accordion,
@@ -64,7 +58,6 @@ import {
   handleChatGPT,
   handleCreateNewGlossary,
   handleNewTranslationParagraph,
-  handleOpenaiFetch,
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { Intent } from '~/types/common';
 import { assertAuthUser } from '~/auth.server';
@@ -75,6 +68,7 @@ import { GlossaryForm } from '~/components/common/glossary_form';
 import { useModalErrors } from '~/hooks/useError';
 import { badRequest, created } from 'remix-utils';
 import { handleGetAllRefBooks } from '~/services/__app/reference/$sutraId/$rollId.staging';
+import addQueues from '~/queues/add.server';
 
 export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const { rollId, sutraId, paragraphId } = params;
@@ -124,12 +118,8 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     // Uncomment the following line when doing debug
     // return json({ payload: {}, intent: Intent.READ_OPENAI });
     if (content) {
-      // const origins = await replaceWithGlossary(rest as Record<string, string>);
-      const translation = await handleOpenaiFetch({
-        content: content as string,
-        category: category as string,
-      });
-      return json({ payload: { translation }, intent: Intent.READ_OPENAI });
+      await addQueues.enqueue({ identifier: JSON.stringify(content) });
+      return json({ payload: {}, intent: Intent.READ_OPENAI });
     }
   }
 
@@ -237,6 +227,7 @@ function TranlationWorkspace({ origin, references }: WorkSpaceProps) {
 
   useEffect(() => {
     if (refresh) {
+      setOpenaiTranslation('');
       submit(
         {
           intent: Intent.READ_OPENAI,
@@ -249,11 +240,16 @@ function TranlationWorkspace({ origin, references }: WorkSpaceProps) {
   }, [refresh, submit, content, category]);
 
   useEffect(() => {
-    if (actionData?.intent === Intent.READ_OPENAI && actionData?.payload?.translation) {
-      setOpenaiTranslation(actionData.payload.translation);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [actionData]);
+    const evtsource = new EventSource('/chat/subscribe');
+    evtsource.addEventListener('gpt-translation', (event) => {
+      setOpenaiTranslation((prev) => {
+        return prev.concat(event.data);
+      });
+    });
+    return () => {
+      evtsource.close();
+    };
+  }, []);
 
   const toast = useToast();
   useEffect(() => {

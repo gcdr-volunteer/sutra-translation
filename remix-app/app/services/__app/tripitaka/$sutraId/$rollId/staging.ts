@@ -123,39 +123,29 @@ export const hanldeDeepLFetch = async ({ origins }: { origins: Record<string, st
   }
 };
 
-export const handleOpenaiFetch = async ({
+export const handleOpenaiStreamFetch = async ({
   content,
   category,
 }: {
   content: string;
   category?: string;
 }) => {
-  try {
-    logger.log(handleOpenaiFetch.name, 'content', content);
+  logger.log(handleOpenaiStreamFetch.name, 'content', content);
 
-    // TODO: only fetch working user's profile glossary
-    const glossaries = await getAllGlossary();
-    logger.log(handleOpenaiFetch.name, 'glossary', glossaries);
-    const sourceGlossaries = glossaries?.map((glossary) => ({
-      key: glossary.origin,
-      value: glossary.target,
-    }));
+  // TODO: only fetch working user's profile glossary
+  const glossaries = await getAllGlossary();
+  const sourceGlossaries = glossaries?.map((glossary) => ({
+    key: glossary.origin,
+    value: glossary.target,
+  }));
 
-    const glossary = sourceGlossaries
-      .filter((glossary) => content.indexOf(glossary.key) !== -1)
-      .reduce((acc, cur) => {
-        acc[cur.key] = cur.value;
-        return acc;
-      }, {} as Record<string, string>);
-    logger.log(handleOpenaiFetch.name, 'glossary', glossary);
-    const translation = await translate({ text: content, category }, glossary);
-    logger.log(handleOpenaiFetch.name, 'results', translation);
-    return translation;
-  } catch (error) {
-    // TODO: handle error from frontend
-    logger.error(handleOpenaiFetch.name, 'error', error);
-    return json({ errors: { deepl: (error as unknown as Error)?.message } }, { status: 400 });
-  }
+  const glossary = sourceGlossaries
+    .filter((glossary) => content.indexOf(glossary.key) !== -1)
+    .reduce((acc, cur) => {
+      acc[cur.key] = cur.value;
+      return acc;
+    }, {} as Record<string, string>);
+  return translate({ text: content, category }, glossary);
 };
 
 export const handleChatGPT = async ({ text }: { text: string }): Promise<string> => {
