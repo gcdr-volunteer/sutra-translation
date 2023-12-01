@@ -17,10 +17,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     async function gptHandle(message: string) {
-      const jsonValue = JSON.parse(message) as { json: { identifier: string } };
-      logger.info(gptHandle.name, jsonValue);
+      // const jsonValue = JSON.parse(message) as { json: { identifier: string } };
+      logger.info(gptHandle.name, message);
       try {
-        const stream = await handleOpenaiStreamFetch({ content: jsonValue.json.identifier });
+        const stream = await handleOpenaiStreamFetch({ content: message });
 
         for await (const chunk of stream) {
           const data = chunk?.choices[0]?.delta?.content || '';
@@ -58,11 +58,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     emitter.on(EVENTS.MESSAGE, handle);
-    emitter.on(addQueueEvtTranslation, gptHandle);
+    emitter.on(EVENTS.TRANSLATION, gptHandle);
 
     return () => {
       emitter.off(EVENTS.MESSAGE, handle);
-      emitter.off(addQueueEvtTranslation, gptHandle);
+      emitter.off(EVENTS.TRANSLATION, gptHandle);
     };
   });
 }

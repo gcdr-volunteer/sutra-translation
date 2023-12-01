@@ -68,9 +68,9 @@ import { GlossaryForm } from '~/components/common/glossary_form';
 import { useModalErrors } from '~/hooks/useError';
 import { badRequest, created } from 'remix-utils';
 import { handleGetAllRefBooks } from '~/services/__app/reference/$sutraId/$rollId.staging';
-import addQueues from '~/queues/add.server';
+import { EVENTS, emitter } from '~/utils/event_emitter';
 
-export const loader = async ({ params, request }: LoaderFunctionArgs) => {
+export const loader = async ({ params }: LoaderFunctionArgs) => {
   const { rollId, sutraId, paragraphId } = params;
   if (!rollId) {
     throw badRequest('roll id cannot be empty');
@@ -118,7 +118,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     // Uncomment the following line when doing debug
     // return json({ payload: {}, intent: Intent.READ_OPENAI });
     if (content) {
-      await addQueues.enqueue({ identifier: JSON.stringify(content) });
+      await emitter.emit(EVENTS.TRANSLATION, content);
       return json({ payload: {}, intent: Intent.READ_OPENAI });
     }
   }
