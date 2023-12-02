@@ -236,12 +236,12 @@ function TranlationWorkspace({ origin, references, socketio }: WorkSpaceProps) {
   const { translation, sendMessage, isReady } = useGPTTranslation({ socketio: socketio });
 
   useEffect(() => {
-    if (refresh && isReady) {
+    if (refresh > 1) {
       setOpenaiTranslation('');
       sendMessage({ action: 'sendmessage', data: content });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refresh, isReady]);
+  }, [refresh]);
 
   useEffect(() => {
     setOpenaiTranslation(translation);
