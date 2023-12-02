@@ -46,6 +46,7 @@ export const createHistoryTable = async (stack: StackContext['stack']) => {
     },
   });
 };
+
 /**
  * This table contains all the reference information, which includes
  * - comment

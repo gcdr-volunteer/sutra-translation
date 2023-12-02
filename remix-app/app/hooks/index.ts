@@ -11,3 +11,4 @@ export * from './useCommentMessage';
 export * from './useCurrentUser';
 export * from './useTransitionState';
 export * from './useSearchResultsNavigator';
+export * from './useGPTTranslation';

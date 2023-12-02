@@ -61,7 +61,7 @@ import {
 } from '~/services/__app/tripitaka/$sutraId/$rollId/staging';
 import { Intent } from '~/types/common';
 import { assertAuthUser } from '~/auth.server';
-import { useSetTheme, useTransitionState } from '~/hooks';
+import { useGPTTranslation, useSetTheme, useTransitionState } from '~/hooks';
 import { getParagraphByPrimaryKey } from '~/models/paragraph';
 import { handleGetReferencesByPK } from '~/models/reference';
 import { GlossaryForm } from '~/components/common/glossary_form';
@@ -88,6 +88,9 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 
   return json({
     paragraph,
+    env: {
+      WEBSOCKET_URL: process.env.WEBSOCKET_URL || '',
+    },
     references: references.sort((a, b) => {
       const indexA = sortedBooks.indexOf(a.name);
       const indexB = sortedBooks.indexOf(b.name);
@@ -185,7 +188,11 @@ export default function ParagraphStagingRoute() {
   if (paragraph) {
     return (
       <Collapse key={paragraph.content} in={collapse} animateOpacity style={{ overflow: 'none' }}>
-        <TranlationWorkspace origin={paragraph} references={references} />
+        <TranlationWorkspace
+          origin={paragraph}
+          references={references}
+          socketio={loaderData.env.WEBSOCKET_URL}
+        />
       </Collapse>
     );
   } else {
@@ -196,8 +203,9 @@ export default function ParagraphStagingRoute() {
 interface WorkSpaceProps {
   origin: CreatedType<Paragraph>;
   references: CreatedType<Reference>[];
+  socketio: string;
 }
-function TranlationWorkspace({ origin, references }: WorkSpaceProps) {
+function TranlationWorkspace({ origin, references, socketio }: WorkSpaceProps) {
   const { content, category } = origin;
   const actionData = useActionData<{
     intent: Intent;
@@ -225,31 +233,26 @@ function TranlationWorkspace({ origin, references }: WorkSpaceProps) {
     );
   };
 
-  useEffect(() => {
-    if (refresh) {
-      setOpenaiTranslation('');
-      submit(
-        {
-          intent: Intent.READ_OPENAI,
-          content: content,
-          category: category,
-        },
-        { method: 'post', replace: false }
-      );
-    }
-  }, [refresh, submit, content, category]);
+  const { translation, sendMessage, isReady } = useGPTTranslation({ socketio: socketio });
 
   useEffect(() => {
-    const evtsource = new EventSource('/chat/subscribe');
-    evtsource.addEventListener('gpt-translation', (event) => {
-      setOpenaiTranslation((prev) => {
-        return prev.concat(event.data);
-      });
-    });
-    return () => {
-      evtsource.close();
-    };
-  }, []);
+    if (refresh && isReady) {
+      setOpenaiTranslation('');
+      sendMessage({ action: 'sendmessage', data: content });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh, isReady]);
+
+  useEffect(() => {
+    setOpenaiTranslation(translation);
+  }, [translation]);
+
+  useEffect(() => {
+    if (isReady) {
+      sendMessage({ action: 'sendmessage', data: content });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady]);
 
   const toast = useToast();
   useEffect(() => {

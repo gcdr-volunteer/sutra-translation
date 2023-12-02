@@ -9,6 +9,7 @@ import { Domain, EngineVersion } from 'aws-cdk-lib/aws-opensearchservice';
 import { isProd } from '../utils';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { BlockPublicAccess, BucketAccessControl } from 'aws-cdk-lib/aws-s3';
+import { WebsocketStack } from './websocket';
 
 const ddb_to_es = (stack: StackContext['stack'], url: string) => {
   return new Function(stack, 'Function', {
@@ -97,10 +98,12 @@ export async function SNSStack({ stack }: StackContext) {
 export async function RemixStack({ stack }: StackContext) {
   dependsOn(ESStack);
   const { domain } = use(ESStack);
+  dependsOn(WebsocketStack);
   dependsOn(TableStack);
   dependsOn(SNSStack);
   const { translationTable, userTable, referenceTable, historyTable } = use(TableStack);
   const { topic } = use(SNSStack);
+  const { websocket } = use(WebsocketStack);
   const site = new RemixSite(stack, 'Site', {
     permissions: ['ses', 'es'],
     path: 'remix-app/',
@@ -121,6 +124,7 @@ export async function RemixStack({ stack }: StackContext) {
       TOPIC_ARN: topic.topicArn,
       ES_URL: domain.domainEndpoint,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
+      WEBSOCKET_URL: websocket.url,
     },
     runtime: 'nodejs16.x',
     cdk: {
