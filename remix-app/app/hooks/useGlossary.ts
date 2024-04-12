@@ -1,49 +1,40 @@
-import { useIntersectionObserver } from '@react-hookz/web';
-import { useNavigate } from '@remix-run/react';
-import { useEffect, useState } from 'react';
-import _ from 'lodash';
+import { useFetcher } from '@remix-run/react';
+import { useCallback, useEffect } from 'react';
 import type { Glossary } from '~/types';
-import { Intent } from '~/types/common';
 
 export const useGlossary = ({
-  glossaries,
-  footRef,
-  nextPage,
-  intent,
+  searchTerm,
+  setFilterValue,
+  setGlossaries,
+  setFilteredGlossaries,
 }: {
-  glossaries: Glossary[];
-  footRef: React.RefObject<HTMLDivElement>;
-  nextPage?: string;
-  intent: Intent;
+  searchTerm: string;
+  setFilterValue: (value: string) => void;
+  setGlossaries: (glossaries: Glossary[]) => void;
+  setFilteredGlossaries: (glossaries: Glossary[]) => void;
 }) => {
-  const intersection = useIntersectionObserver(footRef, { threshold: [0.0] });
-  const [gloss, setGloss] = useState<Glossary[]>([]);
+  const fetcher = useFetcher<{ glossaries: Glossary[] }>();
+
   useEffect(() => {
-    if (intent === Intent.SEARCH_GLOSSARY) {
-      setGloss(glossaries);
+    if (!fetcher.data || fetcher.state === 'loading' || fetcher.state === 'submitting') {
+      return;
+    }
+
+    if (fetcher.data) {
+      setGlossaries(fetcher.data.glossaries);
+      setFilteredGlossaries(fetcher.data.glossaries);
+    }
+  }, [fetcher.data, fetcher.state, setGlossaries, setFilteredGlossaries]);
+
+  const onSearch = useCallback(() => {
+    if (searchTerm === '') {
+      fetcher.load('/glossary');
+      setGlossaries([]);
+      setFilterValue('');
     } else {
-      setGloss((prev) => {
-        let newglossaries = _.uniqBy([...prev, ...glossaries], (gl) => gl.origin);
-        newglossaries = _.sortBy(newglossaries, (o) => o.createdAt).reverse();
-        return newglossaries;
-      });
+      fetcher.load(`/glossary?search=${searchTerm}`);
     }
-  }, [glossaries, nextPage, intent]);
+  }, [searchTerm, fetcher, setGlossaries, setFilterValue]);
 
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // navigate to the same path, but without any query parameters
-    navigate(window.location.pathname);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (intersection?.isIntersecting && nextPage) {
-      navigate(`/glossary?page=${nextPage}`, { replace: true });
-    }
-  }, [nextPage, intersection, navigate]);
-
-  return { gloss, isIntersecting: intersection?.isIntersecting };
+  return { onSearch };
 };

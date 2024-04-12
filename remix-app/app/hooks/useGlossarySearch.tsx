@@ -7,7 +7,6 @@ export const useGlossarySearch = () => {
   const navigate = useNavigate();
   const handleGlossarySearch = useCallback(() => {
     navigate(`/glossary?search=${input}`, { replace: true });
-    setInput('');
   }, [navigate, input]);
 
   return { input, setInput, handleGlossarySearch };

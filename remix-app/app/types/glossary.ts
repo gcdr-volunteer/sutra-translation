@@ -20,27 +20,31 @@ export interface Glossary extends CommonMeta {
   /**
    * the short form of the definition
    */
-  short_definition?: string;
+  origin_sutra_text?: string;
   /**
    * the alternative option
    */
-  options?: string;
+  target_sutra_text?: string;
   /**
    * extra note for this glossary
    */
-  note?: string;
+  sutra_name?: string;
   /**
    * example use cases
    */
-  example_use?: string;
+  volume?: string;
   /**
    * related terms
    */
-  related_terms?: string;
+  cbeta_frequency?: string;
   /**
    * terms to avoid to use
    */
-  terms_to_avoid?: string;
+  glossary_author?: string;
+  /**
+   * terms to avoid to use
+   */
+  translation_date?: string;
   /**
    * extra note to discuss
    */

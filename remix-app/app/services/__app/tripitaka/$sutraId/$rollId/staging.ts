@@ -24,7 +24,6 @@ import {
   getGlossariesByTerm,
   getGlossaryByPage,
   insertBulkGlossary,
-  isOriginTermExist,
   upsertGlossary,
 } from '~/models/glossary';
 import { Intent } from '~/types/common';
@@ -69,14 +68,15 @@ const newTranslationSchema = () => {
 const newGlossarySchema = (user: User) => {
   const baseSchema = initialSchema();
   const glossarySchema = baseSchema.shape({
-    note: yup.string().trim().default(''),
     origin: yup.string().trim().required(),
     target: yup.string().trim().required(),
-    short_definition: yup.string().trim().default(''),
-    options: yup.string().trim().default(''),
-    example_use: yup.string().trim().default(''),
-    related_terms: yup.string().trim().default(''),
-    terms_to_avoid: yup.string().trim().default(''),
+    origin_sutra_text: yup.string().trim().default(''),
+    target_sutra_text: yup.string().trim().default(''),
+    sutra_name: yup.string().trim().default(''),
+    volume: yup.string().trim().default(''),
+    cbeta_frequency: yup.string().trim().default(''),
+    glossary_author: yup.string().trim().default(''),
+    translation_date: yup.string().trim().default(''),
     discussion: yup.string().trim().default(''),
     // TODO: use user profile language instead of hard coded
     origin_lang: yup.string().default('ZH'),
@@ -215,20 +215,9 @@ export const replaceWithGlossary = async (
   return origins;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const composeContent = (result: any) => {
-  const {
-    origin,
-    target,
-    short_definition,
-    note,
-    options,
-    example_use,
-    related_terms,
-    terms_to_avoid,
-    discussion,
-  } = result;
-  return `${origin?.toLocaleLowerCase()}-${target?.toLocaleLowerCase()}-${short_definition?.toLocaleLowerCase()}-${options?.toLocaleLowerCase()}-${note?.toLocaleLowerCase()}-${example_use?.toLocaleLowerCase()}-${related_terms?.toLocaleLowerCase()}-${terms_to_avoid?.toLocaleLowerCase()}-${discussion?.toLocaleLowerCase()}`;
+const composeContent = (result: Pick<Glossary, 'origin' | 'target'>) => {
+  const { origin, target } = result;
+  return `${origin?.toLocaleLowerCase()}-${target?.toLocaleLowerCase()}`;
 };
 
 export const handleCreateNewGlossary = async ({
@@ -286,20 +275,14 @@ export const handleCreateBulkGlossary = async ({
     );
 
     const glossariesToInsert = [];
-    const glossariesDuplicated = [];
     for await (const glossary of newGlossaries) {
-      const isExist = await isOriginTermExist({ term: glossary.origin });
-      if (isExist) {
-        glossariesDuplicated.push(glossary);
-      } else {
-        const content = composeContent(glossary);
-        const newGloss = { ...glossary, content };
-        glossariesToInsert.push(newGloss);
-      }
+      const content = composeContent(glossary);
+      const newGloss = { ...glossary, content };
+      glossariesToInsert.push(newGloss);
     }
     await insertBulkGlossary(glossariesToInsert);
     return created({
-      payload: { report: glossariesDuplicated.map((glossary) => glossary.origin) },
+      payload: { report: [] },
       intent: Intent.BULK_CREATE_GLOSSARY,
     });
   } catch (errors) {
@@ -555,11 +538,12 @@ export const handleSearchGlossary = async ({
             subtitle: glossary.target,
             origin: glossary.origin,
             target: glossary.target,
-            short_definition: glossary.short_definition,
-            example_use: glossary.example_use,
-            related_terms: glossary.related_terms,
-            terms_to_avoid: glossary.terms_to_avoid,
-            options: glossary.options,
+            origin_sutra_text: glossary.origin_sutra_text,
+            target_sutra_text: glossary.target_sutra_text,
+            sutra_name: glossary.sutra_name,
+            volume: glossary.volume,
+            cbeta_frequency: glossary.cbeta_frequency,
+            translation_date: glossary.translation_date,
             discussion: glossary.discussion,
           },
         } as GlossarySearchResult)
