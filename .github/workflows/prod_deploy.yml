@@ -34,25 +34,25 @@ jobs:
       - run: npm run validate
       - run: npm run test:unit --ws
 
-  deploy_prod:
-    needs: [build]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [16.x]
-    environment:
-      name: prod
-    steps:
-      - name: Checkout feature branch
-        uses: actions/checkout@v3
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-      - name: NPM install with caching
-        uses: bahmutov/npm-install@v1.6.0
-      - name: Deploy to PROD Env
-        run: npm run deploy
-        env:
-          ENV: prod
+  # deploy_prod:
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       node-version: [16.x]
+  #   environment:
+  #     name: prod
+  #   steps:
+  #     - name: Checkout feature branch
+  #       uses: actions/checkout@v3
+  #     - name: Use Node.js ${{ matrix.node-version }}
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #         cache: 'npm'
+  #     - name: NPM install with caching
+  #       uses: bahmutov/npm-install@v1.6.0
+  #     - name: Deploy to PROD Env
+  #       run: npm run deploy
+  #       env:
+  #         ENV: prod

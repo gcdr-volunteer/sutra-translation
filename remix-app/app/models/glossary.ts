@@ -1,6 +1,6 @@
 import { PutItemCommand, QueryCommand, ReturnValue } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { rawUtc, utcNow } from '~/utils';
+import { logger, rawUtc, utcNow } from '~/utils';
 import { dbBulkInsert, dbClient, dbGetByKey, dbUpdate } from './external_services/dynamodb';
 import type { PutItemCommandInput, QueryCommandInput } from '@aws-sdk/client-dynamodb';
 import type { Glossary } from '~/types/glossary';
@@ -74,23 +74,30 @@ export const getGlossaryByPage = async (
 };
 
 export const getGlossariesByTerm = async ({ term }: { term: string }): Promise<Glossary[]> => {
-  const params: QueryCommandInput = {
-    TableName: process.env.REFERENCE_TABLE,
-    FilterExpression: `contains(#content, :term)`,
-    KeyConditionExpression: 'PK = :pk',
-    ExpressionAttributeNames: {
-      '#content': 'content',
-    },
-    ExpressionAttributeValues: marshall({
-      ':term': term,
-      ':pk': 'GLOSSARY',
-    }),
-  };
-  const { Items } = await dbClient().send(new QueryCommand(params));
-  if (Items?.length) {
-    return Items.map((Item) => unmarshall(Item) as Glossary);
-  }
-  return [];
+  let lastEvaluatedKey = undefined;
+  const items: Glossary[] = [];
+  do {
+    const params: QueryCommandInput = {
+      ExclusiveStartKey: lastEvaluatedKey,
+      TableName: process.env.REFERENCE_TABLE,
+      FilterExpression: `contains(#content, :term)`,
+      KeyConditionExpression: 'PK = :pk',
+      ExpressionAttributeNames: {
+        '#content': 'content',
+      },
+      ExpressionAttributeValues: marshall({
+        ':term': term,
+        ':pk': 'GLOSSARY',
+      }),
+    };
+    const { Items, LastEvaluatedKey } = await dbClient().send(new QueryCommand(params));
+    if (Items?.length) {
+      const founds = Items.map((Item) => unmarshall(Item) as Glossary);
+      items.push(...founds);
+    }
+    lastEvaluatedKey = LastEvaluatedKey;
+  } while (lastEvaluatedKey);
+  return items;
 };
 
 export const updateGlossary = async (doc: UpdateType<Glossary>) => {
@@ -135,16 +142,21 @@ export const upsertGlossary = async (glossary: Glossary | UpdateType<Glossary>) 
 };
 
 export const insertBulkGlossary = async (glossaries: Glossary[]) => {
-  const now = rawUtc();
+  const batchSize = 25;
+  logger.info('Inserting bulk glossaries', glossaries.length);
   if (glossaries.length) {
-    return await dbBulkInsert({
-      tableName: process.env.REFERENCE_TABLE,
-      docs: glossaries.map((glossary, index) => ({
-        PK: 'GLOSSARY',
-        SK: `GLOSSARY-${now.add(index, 'second').format()}`,
-        ...glossary,
-      })),
-    });
+    for (let i = 0; i < glossaries.length; i += batchSize) {
+      const batch = glossaries.slice(i, i + batchSize);
+      const now = rawUtc();
+      await dbBulkInsert({
+        tableName: process.env.REFERENCE_TABLE,
+        docs: batch.map((glossary, index) => ({
+          PK: 'GLOSSARY',
+          SK: `GLOSSARY-${now.add(index, 'millisecond').format('YYYY-MM-DD HH:mm:ss.SSS')}`,
+          ...glossary,
+        })),
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for 1 second
+    }
   }
-  return;
 };

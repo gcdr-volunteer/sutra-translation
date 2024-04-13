@@ -333,17 +333,17 @@ export const CsvUpload = () => {
       acceptedFiles.forEach((file) => {
         Papa.parse(file, {
           header: true,
-          complete: (result) => {
+          complete: (result, file) => {
             const fields = [
               'origin',
               'target',
-              'short definition',
-              'options',
-              'notes',
-              'example use',
-              'related terms',
-              'terms to avoid',
-              'discussion',
+              'origin_sutra_text',
+              'target_sutra_text',
+              'sutra_name',
+              'volume',
+              'cbeta_frequency',
+              'glossary_author',
+              'translation_date',
             ];
             const data: DataRow[] = result.data as DataRow[];
             const header = Object.keys(data?.[0]);
@@ -357,10 +357,10 @@ export const CsvUpload = () => {
               const origin = row?.['origin'];
               const target = row?.['target'];
               if (!origin) {
-                setErrors('field origin cannot be empty');
+                setErrors('field origin cannot be empty!');
               }
               if (!target) {
-                setErrors('field target cannot be empty');
+                setErrors('field target cannot be empty!');
               }
               const glossary = fields.reduce((acc, cur) => {
                 acc[cur.split(' ').join('_')] = row[cur];
@@ -392,14 +392,18 @@ export const CsvUpload = () => {
       <HStack justifyContent={'center'} {...getRootProps()}>
         <input {...getInputProps()} />
         {dropped ? (
-          <Icon as={FaBook} w={32} h={32} color={'green.300'} />
+          <>
+            <Icon as={FaBook} w={32} h={32} color={'green.300'} />
+          </>
         ) : (
-          <Icon
-            as={BsCloudUpload}
-            w={32}
-            h={32}
-            color={fileRejections.length ? 'red.600' : 'orange.300'}
-          />
+          <>
+            <Icon
+              as={BsCloudUpload}
+              w={32}
+              h={32}
+              color={fileRejections.length ? 'red.600' : 'orange.300'}
+            />
+          </>
         )}
       </HStack>
       {dropped ? (

@@ -105,6 +105,7 @@ export async function RemixStack({ stack }: StackContext) {
   const { topic } = use(SNSStack);
   const { websocket } = use(WebsocketStack);
   const site = new RemixSite(stack, 'Site', {
+    warm: 10,
     permissions: ['ses', 'es'],
     path: 'remix-app/',
     timeout: '60 seconds',

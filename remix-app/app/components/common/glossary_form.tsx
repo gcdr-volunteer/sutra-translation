@@ -21,12 +21,13 @@ export const GlossaryForm = ({ glossary, errors }: GlossaryProps) => {
   const [state, setState] = useState<Omit<Glossary, 'kind'>>({
     origin: glossary?.origin ?? '',
     target: glossary?.target ?? '',
-    short_definition: glossary?.short_definition ?? '',
-    options: glossary?.options ?? '',
-    note: glossary?.note ?? '',
-    example_use: glossary?.example_use ?? '',
-    related_terms: glossary?.related_terms ?? '',
-    terms_to_avoid: glossary?.terms_to_avoid ?? '',
+    origin_sutra_text: glossary?.origin_sutra_text ?? '',
+    target_sutra_text: glossary?.target_sutra_text ?? '',
+    sutra_name: glossary?.sutra_name ?? '',
+    volume: glossary?.volume ?? '',
+    cbeta_frequency: glossary?.cbeta_frequency ?? '',
+    glossary_author: glossary?.glossary_author ?? '',
+    translation_date: glossary?.translation_date ?? '',
     discussion: glossary?.discussion ?? '',
   });
 
@@ -54,7 +55,7 @@ export const GlossaryForm = ({ glossary, errors }: GlossaryProps) => {
       <HStack w='100%'>
         <FormControl isInvalid={Boolean(errors?.origin)}>
           <FormLabel>
-            Origin<span style={{ color: 'red' }}>*</span>
+            Chinese Term<span style={{ color: 'red' }}>*</span>
           </FormLabel>
           <Input
             type='text'
@@ -70,7 +71,7 @@ export const GlossaryForm = ({ glossary, errors }: GlossaryProps) => {
         </FormControl>
         <FormControl isInvalid={Boolean(errors?.target)}>
           <FormLabel>
-            Target<span style={{ color: 'red' }}>*</span>
+            English Translation<span style={{ color: 'red' }}>*</span>
           </FormLabel>
           <Input
             type='text'
@@ -81,75 +82,90 @@ export const GlossaryForm = ({ glossary, errors }: GlossaryProps) => {
           {errors?.target ? (
             <FormErrorMessage>{errors?.target}</FormErrorMessage>
           ) : (
-            <FormHelperText>The target term of the glossary</FormHelperText>
+            <FormHelperText>The english term of the glossary</FormHelperText>
           )}
         </FormControl>
       </HStack>
       <HStack w='100%'>
         <FormControl>
-          <FormLabel>Short Definition</FormLabel>
+          <FormLabel>Chinese Sutra Text</FormLabel>
           <Textarea
-            name='short_definition'
-            value={state.short_definition}
-            onChange={(e) => handleChange('short_definition', e)}
+            name='origin_sutra_text'
+            value={state.origin_sutra_text}
+            onChange={(e) => handleChange('origin_sutra_text', e)}
           />
-          <FormHelperText>The definition of the term</FormHelperText>
+          <FormHelperText>The location where this term appears in sutra</FormHelperText>
         </FormControl>
         <FormControl>
-          <FormLabel>Options</FormLabel>
+          <FormLabel>English Sutra Text</FormLabel>
           <Textarea
-            name='options'
-            value={state.options}
-            onChange={(e) => handleChange('options', e)}
+            name='target_sutra_text'
+            value={state.target_sutra_text}
+            onChange={(e) => handleChange('target_sutra_text', e)}
           />
-          <FormHelperText>Alternative terms</FormHelperText>
+          <FormHelperText>The location where this term appears in sutra</FormHelperText>
         </FormControl>
       </HStack>
       <HStack w='100%'>
         <FormControl>
-          <FormLabel>Notes</FormLabel>
-          <Textarea name='note' value={state.note} onChange={(e) => handleChange('note', e)} />
-          <FormHelperText>The note to this glossary</FormHelperText>
+          <FormLabel>Sutra Name</FormLabel>
+          <Textarea
+            name='sutra_name'
+            value={state.sutra_name}
+            onChange={(e) => handleChange('sutra_name', e)}
+          />
+          <FormHelperText>The chinese sutra name</FormHelperText>
         </FormControl>
         <FormControl>
-          <FormLabel>Example Use</FormLabel>
+          <FormLabel>Volume</FormLabel>
           <Textarea
-            name='example_use'
-            value={state.example_use}
-            onChange={(e) => handleChange('example_use', e)}
+            name='volume'
+            value={state.volume}
+            onChange={(e) => handleChange('volume', e)}
           />
-          <FormHelperText>The example use cases of this term</FormHelperText>
+          <FormHelperText>which volume appears in sutra</FormHelperText>
         </FormControl>
       </HStack>
       <HStack w='100%'>
         <FormControl>
-          <FormLabel>Related Terms</FormLabel>
+          <FormLabel>CBeta Frequency</FormLabel>
           <Textarea
-            name='related_terms'
-            value={state.related_terms}
-            onChange={(e) => handleChange('related_terms', e)}
+            name='cbeta_frequency'
+            value={state.cbeta_frequency}
+            onChange={(e) => handleChange('cbeta_frequency', e)}
           />
-          <FormHelperText>Related term to this glossary</FormHelperText>
+          <FormHelperText>The term frequency in cbeta</FormHelperText>
         </FormControl>
         <FormControl>
-          <FormLabel>Terms to avoid</FormLabel>
+          <FormLabel>Glossary Author</FormLabel>
           <Textarea
-            name='terms_to_avoid'
-            value={state.terms_to_avoid}
-            onChange={(e) => handleChange('terms_to_avoid', e)}
+            name='glossary_author'
+            value={state.glossary_author}
+            onChange={(e) => handleChange('glossary_author', e)}
           />
-          <FormHelperText>Terms should be avoided</FormHelperText>
+          <FormHelperText>The glossary contributor</FormHelperText>
         </FormControl>
       </HStack>
-      <FormControl>
-        <FormLabel>Discussion</FormLabel>
-        <Textarea
-          name='discussion'
-          value={state.discussion}
-          onChange={(e) => handleChange('discussion', e)}
-        />
-        <FormHelperText>Extra comments on this glossary</FormHelperText>
-      </FormControl>
+      <HStack w='100%'>
+        <FormControl>
+          <FormLabel>Translation Date</FormLabel>
+          <Textarea
+            name='translation_date'
+            value={state.translation_date}
+            onChange={(e) => handleChange('translation_date', e)}
+          />
+          <FormHelperText>The data of the translation</FormHelperText>
+        </FormControl>
+        <FormControl>
+          <FormLabel>Discussion</FormLabel>
+          <Textarea
+            name='discussion'
+            value={state.discussion}
+            onChange={(e) => handleChange('discussion', e)}
+          />
+          <FormHelperText>Extra comments on this glossary</FormHelperText>
+        </FormControl>
+      </HStack>
       <Input hidden readOnly name='PK' value={glossary?.PK} />
       <Input hidden readOnly name='SK' value={glossary?.SK} />
     </VStack>
