@@ -25,6 +25,7 @@ import {
   Tag,
   Text,
   useDisclosure,
+  Highlight,
 } from '@chakra-ui/react';
 import { AiOutlinePlus, AiOutlineEdit } from 'react-icons/ai';
 import { FormModal } from '~/components/common';
@@ -387,27 +388,38 @@ const GlossaryDetailView = ({ glossary, intent, errors }: GlossaryDetailViewProp
   map.set('discussion', glossary.discussion);
   const comp = Array.from(map.entries())
     .filter(([key, value]) => value)
-    .map(([key, value]) => (
-      // eslint-disable-next-line react/jsx-key
-      <Box
-        key={key}
-        border={'1px'}
-        p={2}
-        borderColor={'gray.300'}
-        bg={
-          key === 'chinese_term'
-            ? 'green.100'
-            : key === 'english_translation'
-            ? 'blue.100'
-            : 'inherit'
-        }
-      >
-        <Heading size='sm'>
-          {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-        </Heading>
-        <Text>{value}</Text>
-      </Box>
-    ));
+    .map(([key, value]) => {
+      return (
+        // eslint-disable-next-line react/jsx-key
+        <Box
+          key={key}
+          border={'1px'}
+          p={2}
+          borderColor={'gray.300'}
+          bg={
+            key === 'chinese_term'
+              ? 'green.100'
+              : key === 'english_translation'
+              ? 'blue.100'
+              : 'inherit'
+          }
+        >
+          <Heading size='sm'>
+            {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+          </Heading>
+          {key === 'origin_sutra_text' || key === 'target_sutra_text' ? (
+            <Highlight
+              query={map.get('chinese_term') || ''}
+              styles={{ px: '1', py: '1', bg: 'orange.100' }}
+            >
+              {value || ''}
+            </Highlight>
+          ) : (
+            <Text>{value}</Text>
+          )}
+        </Box>
+      );
+    });
 
   return (
     <Flex flexDir={'column'}>
