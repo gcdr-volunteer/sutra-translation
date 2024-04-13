@@ -7,13 +7,15 @@ export const useGlossary = ({
   setFilterValue,
   setGlossaries,
   setFilteredGlossaries,
+  setNextPage,
 }: {
   searchTerm: string;
   setFilterValue: (value: string) => void;
+  setNextPage: (value: string | undefined | null) => void;
   setGlossaries: (glossaries: Glossary[]) => void;
   setFilteredGlossaries: (glossaries: Glossary[]) => void;
 }) => {
-  const fetcher = useFetcher<{ glossaries: Glossary[] }>();
+  const fetcher = useFetcher<{ glossaries: Glossary[]; nextPage: string | undefined | null }>();
 
   useEffect(() => {
     if (!fetcher.data || fetcher.state === 'loading' || fetcher.state === 'submitting') {
@@ -21,10 +23,19 @@ export const useGlossary = ({
     }
 
     if (fetcher.data) {
+      setFilterValue('');
       setGlossaries(fetcher.data.glossaries);
       setFilteredGlossaries(fetcher.data.glossaries);
+      setNextPage(fetcher.data.nextPage);
     }
-  }, [fetcher.data, fetcher.state, setGlossaries, setFilteredGlossaries]);
+  }, [
+    fetcher.data,
+    fetcher.state,
+    setGlossaries,
+    setFilteredGlossaries,
+    setNextPage,
+    setFilterValue,
+  ]);
 
   const onSearch = useCallback(() => {
     if (searchTerm === '') {

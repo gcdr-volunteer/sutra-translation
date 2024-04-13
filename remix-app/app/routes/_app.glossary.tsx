@@ -131,11 +131,11 @@ export default function GlossaryRoute() {
   }, [fetcher.data, fetcher.state]);
 
   const loadNext = () => {
-    const page = fetcher.data ? fetcher.data.nextPage : nextPage;
-    const query = `/glossary?page=${page}`;
-    if (page) {
+    const query = `/glossary?page=${nextPage}`;
+    if (nextPage) {
       fetcher.load(query);
     }
+    const page = fetcher.data ? fetcher.data.nextPage : nextPage;
     setNextPage(page);
   };
 
@@ -148,21 +148,41 @@ export default function GlossaryRoute() {
         (glossary) => glossary.sutra_name === filterValue
       );
       setFilteredGlossaries(newFilteredGlossaries);
+      setNextPage(null);
     } else {
       setFilteredGlossaries(glossaries);
     }
   }, [filterValue, setFilteredGlossaries, glossaries]);
 
-  const glossaryComp = (filterValue ? filteredGlossaries : glossaries)?.map((glossary, index) => (
-    <GlossaryView
-      key={index}
-      index={index}
-      glossary={glossary}
-      glossaryForm={
-        <GlossaryDetailView intent={actionData?.intent} glossary={glossary} errors={errors} />
-      }
-    />
-  ));
+  const tagColors = [
+    'lightblue',
+    'lightcoral',
+    'lightcyan',
+    'lightgoldenrodyellow',
+    'lightgray',
+    'lightgreen',
+    'lightgrey',
+    'lightpink',
+    'lightsalmon',
+    'lightseagreen',
+    'lightskyblue',
+  ];
+
+  const glossaryComp = (filterValue ? filteredGlossaries : glossaries)?.map((glossary, index) => {
+    const i = glossary.sutra_name ? [...categories].indexOf(glossary.sutra_name) : 0;
+    const color = tagColors[i];
+    return (
+      <GlossaryView
+        tagColor={color}
+        key={index}
+        index={index}
+        glossary={glossary}
+        glossaryForm={
+          <GlossaryDetailView intent={actionData?.intent} glossary={glossary} errors={errors} />
+        }
+      />
+    );
+  });
 
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_GLOSSARY && !actionData?.errors) {
@@ -180,6 +200,7 @@ export default function GlossaryRoute() {
           <Divider mt={4} mb={4} borderColor={'primary.300'} />
           <Box w='97%'>
             <GlossarySearch
+              setNextPage={setNextPage}
               glossaries={glossaries}
               categories={categories}
               filterValue={filterValue}
@@ -188,6 +209,7 @@ export default function GlossaryRoute() {
               setFilterValue={setFilterValue}
             />
             <InfiniteScroller
+              nextPage={nextPage}
               loadNext={loadNext}
               loading={fetcher.state === 'loading' || fetcher.state === 'submitting'}
             >
@@ -233,6 +255,7 @@ type GlossarySearchProps = {
   setGlossaries: (glossaries: Glossary[]) => void;
   setFilteredGlossaries: (glossaries: Glossary[]) => void;
   setFilterValue: (value: string) => void;
+  setNextPage: (value: string | undefined | null) => void;
   categories: Set<string>;
   filterValue: string;
   glossaries: Glossary[];
@@ -245,6 +268,7 @@ export const GlossarySearch = (props: GlossarySearchProps) => {
     filterValue,
     setFilteredGlossaries,
     glossaries,
+    setNextPage,
   } = props;
   const [searchTerm, setSearchTerm] = useState<string>('');
   const { onSearch } = useGlossary({
@@ -252,6 +276,7 @@ export const GlossarySearch = (props: GlossarySearchProps) => {
     setGlossaries,
     setFilteredGlossaries,
     setFilterValue,
+    setNextPage,
   });
 
   useEffect(() => {
@@ -305,8 +330,9 @@ type GlossaryViewProps = {
   index: number;
   glossary: Glossary;
   glossaryForm: React.ReactNode;
+  tagColor: string;
 };
-export const GlossaryView = ({ glossary, glossaryForm, index }: GlossaryViewProps) => {
+export const GlossaryView = ({ glossary, glossaryForm, index, tagColor }: GlossaryViewProps) => {
   return (
     <Box bg={index % 2 === 0 ? 'secondary.400' : 'inherit'}>
       <Accordion allowToggle>
@@ -320,7 +346,7 @@ export const GlossaryView = ({ glossary, glossaryForm, index }: GlossaryViewProp
                 <Tag bg='blue.100'>{glossary.target}</Tag>
               </Box>
               <Box flex='1' textAlign='right'>
-                <Tag bg='blue.100' mr={4}>
+                <Tag bg={tagColor} mr={4}>
                   {glossary?.sutra_name}
                 </Tag>
               </Box>
@@ -368,7 +394,13 @@ const GlossaryDetailView = ({ glossary, intent, errors }: GlossaryDetailViewProp
         border={'1px'}
         p={2}
         borderColor={'gray.300'}
-        bg={key === 'origin' ? 'green.100' : key === 'target' ? 'blue.100' : 'inherit'}
+        bg={
+          key === 'chinese_term'
+            ? 'green.100'
+            : key === 'english_translation'
+            ? 'blue.100'
+            : 'inherit'
+        }
       >
         <Heading size='sm'>
           {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
@@ -409,9 +441,10 @@ const InfiniteScroller = (
   props: PropsWithChildren<{
     loading: boolean;
     loadNext: () => void;
+    nextPage: string | undefined | null;
   }>
 ) => {
-  const { children, loading, loadNext } = props;
+  const { children, loading, loadNext, nextPage } = props;
   const scrollListener = useRef(loadNext);
 
   useEffect(() => {
@@ -423,10 +456,10 @@ const InfiniteScroller = (
     const scrollDifference = Math.floor(window.innerHeight + window.scrollY);
     const scrollEnded = documentHeight == scrollDifference;
 
-    if (scrollEnded && !loading) {
+    if (scrollEnded && !loading && nextPage) {
       scrollListener.current();
     }
-  }, [loading]);
+  }, [loading, nextPage]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

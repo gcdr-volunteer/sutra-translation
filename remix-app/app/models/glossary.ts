@@ -5,6 +5,7 @@ import { dbBulkInsert, dbClient, dbGetByKey, dbUpdate } from './external_service
 import type { PutItemCommandInput, QueryCommandInput } from '@aws-sdk/client-dynamodb';
 import type { Glossary } from '~/types/glossary';
 import type { UpdateType } from '~/types';
+import { langCodeFullVersion } from '../utils/contants';
 
 export const createNewGlossary = async (glossary: Glossary) => {
   const { PK, SK, ...rest } = glossary;
@@ -74,23 +75,30 @@ export const getGlossaryByPage = async (
 };
 
 export const getGlossariesByTerm = async ({ term }: { term: string }): Promise<Glossary[]> => {
-  const params: QueryCommandInput = {
-    TableName: process.env.REFERENCE_TABLE,
-    FilterExpression: `contains(#content, :term)`,
-    KeyConditionExpression: 'PK = :pk',
-    ExpressionAttributeNames: {
-      '#content': 'content',
-    },
-    ExpressionAttributeValues: marshall({
-      ':term': term,
-      ':pk': 'GLOSSARY',
-    }),
-  };
-  const { Items } = await dbClient().send(new QueryCommand(params));
-  if (Items?.length) {
-    return Items.map((Item) => unmarshall(Item) as Glossary);
-  }
-  return [];
+  let lastEvaluatedKey = undefined;
+  const items: Glossary[] = [];
+  do {
+    const params: QueryCommandInput = {
+      ExclusiveStartKey: lastEvaluatedKey,
+      TableName: process.env.REFERENCE_TABLE,
+      FilterExpression: `contains(#content, :term)`,
+      KeyConditionExpression: 'PK = :pk',
+      ExpressionAttributeNames: {
+        '#content': 'content',
+      },
+      ExpressionAttributeValues: marshall({
+        ':term': term,
+        ':pk': 'GLOSSARY',
+      }),
+    };
+    const { Items, LastEvaluatedKey } = await dbClient().send(new QueryCommand(params));
+    if (Items?.length) {
+      const founds = Items.map((Item) => unmarshall(Item) as Glossary);
+      items.push(...founds);
+    }
+    lastEvaluatedKey = LastEvaluatedKey;
+  } while (lastEvaluatedKey);
+  return items;
 };
 
 export const updateGlossary = async (doc: UpdateType<Glossary>) => {
