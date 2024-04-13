@@ -5,7 +5,6 @@ import { dbBulkInsert, dbClient, dbGetByKey, dbUpdate } from './external_service
 import type { PutItemCommandInput, QueryCommandInput } from '@aws-sdk/client-dynamodb';
 import type { Glossary } from '~/types/glossary';
 import type { UpdateType } from '~/types';
-import { langCodeFullVersion } from '../utils/contants';
 
 export const createNewGlossary = async (glossary: Glossary) => {
   const { PK, SK, ...rest } = glossary;
