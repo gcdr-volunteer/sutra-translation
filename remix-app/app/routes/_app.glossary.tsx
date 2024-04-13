@@ -196,7 +196,7 @@ export default function GlossaryRoute() {
       <Box minH='100%'>
         <Flex p={10} w='100%' flexDir='column'>
           <Heading as='h5' size={'md'}>
-            Glossary
+            Glossary Repository
           </Heading>
           <Divider mt={4} mb={4} borderColor={'primary.300'} />
           <Box w='97%'>
@@ -389,34 +389,41 @@ const GlossaryDetailView = ({ glossary, intent, errors }: GlossaryDetailViewProp
   const comp = Array.from(map.entries())
     .filter(([key, value]) => value)
     .map(([key, value]) => {
+      console.log({ key, value });
+      const boxColor: Record<string, string> = {
+        chinese_term: 'green.100',
+        english_translation: 'blue.100',
+      };
+      const textBlock: Record<string, JSX.Element> = {
+        origin_sutra_text: (
+          <Highlight
+            query={map.get('chinese_term') || ''}
+            styles={{ px: '1', py: '1', bg: 'teal.100', rounded: 'lg', whiteSpace: 'normal' }}
+          >
+            {value || ''}
+          </Highlight>
+        ),
+        target_sutra_text: (
+          <Highlight
+            query={map.get('english_translation') || ''}
+            styles={{ px: '1', py: '1', bg: 'teal.100', rounded: 'lg', whiteSpace: 'normal' }}
+          >
+            {value || ''}
+          </Highlight>
+        ),
+      };
       return (
-        // eslint-disable-next-line react/jsx-key
         <Box
           key={key}
           border={'1px'}
           p={2}
           borderColor={'gray.300'}
-          bg={
-            key === 'chinese_term'
-              ? 'green.100'
-              : key === 'english_translation'
-              ? 'blue.100'
-              : 'inherit'
-          }
+          bg={boxColor[key] || 'inherit'}
         >
           <Heading size='sm'>
             {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
           </Heading>
-          {key === 'origin_sutra_text' || key === 'target_sutra_text' ? (
-            <Highlight
-              query={map.get('chinese_term') || ''}
-              styles={{ px: '1', py: '1', bg: 'orange.100' }}
-            >
-              {value || ''}
-            </Highlight>
-          ) : (
-            <Text>{value}</Text>
-          )}
+          {textBlock[key] || <Text>{value}</Text>}
         </Box>
       );
     });
@@ -436,6 +443,7 @@ const GlossaryDetailView = ({ glossary, intent, errors }: GlossaryDetailViewProp
       </SimpleGrid>
       <Can I='Update' this='Glossary'>
         <IconButton
+          mt={2}
           colorScheme={'iconButton'}
           aria-label='update glossary'
           onClick={onOpen}
