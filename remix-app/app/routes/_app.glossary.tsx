@@ -377,9 +377,9 @@ const GlossaryDetailView = ({ glossary, intent, errors }: GlossaryDetailViewProp
   const map = new Map<string, string | undefined>();
   map.set('chinese_term', glossary.origin);
   map.set('english_translation', glossary.target);
+  map.set('sutra_name', glossary.sutra_name);
   map.set('origin_sutra_text', glossary.origin_sutra_text);
   map.set('target_sutra_text', glossary.target_sutra_text);
-  map.set('sutra_name', glossary.sutra_name);
   map.set('volume', glossary.volume);
   map.set('cbeta_frequency', glossary.cbeta_frequency);
   map.set('glossary_author', glossary.glossary_author);
