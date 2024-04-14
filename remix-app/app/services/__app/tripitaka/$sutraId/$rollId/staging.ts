@@ -527,7 +527,10 @@ export const handleSearchGlossary = async ({
 }): Promise<GlossarySearchResult[]> => {
   try {
     logger.log(handleSearchGlossary.name, 'params', { text, filter });
-    const glossaries = await getGlossariesByTerm({ term: text?.toLowerCase() });
+    const { items: glossaries } = await getGlossariesByTerm({
+      term: text?.toLowerCase(),
+      nextPage: null,
+    });
     logger.log(handleSearchGlossary.name, 'glossaries', glossaries);
     return glossaries?.map(
       (glossary) =>

@@ -42,7 +42,7 @@ import { serverError, unauthorized } from 'remix-utils';
 import { Can } from '~/authorisation';
 import { logger } from '~/utils';
 import { useModalErrors } from '~/hooks/useError';
-import { useGlossary, useIsAtBottom } from '../hooks';
+import { useIsAtBottom } from '../hooks';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
@@ -54,12 +54,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const search = url.searchParams.get('search') || undefined;
 
   if (search) {
-    const glossaries = await getGlossariesByTerm({ term: search });
-    return json({ glossaries, nextPage: null, intent: Intent.SEARCH_GLOSSARY });
+    const { items, nextPage } = await getGlossariesByTerm({ term: search, nextPage: page });
+    return json({ glossaries: items, nextPage, intent: Intent.SEARCH_GLOSSARY });
   }
 
-  const { items: glossaries, nextPage } = await getGlossaryByPage(page);
-  return json({ glossaries: glossaries, nextPage, intent: Intent.READ_GLOSSARY });
+  const { items: glossaries } = await getGlossaryByPage(page);
+  return json({ glossaries: glossaries, nextPage: null, intent: Intent.READ_GLOSSARY });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -99,11 +99,12 @@ export default function GlossaryRoute() {
     errors: { origin: string; target: string; unknown: string };
   }>();
 
-  const { glossaries: remoteGlossaries, nextPage: nextPageInfo } = useLoaderData<typeof loader>();
+  const { glossaries: remoteGlossaries } = useLoaderData<typeof loader>();
 
-  const [nextPage, setNextPage] = useState<string | undefined | null>(nextPageInfo);
+  const [nextPage, setNextPage] = useState<string | undefined | null>(null);
   const [glossaries, setGlossaries] = useState<Glossary[]>(remoteGlossaries);
-  const [filteredGlossaries, setFilteredGlossaries] = useState<Glossary[]>(glossaries);
+  const [filteredGlossaries, setFilteredGlossaries] = useState<Glossary[]>(remoteGlossaries);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterValue, setFilterValue] = useState<string>('');
   const isAtBottom = useIsAtBottom();
 
@@ -125,23 +126,20 @@ export default function GlossaryRoute() {
       return;
     }
 
-    if (fetcher.data && fetcher.data.intent === Intent.READ_GLOSSARY) {
-      const newGlossary = fetcher.data.glossaries;
-      setGlossaries((oldGlossaries) => [...oldGlossaries, ...newGlossary]);
+    if (fetcher.data) {
+      console.log(fetcher.data);
+      const intent = fetcher.data.intent;
+      if (intent === Intent.SEARCH_GLOSSARY) {
+        const newGlossary = fetcher.data.glossaries;
+        setGlossaries((oldGlossaries) => [...oldGlossaries, ...newGlossary]);
+        setNextPage(fetcher.data.nextPage);
+      }
+      if (intent === Intent.READ_GLOSSARY) {
+        const newGlossary = fetcher.data.glossaries;
+        setGlossaries((oldGlossaries) => [...oldGlossaries, ...newGlossary]);
+      }
     }
-  }, [fetcher.data, fetcher.state]);
-
-  const loadNext = () => {
-    const query = `/glossary?page=${nextPage}`;
-    if (nextPage) {
-      fetcher.load(query);
-    }
-    const page = fetcher.data ? fetcher.data.nextPage : nextPage;
-    setNextPage(page);
-  };
-
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const { errors } = useModalErrors({ modalErrors: actionData?.errors, isOpen });
+  }, [fetcher]);
 
   useEffect(() => {
     if (filterValue) {
@@ -154,6 +152,46 @@ export default function GlossaryRoute() {
       setFilteredGlossaries(glossaries);
     }
   }, [filterValue, setFilteredGlossaries, glossaries]);
+
+  const loadNext = useCallback(() => {
+    if (searchTerm && nextPage) {
+      fetcher.load(`/glossary?search=${searchTerm}&page=${nextPage}`);
+      return;
+    }
+    if (nextPage) {
+      fetcher.load(`/glossary?page=${nextPage}`);
+      return;
+    }
+  }, [nextPage, searchTerm, fetcher]);
+
+  const onSearch = useCallback(() => {
+    if (searchTerm === '') {
+      fetcher.load('/glossary');
+      setGlossaries([]);
+      setFilterValue('');
+    } else {
+      fetcher.load(`/glossary?search=${searchTerm?.trim().toLocaleLowerCase()}`);
+      setGlossaries([]);
+    }
+  }, [searchTerm, fetcher]);
+
+  const onFilter = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value;
+    setFilterValue(value);
+  };
+
+  useEffect(() => {
+    if (filterValue) {
+      const newFilteredGlossaries = glossaries.filter(
+        (glossary) => glossary.sutra_name === filterValue
+      );
+      setFilteredGlossaries(newFilteredGlossaries);
+      setNextPage(null);
+    }
+  }, [filterValue, setFilteredGlossaries, setNextPage, glossaries]);
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { errors } = useModalErrors({ modalErrors: actionData?.errors, isOpen });
 
   const tagColors = [
     'lightblue',
@@ -169,7 +207,7 @@ export default function GlossaryRoute() {
     'lightskyblue',
   ];
 
-  const glossaryComp = (filterValue ? filteredGlossaries : glossaries)?.map((glossary, index) => {
+  const glossaryComp = filteredGlossaries?.map((glossary, index) => {
     const i = glossary.sutra_name ? [...categories].indexOf(glossary.sutra_name) : 0;
     const color = tagColors[i];
     return (
@@ -200,15 +238,33 @@ export default function GlossaryRoute() {
           </Heading>
           <Divider mt={4} mb={4} borderColor={'primary.300'} />
           <Box w='97%'>
-            <GlossarySearch
-              setNextPage={setNextPage}
-              glossaries={glossaries}
-              categories={categories}
-              filterValue={filterValue}
-              setFilteredGlossaries={setFilteredGlossaries}
-              setGlossaries={setGlossaries}
-              setFilterValue={setFilterValue}
-            />
+            <InputGroup size='md' mb={4}>
+              <Input
+                pr='4.5rem'
+                type={'text'}
+                placeholder='Search Glossary'
+                value={searchTerm}
+                onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                _focus={{
+                  borderColor: 'none',
+                  boxShadow: 'none',
+                  outline: 'none',
+                }}
+              />
+              <InputRightElement width='10rem'>
+                <Select placeholder='Filter' onChange={onFilter} mr={2}>
+                  {Array.from(categories)?.map((category, index) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </Select>
+                <Button ml={2} h='100%' colorScheme='iconButton' size='sm' onClick={onSearch}>
+                  Search
+                </Button>
+              </InputRightElement>
+            </InputGroup>
             <InfiniteScroller
               nextPage={nextPage}
               loadNext={loadNext}
@@ -251,81 +307,6 @@ export default function GlossaryRoute() {
     </Box>
   );
 }
-
-type GlossarySearchProps = {
-  setGlossaries: (glossaries: Glossary[]) => void;
-  setFilteredGlossaries: (glossaries: Glossary[]) => void;
-  setFilterValue: (value: string) => void;
-  setNextPage: (value: string | undefined | null) => void;
-  categories: Set<string>;
-  filterValue: string;
-  glossaries: Glossary[];
-};
-export const GlossarySearch = (props: GlossarySearchProps) => {
-  const {
-    setGlossaries,
-    categories,
-    setFilterValue,
-    filterValue,
-    setFilteredGlossaries,
-    glossaries,
-    setNextPage,
-  } = props;
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const { onSearch } = useGlossary({
-    searchTerm,
-    setGlossaries,
-    setFilteredGlossaries,
-    setFilterValue,
-    setNextPage,
-  });
-
-  useEffect(() => {
-    if (filterValue) {
-      const newFilteredGlossaries = glossaries.filter(
-        (glossary) => glossary.sutra_name === filterValue
-      );
-      setFilteredGlossaries(newFilteredGlossaries);
-    } else {
-      setFilteredGlossaries(glossaries);
-    }
-  }, [filterValue, setFilteredGlossaries, glossaries]);
-
-  const onFilter = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = event.target.value;
-    setFilterValue(value);
-  };
-
-  return (
-    <InputGroup size='md' mb={4}>
-      <Input
-        pr='4.5rem'
-        type={'text'}
-        placeholder='Search Glossary'
-        value={searchTerm}
-        onKeyDown={(e) => e.key === 'Enter' && onSearch()}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        _focus={{
-          borderColor: 'none',
-          boxShadow: 'none',
-          outline: 'none',
-        }}
-      />
-      <InputRightElement width='10rem'>
-        <Select placeholder='Filter' onChange={onFilter} mr={2}>
-          {Array.from(categories)?.map((category, index) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </Select>
-        <Button ml={2} h='100%' colorScheme='iconButton' size='sm' onClick={onSearch}>
-          Search
-        </Button>
-      </InputRightElement>
-    </InputGroup>
-  );
-};
 
 type GlossaryViewProps = {
   index: number;
@@ -389,7 +370,6 @@ const GlossaryDetailView = ({ glossary, intent, errors }: GlossaryDetailViewProp
   const comp = Array.from(map.entries())
     .filter(([key, value]) => value)
     .map(([key, value]) => {
-      console.log({ key, value });
       const boxColor: Record<string, string> = {
         chinese_term: 'green.100',
         english_translation: 'blue.100',

@@ -51,7 +51,7 @@ export const getGlossaryByPage = async (
   const params: QueryCommandInput = {
     TableName: process.env.REFERENCE_TABLE,
     KeyConditionExpression: 'PK = :pk',
-    Limit: 25,
+    Limit: 50,
     ExpressionAttributeValues: marshall({
       ':pk': 'GLOSSARY',
     }),
@@ -73,14 +73,22 @@ export const getGlossaryByPage = async (
   };
 };
 
-export const getGlossariesByTerm = async ({ term }: { term: string }): Promise<Glossary[]> => {
-  let lastEvaluatedKey = undefined;
+export const getGlossariesByTerm = async ({
+  term,
+  nextPage,
+}: {
+  term: string;
+  nextPage: string | undefined | null;
+}): Promise<{ items: Glossary[]; nextPage?: string | null }> => {
+  let lastEvaluatedKey = nextPage;
   const items: Glossary[] = [];
+
   do {
     const params: QueryCommandInput = {
-      ExclusiveStartKey: lastEvaluatedKey,
+      ExclusiveStartKey: lastEvaluatedKey ? JSON.parse(lastEvaluatedKey) : lastEvaluatedKey,
       TableName: process.env.REFERENCE_TABLE,
       FilterExpression: `contains(#content, :term)`,
+      Limit: 300,
       KeyConditionExpression: 'PK = :pk',
       ExpressionAttributeNames: {
         '#content': 'content',
@@ -92,12 +100,18 @@ export const getGlossariesByTerm = async ({ term }: { term: string }): Promise<G
     };
     const { Items, LastEvaluatedKey } = await dbClient().send(new QueryCommand(params));
     if (Items?.length) {
-      const founds = Items.map((Item) => unmarshall(Item) as Glossary);
-      items.push(...founds);
+      items.push(...Items.map((Item) => unmarshall(Item) as Glossary));
+      if (items.length >= 25) {
+        break;
+      }
     }
-    lastEvaluatedKey = LastEvaluatedKey;
+    lastEvaluatedKey = JSON.stringify(LastEvaluatedKey);
   } while (lastEvaluatedKey);
-  return items;
+
+  return {
+    items,
+    nextPage: lastEvaluatedKey || null,
+  };
 };
 
 export const updateGlossary = async (doc: UpdateType<Glossary>) => {

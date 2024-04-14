@@ -43,7 +43,7 @@ export const useGlossary = ({
       setGlossaries([]);
       setFilterValue('');
     } else {
-      fetcher.load(`/glossary?search=${searchTerm}`);
+      fetcher.load(`/glossary?search=${searchTerm?.trim().toLocaleLowerCase()}`);
     }
   }, [searchTerm, fetcher, setGlossaries, setFilterValue]);
 
