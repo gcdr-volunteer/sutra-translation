@@ -234,7 +234,8 @@ export default function GlossaryRoute() {
       <Box minH='100%'>
         <Flex p={10} w='100%' flexDir='column'>
           <Heading as='h5' size={'md'}>
-            Glossary Repository
+            Glossary Repository{' '}
+            {fetcher.state === 'loading' || fetcher.state === 'submitting' ? <Spinner /> : null}
           </Heading>
           <Divider mt={4} mb={4} borderColor={'primary.300'} />
           <Box w='97%'>
