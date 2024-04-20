@@ -1,7 +1,6 @@
 import { Client } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { defaultProvider } from '@aws-sdk/credential-provider-node';
-console.log(process.env.ES_URL);
 const client = new Client({
   ...AwsSigv4Signer({
     region: process.env.REGION ?? 'ap-southeast-2',
@@ -60,7 +59,7 @@ export const singleInsert = async (doc: Record<string, unknown>, index_name: Ind
 export const singleUpdate = async (doc: Record<string, unknown>, index_name: IndexName) => {
   return await client.update({
     id: `${doc?.PK}-${doc?.SK}`,
-    body: { doc: doc },
+    body: { doc: doc, upsert: doc },
     refresh: true,
     index: index_name ?? 'translation',
   });

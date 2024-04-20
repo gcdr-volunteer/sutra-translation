@@ -127,7 +127,7 @@ export async function RemixStack({ stack }: StackContext) {
       OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
       WEBSOCKET_URL: websocket.url,
     },
-    runtime: 'nodejs16.x',
+    runtime: 'nodejs18.x',
     cdk: {
       bucket: {
         blockPublicAccess: BlockPublicAccess.BLOCK_ACLS,

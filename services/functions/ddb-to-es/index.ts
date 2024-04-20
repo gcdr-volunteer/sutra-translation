@@ -98,7 +98,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
                   },
                 };
                 bulkPayload['translation'].push(newDoc);
-                bulkPayload['translation'].push({ doc });
+                bulkPayload['translation'].push({ doc, doc_as_upsert: true });
               }
 
               if (doc.PK && doc.SK && ['GLOSSARY'].includes(doc.kind)) {
@@ -109,7 +109,7 @@ export const handler = async (event: DynamoDBStreamEvent) => {
                   },
                 };
                 bulkPayload['glossary'].push(newDoc);
-                bulkPayload['glossary'].push({ doc });
+                bulkPayload['glossary'].push({ doc, doc_as_upsert: true });
               }
               return null;
             } catch (error) {
