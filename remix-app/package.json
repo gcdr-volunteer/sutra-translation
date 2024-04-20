@@ -9,6 +9,7 @@
     "start": "remix-serve build",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest",
+    "runtest": "esbuild ./app/models/external_services/opensearch.ts --bundle --platform=node --target=node18 --external:aws-sdk --outdir=out && node ./out/opensearch.js",
     "test:unit:nowatch": "vitest run",
     "test:coverage": "vitest run -coverage"
   },
@@ -49,6 +50,7 @@
     "dayjs": "^1.11.7",
     "deepl-node": "^1.7.2",
     "draft-js": "^0.11.7",
+    "esbuild": "^0.20.2",
     "escape-html": "^1.0.3",
     "framer-motion": "^6.5.1",
     "is-hotkey": "^0.2.0",

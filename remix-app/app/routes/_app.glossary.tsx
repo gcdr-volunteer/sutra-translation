@@ -2,7 +2,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import { json, redirect } from '@remix-run/node';
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import type { PropsWithChildren } from 'react';
-import { getGlossariesByTerm, getGlossaryByPage } from '~/models/glossary';
+import { getGlossaryByPage } from '~/models/glossary';
 import {
   Accordion,
   AccordionButton,
@@ -43,6 +43,7 @@ import { Can } from '~/authorisation';
 import { logger } from '~/utils';
 import { useModalErrors } from '~/hooks/useError';
 import { useIsAtBottom } from '../hooks';
+import { handleGlossariesBySearchTerm } from '../services/__app/glossary';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
@@ -54,7 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const search = url.searchParams.get('search') || undefined;
 
   if (search) {
-    const { items, nextPage } = await getGlossariesByTerm({ term: search, nextPage: page });
+    const { items, nextPage } = await handleGlossariesBySearchTerm({ term: search, page: page });
     return json({ glossaries: items, nextPage, intent: Intent.SEARCH_GLOSSARY });
   }
 
