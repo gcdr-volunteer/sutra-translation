@@ -1,6 +1,5 @@
 import { dbBulkGetByKeys } from '../../models/external_services/dynamodb';
 import { esClient } from '../../models/external_services/opensearch';
-import { getGlossariesByTerm } from '../../models/glossary';
 import type { Glossary } from '../../types';
 
 export const handleGlossariesBySearchTerm = async ({
@@ -10,17 +9,13 @@ export const handleGlossariesBySearchTerm = async ({
   term: string;
   page: string | undefined | null;
 }) => {
-  const { items, nextPage } = await getGlossariesByTerm({ term, nextPage: page });
-
-  if (items.length) {
-    return {
-      items,
-      nextPage,
-    };
-  }
-
+  const pageNumber = page ? parseInt(page, 10) : 1;
+  const size = 25;
+  const from = size * (pageNumber - 1);
   const client = await esClient();
   const body = {
+    from,
+    size,
     query: {
       match: {
         content: {
@@ -32,7 +27,6 @@ export const handleGlossariesBySearchTerm = async ({
   };
 
   const resp = await client.search({
-    size: 10,
     index: 'glossary',
     body,
   });
@@ -48,9 +42,16 @@ export const handleGlossariesBySearchTerm = async ({
       tableName: process.env.REFERENCE_TABLE,
       keys: glossaryKeys,
     });
+    const sortedItems = [];
+    for (const key of glossaryKeys) {
+      const item = items.find((item) => item.PK === key.PK && item.SK === key.SK);
+      if (item) {
+        sortedItems.push(item);
+      }
+    }
     return {
-      items,
-      nextPage: null,
+      items: sortedItems,
+      nextPage: sortedItems.length >= 25 ? pageNumber + 1 : null,
     };
   }
 
