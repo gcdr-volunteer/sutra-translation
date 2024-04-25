@@ -51,7 +51,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return redirect('/login');
   }
   const url = new URL(request.url);
-  const page = url.searchParams.get('page') || undefined;
+  const page = url.searchParams.get('page') || '1';
   const search = url.searchParams.get('search') || undefined;
 
   if (search) {
@@ -59,7 +59,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return json({ glossaries: items, nextPage, intent: Intent.SEARCH_GLOSSARY });
   }
 
-  const { items: glossaries } = await getGlossaryByPage(page);
+  const { items: glossaries } = await getGlossaryByPage(undefined);
   return json({ glossaries: glossaries, nextPage: null, intent: Intent.READ_GLOSSARY });
 };
 
@@ -102,7 +102,7 @@ export default function GlossaryRoute() {
 
   const { glossaries: remoteGlossaries } = useLoaderData<typeof loader>();
 
-  const [nextPage, setNextPage] = useState<string | undefined | null>(null);
+  const [nextPage, setNextPage] = useState<string | undefined | null | number>(null);
   const [glossaries, setGlossaries] = useState<Glossary[]>(remoteGlossaries);
   const [filteredGlossaries, setFilteredGlossaries] = useState<Glossary[]>(remoteGlossaries);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -128,19 +128,26 @@ export default function GlossaryRoute() {
     }
 
     if (fetcher.data) {
-      console.log(fetcher.data);
       const intent = fetcher.data.intent;
+      const page = fetcher.data.nextPage;
       if (intent === Intent.SEARCH_GLOSSARY) {
         const newGlossary = fetcher.data.glossaries;
-        setGlossaries((oldGlossaries) => [...oldGlossaries, ...newGlossary]);
+        if (page !== nextPage) {
+          setGlossaries((oldGlossaries) => [...oldGlossaries, ...newGlossary]);
+        } else {
+          const length = newGlossary.length;
+          setGlossaries((oldGlossaries) => {
+            return [...oldGlossaries.slice(0, -length), ...newGlossary];
+          });
+        }
         setNextPage(fetcher.data.nextPage);
       }
       if (intent === Intent.READ_GLOSSARY) {
         const newGlossary = fetcher.data.glossaries;
-        setGlossaries((oldGlossaries) => [...oldGlossaries, ...newGlossary]);
+        setGlossaries(newGlossary);
       }
     }
-  }, [fetcher]);
+  }, [fetcher, nextPage]);
 
   useEffect(() => {
     if (filterValue) {
@@ -443,7 +450,7 @@ const InfiniteScroller = (
   props: PropsWithChildren<{
     loading: boolean;
     loadNext: () => void;
-    nextPage: string | undefined | null;
+    nextPage: string | undefined | null | number;
   }>
 ) => {
   const { children, loading, loadNext, nextPage } = props;
