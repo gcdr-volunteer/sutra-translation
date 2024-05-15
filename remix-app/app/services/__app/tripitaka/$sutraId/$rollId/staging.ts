@@ -21,7 +21,6 @@ import { upsertParagraph } from '~/models/paragraph';
 import { getRollId, getSutraId, logger } from '~/utils';
 import {
   getAllGlossary,
-  getGlossariesByTerm,
   getGlossaryByPage,
   insertBulkGlossary,
   upsertGlossary,
