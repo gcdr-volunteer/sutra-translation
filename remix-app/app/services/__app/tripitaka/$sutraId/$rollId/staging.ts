@@ -21,7 +21,6 @@ import { upsertParagraph } from '~/models/paragraph';
 import { getRollId, getSutraId, logger } from '~/utils';
 import {
   getAllGlossary,
-  getGlossariesByTerm,
   getGlossaryByPage,
   insertBulkGlossary,
   upsertGlossary,
@@ -36,6 +35,7 @@ import { baseGPT, translate } from '~/models/external_services/openai';
 import { dbBulkGetByKeys } from '../../../../../models/external_services/dynamodb';
 import { getSutraByPrimaryKey } from '../../../../../models/sutra';
 import { match } from 'ts-pattern';
+import { handleGlossariesBySearchTerm } from '../../../glossary';
 
 const newTranslationSchema = () => {
   const baseSchema = initialSchema();
@@ -527,9 +527,9 @@ export const handleSearchGlossary = async ({
 }): Promise<GlossarySearchResult[]> => {
   try {
     logger.log(handleSearchGlossary.name, 'params', { text, filter });
-    const { items: glossaries } = await getGlossariesByTerm({
-      term: text?.toLowerCase(),
-      nextPage: null,
+    const { items: glossaries } = await handleGlossariesBySearchTerm({
+      term: text?.toLowerCase().trim(),
+      page: null,
     });
     logger.log(handleSearchGlossary.name, 'glossaries', glossaries);
     return glossaries?.map(
