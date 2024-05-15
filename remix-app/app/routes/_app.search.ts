@@ -9,7 +9,6 @@ import { match } from 'ts-pattern';
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries());
-  console.log(entryData);
   if (entryData?.intent === Intent.READ_OPENSEARCH) {
     const searchType = entryData?.type as 'reference' | 'glossary' | 'sutra' | 'all';
     const searchValue = entryData?.value as string;
