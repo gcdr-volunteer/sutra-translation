@@ -30,7 +30,7 @@ export enum RoleType {
   /**
    * Assistor help volunteer sutra/reference contribution
    */
-  Assistor = 'Assistor',
+  Assistor = 'Assistant',
   /**
    * The role is to help debug system issue, like view history to identify
    * issues

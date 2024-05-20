@@ -36,17 +36,19 @@ authenticator.use(
 );
 
 export const assertAuthUser = async (request: LoaderFunctionArgs['request']) => {
-  const result = await authenticator.isAuthenticated(request, {
+  const prevUser = await authenticator.isAuthenticated(request, {
     failureRedirect: '/login',
   });
   const session = await getSession(request.headers.get('Cookie'));
-  const latestUser = await getUserByEmail(result?.email as string);
+  const latestUser = await getUserByEmail(prevUser?.email as string);
   if (
-    !latestUser?.roles.includes(result?.roles[0] as RoleType) ||
-    latestUser?.working_sutra !== result?.working_sutra
+    !latestUser?.roles.includes(prevUser?.roles[0] as RoleType) ||
+    latestUser?.working_sutra !== prevUser?.working_sutra ||
+    latestUser?.origin_lang !== prevUser?.origin_lang ||
+    latestUser?.target_lang !== prevUser?.target_lang
   ) {
     await destroySession(session);
     return undefined;
   }
-  return result;
+  return prevUser;
 };

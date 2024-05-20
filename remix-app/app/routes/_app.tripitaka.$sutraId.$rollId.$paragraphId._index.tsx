@@ -2,7 +2,7 @@
 import { Can } from '~/authorisation';
 import type { ChangeEvent } from 'react';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
-import type { Paragraph, CreatedType, Reference } from '~/types';
+import { type Paragraph, type CreatedType, type Reference, langCodeToLiteralMap } from '~/types';
 import {
   useActionData,
   useSubmit,
@@ -49,7 +49,7 @@ import {
   AccordionPanel,
 } from '@chakra-ui/react';
 import { RepeatIcon, CopyIcon } from '@chakra-ui/icons';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { json, redirect } from '@remix-run/node';
 import { BiTable, BiNote, BiCheck, BiGlasses } from 'react-icons/bi';
 import { Warning } from '~/components/common/errors';
@@ -69,6 +69,7 @@ import { useModalErrors } from '~/hooks/useError';
 import { badRequest, created } from 'remix-utils';
 import { handleGetAllRefBooks } from '~/services/__app/reference/$sutraId/$rollId.staging';
 import { EVENTS, emitter } from '~/utils/event_emitter';
+import { AppContext } from './_app';
 
 export const loader = async ({ params }: LoaderFunctionArgs) => {
   const { rollId, sutraId, paragraphId } = params;
@@ -179,8 +180,8 @@ export default function ParagraphStagingRoute() {
   useEffect(() => {
     if (actionData?.intent === Intent.CREATE_TRANSLATION && actionData?.payload?.finish) {
       setCollapse(false);
-      const newloc = location.pathname.split('/').slice(0, -1).join('/');
-      navigate(newloc);
+      const newLocation = location.pathname.split('/').slice(0, -1).join('/');
+      navigate(newLocation);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionData]);
@@ -188,7 +189,7 @@ export default function ParagraphStagingRoute() {
   if (paragraph) {
     return (
       <Collapse key={paragraph.content} in={collapse} animateOpacity style={{ overflow: 'none' }}>
-        <TranlationWorkspace
+        <TranslationWorkspace
           origin={paragraph}
           references={references}
           socketio={loaderData.env.WEBSOCKET_URL}
@@ -205,7 +206,7 @@ interface WorkSpaceProps {
   references: CreatedType<Reference>[];
   socketio: string;
 }
-function TranlationWorkspace({ origin, references, socketio }: WorkSpaceProps) {
+function TranslationWorkspace({ origin, references, socketio }: WorkSpaceProps) {
   const { content, category } = origin;
   const actionData = useActionData<{
     intent: Intent;
@@ -218,6 +219,15 @@ function TranlationWorkspace({ origin, references, socketio }: WorkSpaceProps) {
   const { isSubmitting } = useTransitionState();
   const [refresh, setRefresh] = useState<number>(1);
   const [openaiTranslation, setOpenaiTranslation] = useState<string>('');
+  const { currentUser } = useContext(AppContext);
+  if (!currentUser) {
+    throw new Error('currentUser is not defined');
+  }
+
+  const metadata = {
+    originLang: langCodeToLiteralMap[currentUser.origin_lang],
+    targetLang: langCodeToLiteralMap[currentUser.target_lang],
+  };
 
   const [text, setText] = useState('');
 
@@ -238,7 +248,7 @@ function TranlationWorkspace({ origin, references, socketio }: WorkSpaceProps) {
   useEffect(() => {
     if (refresh > 1) {
       setOpenaiTranslation('');
-      sendMessage({ action: 'sendmessage', data: content });
+      sendMessage({ action: 'sendmessage', data: { metadata, message: content } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refresh]);
@@ -249,7 +259,7 @@ function TranlationWorkspace({ origin, references, socketio }: WorkSpaceProps) {
 
   useEffect(() => {
     if (isReady) {
-      sendMessage({ action: 'sendmessage', data: content });
+      sendMessage({ action: 'sendmessage', data: { metadata, message: content } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady]);
