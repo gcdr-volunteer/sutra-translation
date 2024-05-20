@@ -121,7 +121,6 @@ export async function RemixStack({ stack }: StackContext) {
       HISTORY_TABLE: historyTable.tableName,
       REGION: process.env.REGION ?? '',
       ENV: process.env.ENV ?? '',
-      DEEPL_AUTHKEY: process.env.DEEPL_AUTHKEY ?? '',
       TOPIC_ARN: topic.topicArn,
       ES_URL: domain.domainEndpoint,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
