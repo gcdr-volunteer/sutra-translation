@@ -11,9 +11,18 @@ const TableName = process.env.WEBSOCKET_TABLE_NAME ?? '';
 const dynamoDb = new DynamoDB.DocumentClient();
 
 export const main: APIGatewayProxyHandler = async (event) => {
-  let messageData = '';
+  let message = '';
+  let meta: { originLang: string; targetLang: string } = {
+    originLang: 'Chinese',
+    targetLang: 'English',
+  };
   if (event.body) {
-    messageData = JSON.parse(event.body).data;
+    const payload = JSON.parse(event.body).data as {
+      message: string;
+      metadata: { originLang: string; targetLang: string };
+    };
+    message = payload.message;
+    meta = payload.metadata;
   }
   const { stage, domainName } = event.requestContext;
 
@@ -34,11 +43,11 @@ export const main: APIGatewayProxyHandler = async (event) => {
           messages: [
             {
               role: 'system',
-              content: 'You are a professional Chinese to English translator',
+              content: `You are a professional ${meta.originLang} to ${meta.targetLang} translator`,
             },
             {
               role: 'user',
-              content: messageData,
+              content: message,
             },
           ],
         },
