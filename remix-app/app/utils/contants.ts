@@ -18,5 +18,5 @@ export const fontFamilyList = {
   [LangCode.EN]: ['Poppins', 'Dance'],
   [LangCode.ZH]: ['Noto Sans Hong Kong', 'Huayingmin', 'Huninn', 'Fangsong'],
   [LangCode.SS]: [],
-  [LangCode.ID]: [],
+  [LangCode.ID]: ['Poppins', 'Dance'],
 };
