@@ -24,6 +24,10 @@ import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
+  const isFromLoginPage = request.headers.get('Referer')?.includes('/login');
+  if (isFromLoginPage) {
+    return json({ validLink: true });
+  }
   const email = url.searchParams.get('email');
   const hash = url.searchParams.get('hash');
   if (!email || !hash) {
@@ -37,8 +41,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (isLinkExpired) {
     return json({ validLink: false });
   }
-  const verifyhash = generateResetPasswordToken(user.password);
-  if (verifyhash !== hash) {
+  const verifyHash = generateResetPasswordToken(user.password);
+  if (verifyHash !== hash) {
     return redirect('/login');
   }
 
@@ -127,7 +131,7 @@ const UpdatePasswordHeader = () => {
 
 const UpdatePasswordForm = () => {
   const fetcher = useFetcher<{ password: string }>();
-  const [showpassword, setShowpassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   return (
     <Box my={8} textAlign='left'>
       <fetcher.Form method='post'>
@@ -135,12 +139,12 @@ const UpdatePasswordForm = () => {
           <FormLabel>New Password</FormLabel>
           <InputGroup>
             <Input
-              type={showpassword ? 'text' : 'password'}
+              type={showPassword ? 'text' : 'password'}
               placeholder='Enter your new password'
               name='new_pass'
             />
-            <InputRightElement width='3rem' onClick={() => setShowpassword((prev) => !prev)}>
-              {showpassword ? <ViewOffIcon /> : <ViewIcon />}
+            <InputRightElement width='3rem' onClick={() => setShowPassword((prev) => !prev)}>
+              {showPassword ? <ViewOffIcon /> : <ViewIcon />}
             </InputRightElement>
           </InputGroup>
         </FormControl>
@@ -149,12 +153,12 @@ const UpdatePasswordForm = () => {
           <FormLabel>Confirm Password</FormLabel>
           <InputGroup>
             <Input
-              type={showpassword ? 'text' : 'password'}
+              type={showPassword ? 'text' : 'password'}
               placeholder='Confirm your new password'
               name='confirm_pass'
             />
-            <InputRightElement width='3rem' onClick={() => setShowpassword((prev) => !prev)}>
-              {showpassword ? <ViewOffIcon /> : <ViewIcon />}
+            <InputRightElement width='3rem' onClick={() => setShowPassword((prev) => !prev)}>
+              {showPassword ? <ViewOffIcon /> : <ViewIcon />}
             </InputRightElement>
           </InputGroup>
           {fetcher.data?.password ? (
