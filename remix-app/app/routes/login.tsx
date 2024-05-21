@@ -67,7 +67,7 @@ export async function action({ request }: ActionFunctionArgs) {
       const headers = new Headers({ 'Set-Cookie': await commitSession(session) });
       if (user.first_login) {
         logger.info('login', 'first login user');
-        return redirect('/update_password', { headers });
+        return redirect(`/update_password?email=${user.email}`, { headers });
       }
       logger.info('login', 'redirect to root page');
       return redirect('/', { headers });
