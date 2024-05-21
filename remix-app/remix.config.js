@@ -18,6 +18,7 @@ module.exports = {
     'react-dnd',
     'react-dnd-html5-backend',
     'dnd-core',
+    'superjson',
     '@react-dnd/invariant',
     '@react-dnd/shallowequal',
     '@react-dnd/asap',
