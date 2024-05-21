@@ -151,7 +151,7 @@ export default function AdminRoute() {
       <UserConfig
         key={user.email}
         user={user}
-        userform={<UserForm user={user} teams={teams} langs={langs} sutras={sutras} />}
+        userForm={<UserForm user={user} teams={teams} langs={langs} sutras={sutras} />}
       />
     );
   });
@@ -175,10 +175,10 @@ export default function AdminRoute() {
 
 interface UserConfigProps {
   user: User;
-  userform: React.ReactNode;
+  userForm: React.ReactNode;
 }
 const UserConfig = (props: UserConfigProps) => {
-  const { user, userform } = props;
+  const { user, userForm } = props;
   const bgColors: Record<RoleType, string> = {
     [RoleType.Admin]: 'pink',
     [RoleType.Leader]: 'lightgreen',
@@ -206,7 +206,7 @@ const UserConfig = (props: UserConfigProps) => {
               <AccordionIcon />
             </AccordionButton>
           </h2>
-          <AccordionPanel background={'secondary.500'}>{userform}</AccordionPanel>
+          <AccordionPanel background={'secondary.500'}>{userForm}</AccordionPanel>
         </AccordionItem>
       </Accordion>
     </Box>

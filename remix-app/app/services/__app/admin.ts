@@ -61,19 +61,19 @@ const newTeamSchema = () => {
 const newUserSchema = () => {
   const baseSchema = initialSchema();
   const userSchema = baseSchema.shape({
-    username: yup.string().lowercase().trim().required('username canot be empty'),
+    username: yup.string().trim().required('username cannot be empty'),
     password: yup.string().required('password cannot be empty'),
     team: yup
       .string()
       .required('team cannot be empty')
-      .test('is-team-exist', 'we dont have this team, please create first', async (value) => {
+      .test('is-team-exist', `we don't have this team, please create first`, async (value) => {
         const team = await getTeam(value ?? '');
         return Boolean(team);
       }),
     roles: yup
       .mixed<RoleType[]>()
       .required('role is required')
-      .test('is-valid-role', 'we donnot support this role yet', (roles) => {
+      .test('is-valid-role', 'we do not support this role yet', (roles) => {
         if (roles) {
           return roles.every((role) => Object.values(RoleType).includes(role));
         }
@@ -95,17 +95,17 @@ export const getLoaderData = async () => {
   const teams: Team[] = [];
   const users: User[] = [];
   const langs: Lang[] = [];
-  for (const ttype of userTable) {
-    if (ttype.SK?.startsWith('USER')) {
+  for (const tableType of userTable) {
+    if (tableType.SK?.startsWith('USER')) {
       // we remove password, since there is no need let frontend knows password
-      const newUser = { ...ttype, password: '' } as User;
+      const newUser = { ...tableType, password: '' } as User;
       users.push(newUser);
     }
-    if (ttype.SK?.startsWith('TEAM')) {
-      teams.push(ttype as Team);
+    if (tableType.SK?.startsWith('TEAM')) {
+      teams.push(tableType as Team);
     }
-    if (ttype.SK?.startsWith('LANG')) {
-      langs.push(ttype as Lang);
+    if (tableType.SK?.startsWith('LANG')) {
+      langs.push(tableType as Lang);
     }
   }
   return {
