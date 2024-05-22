@@ -129,7 +129,7 @@ const LoginForm = (props: LoginFormProps) => {
   const { username, password } = props.actionData || {};
   return (
     <Container my={8} px={{ base: 20 }} textAlign='left'>
-      <Form method='post'>
+      <Form action='/login' method='post'>
         <FormControl isInvalid={Boolean(username)}>
           <FormLabel>Email address</FormLabel>
           <Input type='email' placeholder='Enter your email address' name='username' />

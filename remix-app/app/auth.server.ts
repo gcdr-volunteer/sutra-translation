@@ -39,7 +39,7 @@ const googleStrategy = new GoogleStrategy(
     clientID: process.env.GOOGLE_CLIENT_ID as string,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     callbackURL: `${
-      process.env.ENV === 'prod' ? 'https://https://btts-kumarajiva.org' : 'http://localhost:3000'
+      process.env.ENV === 'prod' ? 'https://btts-kumarajiva.org' : 'http://localhost:3000'
     }/auth/google/callback`,
   },
   async ({ accessToken, refreshToken, extraParams, profile }) => {
