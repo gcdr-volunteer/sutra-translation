@@ -59,9 +59,9 @@ export async function ESStack({ stack }: StackContext) {
 }
 
 export async function TableStack({ stack }: StackContext) {
-  // dependsOn(ESStack);
-  // const { domain } = use(ESStack);
-  const esfunc = ddb_to_es(stack, 'domain.domainEndpoint');
+  dependsOn(ESStack);
+  const { domain } = use(ESStack);
+  const esfunc = ddb_to_es(stack, domain.domainEndpoint);
   const userTable = await createUserTable(stack);
   const referenceTable = await createReferenceTable(stack, esfunc);
   const translationTable = await createTranslationTable(stack, esfunc);
@@ -96,8 +96,8 @@ export async function SNSStack({ stack }: StackContext) {
 }
 
 export async function RemixStack({ stack }: StackContext) {
-  // dependsOn(ESStack);
-  // const { domain } = use(ESStack);
+  dependsOn(ESStack);
+  const { domain } = use(ESStack);
   dependsOn(WebsocketStack);
   dependsOn(TableStack);
   dependsOn(SNSStack);
@@ -124,7 +124,7 @@ export async function RemixStack({ stack }: StackContext) {
       TOPIC_ARN: topic.topicArn,
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
-      ES_URL: 'domain.domainEndpoint',
+      ES_URL: domain.domainEndpoint,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? '',
       WEBSOCKET_URL: websocket.url,
     },

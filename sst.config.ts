@@ -2,7 +2,7 @@ import { SSTConfig } from 'sst';
 import {
   RemixStack,
   TableStack,
-  // ESStack,
+  ESStack,
   SNSStack,
   WebsocketTable,
   WebsocketStack,
@@ -22,7 +22,7 @@ export default {
         format: 'cjs',
       },
     });
-    // await app.stack(ESStack);
+    await app.stack(ESStack);
     await app.stack(TableStack);
     await app.stack(SNSStack);
     await app.stack(WebsocketTable);
