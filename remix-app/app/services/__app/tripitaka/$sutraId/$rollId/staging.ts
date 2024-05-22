@@ -15,7 +15,6 @@ import type {
 import type { Paragraph } from '~/types/paragraph';
 import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
-import { translateZH2EN } from '~/models/external_services/deepl';
 import { json } from '@remix-run/node';
 import { upsertParagraph } from '~/models/paragraph';
 import { getRollId, getSutraId, logger } from '~/utils';
@@ -45,7 +44,7 @@ const newTranslationSchema = () => {
       .string()
       .trim()
       .transform((value) => value.replace(/\n/g, ''))
-      .required('submitted tranlation cannot be empty'),
+      .required('submitted translation cannot be empty'),
     rollId: yup
       .string()
       .trim()
@@ -100,27 +99,6 @@ const newFootnoteSchema = () => {
     paragraphId: yup.string().required(),
     kind: yup.mixed<'FOOTNOTE'>().default('FOOTNOTE'),
   });
-};
-
-export const hanldeDeepLFetch = async ({ origins }: { origins: Record<string, string> }) => {
-  try {
-    logger.log(hanldeDeepLFetch.name, 'origins', origins);
-
-    const results = await translateZH2EN(Object.values(origins));
-    const obj = Object.keys(origins).reduce((acc, key, index) => {
-      if (results) {
-        acc[key] = results[index];
-        return acc;
-      }
-      return acc;
-    }, {} as Record<string, string>);
-    logger.log(hanldeDeepLFetch.name, 'results', obj);
-    return json({ payload: obj, intent: Intent.READ_DEEPL });
-  } catch (error) {
-    // TODO: handle error from frontend
-    logger.error(hanldeDeepLFetch.name, 'error', error);
-    return json({ errors: { deepl: (error as unknown as Error)?.message } }, { status: 400 });
-  }
 };
 
 export const handleOpenaiStreamFetch = async ({
