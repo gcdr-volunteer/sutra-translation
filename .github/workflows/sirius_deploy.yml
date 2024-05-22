@@ -11,7 +11,6 @@ on:
 env:
   REGION: ap-southeast-2
   DEEPL_URL: api-free.deepl.com
-  DEEPL_AUTHKEY: ${{ secrets.DEEPL_AUTHKEY }}
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}

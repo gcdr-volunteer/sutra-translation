@@ -6,7 +6,6 @@ import {
   Flex,
   Box,
   Heading,
-  Link,
   FormControl,
   FormLabel,
   Stack,
@@ -17,6 +16,12 @@ import {
   Spinner,
   InputGroup,
   InputRightElement,
+  Image,
+  Grid,
+  useBreakpointValue,
+  Text,
+  Container,
+  Spacer,
 } from '@chakra-ui/react';
 import { useActionData, Form, NavLink } from '@remix-run/react';
 import { commitSession, getSession } from '~/session.server';
@@ -25,6 +30,8 @@ import { Error } from '~/components/common/errors';
 import { useTransitionState } from '../hooks';
 import { useState } from 'react';
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
+import landingImage from '~/images/landing.webp';
+import { FcGoogle } from 'react-icons/fc';
 
 export const loader = async () => {
   await onlyCreateAdminUserWhenFirstSystemUp();
@@ -50,7 +57,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
     logger.info('login', 'after validation');
     logger.info('login', 'before authentication');
-    const user = await authenticator.authenticate('form', request);
+    const user = await authenticator.authenticate('credential', request);
     logger.info('login', 'after authentication');
     logger.log('login', 'user', user);
     if (user) {
@@ -77,31 +84,28 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function LoginRoute() {
   const actionData = useActionData<{ username: string; password: string }>();
+  const isLargeScreen = useBreakpointValue({ base: false, md: true, lg: true });
 
   return (
-    <Flex
-      bgGradient='linear(to-r, secondary.400, secondary.200, secondary.800)'
-      minHeight='100vh'
-      width='full'
-      align='center'
-      justifyContent='center'
-    >
-      <Box
-        bg={'white'}
-        borderWidth={1}
-        px={4}
-        width='full'
-        maxWidth='500px'
-        borderRadius={4}
-        textAlign='center'
-        boxShadow='lg'
-      >
-        <Box p={4}>
-          <LoginHeader />
-          <LoginForm actionData={actionData} />
-        </Box>
-      </Box>
-    </Flex>
+    <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} minH='100vh'>
+      {isLargeScreen && (
+        <div>
+          <Image
+            src={landingImage}
+            alt='Login Image'
+            maxH='100vh'
+            objectFit='cover'
+            width='100%'
+            objectPosition={'left top'}
+            filter={'blur(1px)'}
+          />
+        </div>
+      )}
+      <Flex direction='column' justify='center' align='center' p={8} bg={'orange.50'}>
+        <LoginHeader />
+        <LoginForm actionData={actionData} />
+      </Flex>
+    </Grid>
   );
 }
 
@@ -121,11 +125,11 @@ type LoginFormProps = {
 };
 const LoginForm = (props: LoginFormProps) => {
   const { isLoading } = useTransitionState();
-  const [showpassword, setShowpassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { username, password } = props.actionData || {};
   return (
-    <Box my={8} textAlign='left'>
-      <Form method='post'>
+    <Container my={8} px={{ base: 20 }} textAlign='left'>
+      <Form action='/login' method='post'>
         <FormControl isInvalid={Boolean(username)}>
           <FormLabel>Email address</FormLabel>
           <Input type='email' placeholder='Enter your email address' name='username' />
@@ -136,12 +140,12 @@ const LoginForm = (props: LoginFormProps) => {
           <FormLabel>Password</FormLabel>
           <InputGroup>
             <Input
-              type={showpassword ? 'text' : 'password'}
+              type={showPassword ? 'text' : 'password'}
               placeholder='Enter your password'
               name='password'
             />
-            <InputRightElement width='3rem' onClick={() => setShowpassword((prev) => !prev)}>
-              {showpassword ? <ViewOffIcon /> : <ViewIcon />}
+            <InputRightElement width='3rem' onClick={() => setShowPassword((prev) => !prev)}>
+              {showPassword ? <ViewOffIcon /> : <ViewIcon />}
             </InputRightElement>
           </InputGroup>
           {password ? <FormErrorMessage>{password}</FormErrorMessage> : null}
@@ -152,7 +156,9 @@ const LoginForm = (props: LoginFormProps) => {
             <Checkbox>Remember Me</Checkbox>
           </Box>
           <NavLink to='/reset_password'>
-            <Link color={`primary.500`}>Forgot your password?</Link>
+            <Text _hover={{ textDecoration: 'underline' }} color={`primary.500`}>
+              Forgot your password?
+            </Text>
           </NavLink>
         </Stack>
 
@@ -160,7 +166,24 @@ const LoginForm = (props: LoginFormProps) => {
           {isLoading ? <Spinner /> : 'Log In'}
         </Button>
       </Form>
-    </Box>
+      <Spacer h={8} />
+      <Form action='/auth/google' method='post'>
+        <Button
+          leftIcon={<FcGoogle fontSize='1.5rem' />}
+          colorScheme='iconButton'
+          variant='solid'
+          width={'full'}
+          _hover={{ bg: 'blue.600' }}
+          type='submit'
+        >
+          <Box as='span' display='flex' alignItems='center'>
+            <Text fontSize='lg' fontWeight='semibold'>
+              Sign in with Google
+            </Text>
+          </Box>
+        </Button>
+      </Form>
+    </Container>
   );
 };
 
