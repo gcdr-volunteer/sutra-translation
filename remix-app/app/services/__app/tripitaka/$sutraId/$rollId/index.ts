@@ -1,5 +1,6 @@
 import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
+import { type User } from '~/types';
 import { json } from '@remix-run/node';
 import { logger } from '~/utils';
 import { createNewComment, createNewMessage, resolveComment } from '~/models/comment';
@@ -8,30 +9,30 @@ import { Intent } from '~/types/common';
 import { created } from 'remix-utils';
 import type { Comment, Message } from '~/types/comment';
 
-const newCommentSchema = () => {
+const newCommentSchema = (user: User) => {
   const baseSchema = initialSchema();
   const id = nanoid();
   const translationSchema = baseSchema.noUnknown().shape({
     ping: yup.array().of(yup.mixed<string>().required()).required(),
     priority: yup.mixed().oneOf(['1', '2', '3']).required('priority is required'),
     comment: yup.string().trim().required('comment cannot be empty'),
-    content: yup.string().required('selet to highlight content cannot be empty'),
+    content: yup.string().required('select to highlight content cannot be empty'),
     path: yup.string().required('the path of the current roll is required'),
     sutraId: yup
       .string()
       .trim()
       .required('the sutra id cannot be empty')
-      .transform((value) => value.replace('ZH', 'EN')),
+      .transform((value) => value.replace(user.origin_lang, user.target_lang)),
     rollId: yup
       .string()
       .trim()
       .required('the roll id cannot be empty')
-      .transform((value) => value.replace('ZH', 'EN')),
+      .transform((value) => value.replace(user.origin_lang, user.target_lang)),
     paragraphId: yup
       .string()
       .trim()
       .required('the paragraph id cannot be empty')
-      .transform((value) => value.replace('ZH', 'EN')),
+      .transform((value) => value.replace(user.origin_lang, user.target_lang)),
     resolved: yup.mixed<0 | 1>().default(0),
     creatorAlias: yup.string().default(''),
     id: yup.string().default(id),
@@ -43,7 +44,7 @@ const newCommentSchema = () => {
   return translationSchema;
 };
 
-const newMessageSchema = () => {
+const newMessageSchema = (user: User) => {
   const baseSchema = initialSchema();
   const id = nanoid();
   return baseSchema.noUnknown().shape({
@@ -52,17 +53,17 @@ const newMessageSchema = () => {
       .string()
       .trim()
       .required('the sutra id cannot be empty')
-      .transform((value) => value.replace('ZH', 'EN')),
+      .transform((value) => value.replace(user.origin_lang, user.target_lang)),
     rollId: yup
       .string()
       .trim()
       .required('the roll id cannot be empty')
-      .transform((value) => value.replace('ZH', 'EN')),
+      .transform((value) => value.replace(user.origin_lang, user.target_lang)),
     paragraphId: yup
       .string()
       .trim()
       .required('the paragraph id cannot be empty')
-      .transform((value) => value.replace('ZH', 'EN')),
+      .transform((value) => value.replace(user.origin_lang, user.target_lang)),
     content: yup.string().required('content cannot be empty'),
     creatorAlias: yup.string().default(''),
     id: yup.string().default(id),
@@ -72,7 +73,7 @@ const newMessageSchema = () => {
   });
 };
 
-const updateCommentSchema = () => {
+const updateCommentSchema = (user: User) => {
   const baseSchema = initialSchema();
   return baseSchema.noUnknown().shape({
     before: yup.string().trim().required('previous content cannot be empty'),
@@ -85,21 +86,21 @@ const updateCommentSchema = () => {
       .string()
       .trim()
       .required('the roll id cannot be empty')
-      .transform((value) => value.replace('ZH', 'EN')),
+      .transform((value) => value.replace(user.origin_lang, user.target_lang)),
     paragraphId: yup
       .string()
       .trim()
       .required('the paragraph id cannot be empty')
-      .transform((value) => value.replace('ZH', 'EN')),
+      .transform((value) => value.replace(user.origin_lang, user.target_lang)),
     commentId: yup.string().required('commentId cannot be empty'),
   });
 };
 
-export const handleNewComment = async (newComment: Omit<Comment, 'kind'>) => {
+export const handleNewComment = async (newComment: Omit<Comment, 'kind'>, user: User) => {
   try {
     logger.log(handleNewComment.name, 'newComment', newComment);
     const result = await schemaValidator({
-      schema: newCommentSchema(),
+      schema: newCommentSchema(user),
       obj: newComment,
     });
     logger.log(handleNewComment.name, 'result', result);
@@ -111,11 +112,11 @@ export const handleNewComment = async (newComment: Omit<Comment, 'kind'>) => {
   }
 };
 
-export const handleNewMessage = async (newMessage: Message) => {
+export const handleNewMessage = async (newMessage: Message, user: User) => {
   try {
     logger.log(handleNewMessage.name, 'newMessage', newMessage);
     const result = await schemaValidator({
-      schema: newMessageSchema(),
+      schema: newMessageSchema(user),
       obj: newMessage,
     });
     await createNewMessage(result);
@@ -126,19 +127,22 @@ export const handleNewMessage = async (newMessage: Message) => {
   }
 };
 
-export const handleResolveComment = async (newComment: {
-  rollId: string;
-  paragraphId: string;
-  before: string;
-  after: string;
-  commentId: string;
-  createdBy: string;
-  updatedBy: string;
-}) => {
+export const handleResolveComment = async (
+  newComment: {
+    rollId: string;
+    paragraphId: string;
+    before: string;
+    after: string;
+    commentId: string;
+    createdBy: string;
+    updatedBy: string;
+  },
+  user: User
+) => {
   try {
     logger.log(handleResolveComment.name, 'new comment', newComment);
     const result = await schemaValidator({
-      schema: updateCommentSchema(),
+      schema: updateCommentSchema(user),
       obj: newComment,
     });
     logger.log(handleResolveComment.name, 'result', result);

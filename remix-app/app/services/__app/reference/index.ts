@@ -22,12 +22,12 @@ const newSutraSchema = (user: User) => {
     origin_lang: yup
       .mixed<LangCode>()
       .optional()
-      .default(user.origin_lang === LangCode.ZH ? LangCode.SS : user.origin_lang),
+      .default(user.origin_lang ?? LangCode.ZH),
     roll_count: yup.number().required('num of rolls cannot be empty'),
     roll_start: yup.number().required('start of roll cannot be empty'),
     time_from: yup.number().required('start of year cannot be empty'),
     time_to: yup.number().required('end of year cannot be empty'),
-    num_chars: yup.number().required('num of charactors cannot be empty'),
+    num_chars: yup.number().required('num of characters cannot be empty'),
     dynasty: yup.string().trim().required('dynasty cannot be empty'),
     lang: yup.mixed<LangCode>().optional().default(user.origin_lang),
     finish: yup.boolean().optional().default(true),

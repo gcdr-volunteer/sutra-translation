@@ -56,10 +56,12 @@ export const handleCreateNewRoll = async ({
   }
 };
 
-export const handleGetAllRollsBySutraId = async (sutraId: string) => {
+export const handleGetAllRollsBySutraId = async (sutraId: string, user: User) => {
   try {
     const originRolls = await getRollsBySutraId(sutraId);
-    const targetRolls = await getRollsBySutraId(sutraId.replace('ZH', 'EN'));
+    const targetRolls = await getRollsBySutraId(
+      sutraId.replace(user.origin_lang, user.target_lang)
+    );
     const workingOnRollsIds = targetRolls.map((roll) => roll.origin_rollId);
     return originRolls
       .map((roll) => ({
