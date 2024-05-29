@@ -16,7 +16,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     sutras: sutras.map((sutra) => ({ ...sutra, firstTime: false, slug: sutra.SK })),
   });
 };
-export default function TripitakaRoute() {
+export default function SutraRoute() {
   const { sutras } = useLoaderData<typeof loader>();
   const sutraComp = sutras.map((sutra) => <Sutra key={sutra.slug} {...sutra} />);
   return <VStack spacing={8}>{sutraComp}</VStack>;

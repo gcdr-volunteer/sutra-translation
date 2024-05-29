@@ -106,7 +106,7 @@ export const fetchParagraphsByRollId = async (rollId: string, user: User): Promi
         ...cur,
         comments: transformedComments[cur.SK] || [],
       };
-      acc = { [cur.SK.replace(user.origin_lang, user.target_lang)]: newParagraph, ...acc };
+      acc = { [cur.SK.replace(user.target_lang, user.origin_lang)]: newParagraph, ...acc };
       return acc;
     }, {} as Record<string, Paragraphs[0]['target']>);
 
