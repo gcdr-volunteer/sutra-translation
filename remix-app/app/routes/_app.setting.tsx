@@ -7,6 +7,7 @@ import { useSetTheme } from '~/hooks';
 import { AppContext } from '~/routes/_app';
 import { useContext } from 'react';
 import { json, redirect } from '@remix-run/node';
+import { LangCode } from '../types';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
@@ -34,23 +35,23 @@ export default function SettingRoute() {
     <Flex p={10} background='secondary.800' w='100%' flexDir='column'>
       <VStack flex='auto'>
         <HStack justifyContent={'start'} h='100px'>
-          <Text>{langCodeFullVersion[currentUser?.origin_lang ?? 'ZH']}</Text>
+          <Text>{langCodeFullVersion[currentUser?.origin_lang ?? LangCode.ZH]}</Text>
           <Select
             onChange={(e) => setFontFamilyOrigin(e.target.value)}
             placeholder='Select font family'
           >
-            {fontFamilyList[currentUser?.origin_lang ?? 'ZH'].map((ff) => (
+            {fontFamilyList[currentUser?.origin_lang ?? LangCode.ZH].map((ff) => (
               <option key={ff} value={ff}>
                 {ff}
               </option>
             ))}
           </Select>
-          <Text>{langCodeFullVersion[currentUser?.target_lang ?? 'EN']}</Text>
+          <Text>{langCodeFullVersion[currentUser?.target_lang ?? LangCode.EN]}</Text>
           <Select
             onChange={(e) => setFontFamilyTarget(e.target.value)}
             placeholder='Select font family'
           >
-            {fontFamilyList[currentUser?.target_lang ?? 'EN'].map((ff) => (
+            {fontFamilyList[currentUser?.target_lang ?? LangCode.EN].map((ff) => (
               <option key={ff} value={ff}>
                 {ff}
               </option>
@@ -68,12 +69,12 @@ export default function SettingRoute() {
         <Flex flexDir={'row'} gap={4}>
           <Flex bg={'secondary.300'} flex={1} p={4} borderRadius={12} flexDir={'row'} w='100%'>
             <Text fontFamily={fontFamilyOrigin} fontSize={fontSize}>
-              {fontFamilyPlaceholder[currentUser?.origin_lang || 'ZH']}
+              {fontFamilyPlaceholder[currentUser?.origin_lang || LangCode.ZH]}
             </Text>
           </Flex>
           <Flex bg={'secondary.200'} flex={1} p={4} borderRadius={12} flexDir={'row'} w='100%'>
             <Text fontFamily={fontFamilyTarget} fontSize={fontSize}>
-              {fontFamilyPlaceholder[currentUser?.target_lang || 'EN']}
+              {fontFamilyPlaceholder[currentUser?.target_lang || LangCode.EN]}
             </Text>
           </Flex>
         </Flex>

@@ -1,6 +1,6 @@
 import type { Paragraph } from '~/types/paragraph';
 import type { QueryCommandInput } from '@aws-sdk/client-dynamodb';
-import type { CreatedType, CreateType, Key, UpdateType, Comment } from '~/types';
+import type { CreatedType, CreateType, Key, UpdateType, Comment, User } from '~/types';
 import { QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import {
@@ -37,8 +37,7 @@ export const getOriginParagraphsByRollId = async (
 export const getTargetParagraphsByRollId = async (
   PK: string
 ): Promise<CreatedType<Paragraph>[]> => {
-  const key = PK.replace('ZH', 'EN');
-  return getParagraphsByRollId(key);
+  return getParagraphsByRollId(PK);
 };
 
 export const getParagraphByPrimaryKey = async (
@@ -82,11 +81,14 @@ export type ParagraphLoaderData = {
   target?: CreateType<Paragraph> & { comments: Comment[] };
 };
 export type Paragraphs = ParagraphLoaderData[];
-export const fetchParagraphsByRollId = async (rollId: string): Promise<Paragraphs> => {
+export const fetchParagraphsByRollId = async (rollId: string, user: User): Promise<Paragraphs> => {
   try {
     const originParagraphs = await getOriginParagraphsByRollId(rollId);
-    const targetParagraphs = await getTargetParagraphsByRollId(rollId);
-    const rootComments = await getAllRootCommentsForRoll(rollId.replace('ZH', 'EN'));
+    const key = rollId.replace(user.origin_lang, user.target_lang);
+    const targetParagraphs = await getTargetParagraphsByRollId(key);
+    const rootComments = await getAllRootCommentsForRoll(
+      rollId.replace(user.origin_lang, user.target_lang)
+    );
     const transformedComments = rootComments
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       .sort((a, b) => new Date(a.updatedAt!).getTime() - new Date(b.updatedAt!).getTime())
@@ -104,8 +106,7 @@ export const fetchParagraphsByRollId = async (rollId: string): Promise<Paragraph
         ...cur,
         comments: transformedComments[cur.SK] || [],
       };
-      // TODO: replace with user profile
-      acc = { [cur.SK.replace('EN', 'ZH')]: newParagraph, ...acc };
+      acc = { [cur.SK.replace(user.target_lang, user.origin_lang)]: newParagraph, ...acc };
       return acc;
     }, {} as Record<string, Paragraphs[0]['target']>);
 

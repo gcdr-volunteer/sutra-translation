@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node';
 import type { CreateType, Roll as TRoll } from '~/types';
-import { json } from '@remix-run/node';
+import { json, redirect } from '@remix-run/node';
 import { isRouteErrorResponse, useLoaderData, useRouteError } from '@remix-run/react';
 import { Box, Flex } from '@chakra-ui/react';
 import { Roll } from '~/components/common/roll';
@@ -9,17 +9,26 @@ import { getRollByPrimaryKey, upsertRoll } from '~/models/roll';
 import { Intent } from '~/types/common';
 import { badRequest, created } from 'remix-utils';
 import { handleGetAllRollsBySutraId } from '~/services/__app/reference/$sutraId';
+import { assertAuthUser } from '../auth.server';
 
-export const loader = async ({ params }: LoaderFunctionArgs) => {
+export const loader = async ({ params, request }: LoaderFunctionArgs) => {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const { sutraId } = params;
   if (!sutraId) {
     throw badRequest({ message: 'sutra id is not provided' });
   }
-  const rolls = await handleGetAllRollsBySutraId(sutraId);
+  const rolls = await handleGetAllRollsBySutraId(sutraId, user);
   return json({ data: rolls });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
+  const user = await assertAuthUser(request);
+  if (!user) {
+    return redirect('/login');
+  }
   const formData = await request.formData();
   const entryData = Object.fromEntries(formData.entries()) as Pick<
     TRoll,
@@ -33,8 +42,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (originRollMeta) {
       const newRollMeta: CreateType<TRoll> = {
         ...originRollMeta,
-        PK: entryData.PK?.replace('ZH', 'EN') ?? '',
-        SK: entryData.SK?.replace('ZH', 'EN') ?? '',
+        PK: entryData.PK?.replace(user.origin_lang, user.target_lang) ?? '',
+        SK: entryData.SK?.replace(user.origin_lang, user.target_lang) ?? '',
         title: entryData.title,
         subtitle: entryData.subtitle,
         origin_rollId: entryData.origin_rollId,

@@ -12,13 +12,12 @@ import { created } from 'remix-utils';
 import { assertAuthUser } from '~/auth.server';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  // TODO: use user profile, instead of hard code here
   const user = await assertAuthUser(request);
   if (!user) {
     return redirect('/login');
   }
-  const sutras = await getSutrasByLangAndVersion(LangCode.ZH, 'V1');
-  const targetSutras = await getSutrasByLangAndVersion(LangCode.EN, 'V1');
+  const sutras = await getSutrasByLangAndVersion(user.origin_lang, 'V1');
+  const targetSutras = await getSutrasByLangAndVersion(user.target_lang, 'V1');
   const mapper = targetSutras.reduce((acc, cur) => {
     if (cur?.origin_sutraId) {
       acc[cur.origin_sutraId] = false;
@@ -28,8 +27,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }, {} as Record<string, boolean>);
   const extractedSutras = sutras
     ?.filter((sutra) => {
-      if (user?.roles.includes(RoleType.Admin) || user?.roles.includes(RoleType.Leader)) {
+      if (user?.roles.includes(RoleType.Admin)) {
         return true;
+      }
+      if (user?.roles.includes(RoleType.Leader)) {
+        return sutra.team === user?.team;
       }
       return sutra.SK === user?.working_sutra;
     })
@@ -59,16 +61,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (originSutraMeta) {
       const newSutraMeta: CreateType<TSutra> = {
         ...originSutraMeta,
-        // TODO: using user profile
         PK: originSutraMeta.PK ?? '',
+        // TODO: make sure the origin_lang is dynamic
         origin_lang: LangCode.ZH,
-        lang: LangCode.EN,
+        lang: user.target_lang,
         title: entryData.title,
         translator: entryData.translator,
         category: entryData.category,
         dynasty: entryData.dynasty,
         origin_sutraId: entryData.origin_sutraId,
-        SK: entryData.SK?.replace('ZH', 'EN') ?? '',
+        SK: entryData.SK?.replace(user.origin_lang, user.target_lang) ?? '',
         team: user?.team ?? '',
         finish: false,
       };

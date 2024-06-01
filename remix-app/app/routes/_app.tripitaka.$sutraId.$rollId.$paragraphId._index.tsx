@@ -140,8 +140,8 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     // Uncomment the following line when doing debug
     // return json({ payload: { index: entryData?.index }, intent: Intent.CREATE_TRANSLATION });
     const prevParagraph = await getParagraphByPrimaryKey({
-      PK: rollId.replace('ZH', 'EN'),
-      SK: paragraphId.replace('ZH', 'EN'),
+      PK: rollId.replace(user.origin_lang, user.target_lang),
+      SK: paragraphId.replace(user.origin_lang, user.target_lang),
     });
     if (prevParagraph?.finish) {
       return json({
@@ -150,13 +150,16 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       });
     }
 
-    await handleNewTranslationParagraph({
-      sutraId,
-      rollId,
-      paragraphId,
-      content: entryData?.content as string,
-      num: parseInt(entryData?.num as string, 10) as number,
-    });
+    await handleNewTranslationParagraph(
+      {
+        sutraId,
+        rollId,
+        paragraphId,
+        content: entryData?.content as string,
+        num: parseInt(entryData?.num as string, 10) as number,
+      },
+      user
+    );
     return created({
       intent: Intent.CREATE_TRANSLATION,
       payload: { finish: true },
