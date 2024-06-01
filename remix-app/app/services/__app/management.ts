@@ -1,6 +1,4 @@
-import { getAllNotResolvedCommentsForRoll } from '~/models/comment';
 import { dbUpdate } from '~/models/external_services/dynamodb';
-import { getParagraphsByRollId } from '~/models/paragraph';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { logger } from '~/utils';
 import { initialSchema, schemaValidator } from '~/utils/schema_validator';
@@ -9,34 +7,6 @@ import { badRequest, created } from 'remix-utils';
 import { Intent } from '~/types/common';
 import { createRefBook, updateRefBook } from '~/models/reference';
 import type { RefBook } from '~/types';
-
-export const handleIsSutraRollComplete = async ({
-  sutra,
-  roll,
-}: {
-  sutra: string;
-  roll: string;
-}): Promise<{ isCompleted: true | false; type?: 'comment' | 'paragraph' }> => {
-  const comments = await getAllNotResolvedCommentsForRoll(roll);
-  if (comments?.length) {
-    return {
-      type: 'comment',
-      isCompleted: false,
-    };
-  }
-  const origins = await getParagraphsByRollId(roll.replace('EN', 'ZH'));
-  const targets = await getParagraphsByRollId(roll);
-  if (origins.length !== targets.length) {
-    return {
-      type: 'paragraph',
-      isCompleted: false,
-    };
-  }
-
-  return {
-    isCompleted: true,
-  };
-};
 
 const newRefBookSchema = () => {
   const baseSchema = initialSchema();

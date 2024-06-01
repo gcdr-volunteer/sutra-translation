@@ -56,11 +56,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     getAllLangs(),
   ]);
   const sutras = await getAllSutras();
-  const totalSutras = sutras?.filter((sutra) => sutra.SK.includes('ZH')).length ?? 0;
+  const totalSutras = sutras?.filter((sutra) => sutra.SK.includes(user.origin_lang)).length ?? 0;
   const workingSutras =
-    sutras?.filter((sutra) => sutra.SK.includes('EN') && !sutra.finish).length ?? 0;
+    sutras?.filter((sutra) => sutra.SK.includes(user.target_lang) && !sutra.finish).length ?? 0;
   const finishedSutras =
-    sutras?.filter((sutra) => sutra.SK.includes('EN') && sutra.finish).length ?? 0;
+    sutras?.filter((sutra) => sutra.SK.includes(user.target_lang) && sutra.finish).length ?? 0;
   const tripitakaStats: TripitakaStat = {
     name: 'Tripitaka',
     stats: {

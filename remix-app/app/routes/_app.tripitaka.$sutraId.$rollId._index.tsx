@@ -28,7 +28,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const { sutraId, rollId } = params;
   if (rollId) {
     const roll = await getRollByPrimaryKey({ PK: sutraId ?? '', SK: rollId });
-    const paragraphs = await fetchParagraphsByRollId(rollId);
+    const paragraphs = await fetchParagraphsByRollId(rollId, user);
     return json({
       footnotes: [],
       paragraphs,
@@ -56,7 +56,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       updatedBy: user?.SK,
       creatorAlias: user?.username ?? '',
     };
-    return await handleNewComment(newComment as unknown as Comment);
+    return await handleNewComment(newComment as unknown as Comment, user);
   }
   if (entryData?.intent === Intent.UPDATE_COMMENT_AND_PARAGRAPH) {
     const paragraphId = (entryData?.paragraphId as unknown as string) || '';
@@ -69,7 +69,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       createdBy: user?.email ?? '',
       updatedBy: user?.email ?? '',
     };
-    return await handleResolveComment(newComment);
+    return await handleResolveComment(newComment, user);
   }
 
   if (entryData?.intent === Intent.CREATE_MESSAGE) {
@@ -82,7 +82,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       createdBy: user?.email,
       updatedBy: user?.email,
     };
-    return await handleNewMessage(newMessage as unknown as Message);
+    return await handleNewMessage(newMessage as unknown as Message, user);
   }
   return json({});
 };

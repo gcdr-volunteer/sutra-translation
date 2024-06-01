@@ -48,6 +48,7 @@ export function Roll(props: RollProps) {
       <Card
         background='secondary.500'
         w={400}
+        minH={200}
         borderRadius={12}
         boxShadow='0 12px 12px 0 rgba(0, 0, 0, 0.05)'
         onClick={isOpenMetaModal ? handleClick : undefined}

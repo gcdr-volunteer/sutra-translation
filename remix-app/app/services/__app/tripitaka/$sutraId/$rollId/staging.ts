@@ -36,7 +36,7 @@ import { getSutraByPrimaryKey } from '../../../../../models/sutra';
 import { match } from 'ts-pattern';
 import { handleGlossariesBySearchTerm } from '../../../glossary';
 
-const newTranslationSchema = () => {
+const newTranslationSchema = (user: User) => {
   const baseSchema = initialSchema();
   // TODO: using strict().noUnknown() to stop unknown params
   const translationSchema = baseSchema.shape({
@@ -48,14 +48,12 @@ const newTranslationSchema = () => {
     rollId: yup
       .string()
       .trim()
-      // TODO: update based on user profile
-      .transform((value) => value.replace('ZH', 'EN'))
+      .transform((value) => value.replace(user.origin_lang, user.target_lang))
       .required(),
     paragraphId: yup
       .string()
       .trim()
-      // TODO: update based on user profile
-      .transform((value) => value.replace('ZH', 'EN'))
+      .transform((value) => value.replace(user.origin_lang, user.target_lang))
       .required(),
     category: yup.string().trim().default('NORMAL'),
     num: yup.number().required(),
@@ -77,9 +75,8 @@ const newGlossarySchema = (user: User) => {
     glossary_author: yup.string().trim().default(''),
     translation_date: yup.string().trim().default(''),
     discussion: yup.string().trim().default(''),
-    // TODO: use user profile language instead of hard coded
-    origin_lang: yup.string().default('ZH'),
-    target_lang: yup.string().default('EN'),
+    origin_lang: yup.string().default(user.origin_lang),
+    target_lang: yup.string().default(user.target_lang),
     updatedBy: yup.string().default(user.SK),
     createdBy: yup.string().default(user.SK),
     createdAlias: yup.string().default(user.username),
@@ -130,18 +127,21 @@ export const handleChatGPT = async ({ text }: { text: string }): Promise<string>
   return await baseGPT({ text });
 };
 
-export const handleNewTranslationParagraph = async (newTranslation: {
-  content: string;
-  rollId: string;
-  paragraphId: string;
-  sutraId: string;
-  num: number;
-}) => {
+export const handleNewTranslationParagraph = async (
+  newTranslation: {
+    content: string;
+    rollId: string;
+    paragraphId: string;
+    sutraId: string;
+    num: number;
+  },
+  user: User
+) => {
   const { content, sutraId, rollId, paragraphId } = newTranslation;
   logger.log(handleNewTranslationParagraph.name, 'newTranslation', newTranslation);
   try {
     const result = await schemaValidator({
-      schema: newTranslationSchema(),
+      schema: newTranslationSchema(user),
       obj: newTranslation,
     });
     logger.log(handleNewTranslationParagraph.name, 'result', result);

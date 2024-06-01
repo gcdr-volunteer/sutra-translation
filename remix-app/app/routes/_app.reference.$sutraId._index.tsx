@@ -32,7 +32,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   if (!sutraId) {
     throw badRequest({ message: 'sutra id is not provided' });
   }
-  const rolls = await handleGetAllRollsBySutraId(sutraId);
+  const rolls = await handleGetAllRollsBySutraId(sutraId, user);
   return json({ data: rolls });
 };
 
