@@ -16,7 +16,7 @@ import type { Paragraph } from '~/types/paragraph';
 import { initialSchema, schemaValidator } from '~/utils/schema_validator';
 import * as yup from 'yup';
 import { json } from '@remix-run/node';
-import { upsertParagraph } from '~/models/paragraph';
+import { updateParagraph, upsertParagraph } from '~/models/paragraph';
 import { getRollId, getSutraId, logger } from '~/utils';
 import {
   getAllGlossary,
@@ -164,6 +164,29 @@ export const handleNewTranslationParagraph = async (
     }
   } catch (errors) {
     logger.error(handleNewTranslationParagraph.name, 'error', errors);
+    return json({ errors: { errors } });
+  }
+};
+
+export const handleUpdateParagraph = async (newParagraph: {
+  rollId: string;
+  paragraphId: string;
+  updatedBy: string;
+  content: string;
+}) => {
+  const { paragraphId, updatedBy, content, rollId } = newParagraph;
+  logger.log(handleUpdateParagraph.name, 'newParagraph', newParagraph);
+  try {
+    const paragraph = {
+      PK: rollId,
+      SK: paragraphId,
+      updatedBy,
+      content,
+    };
+    await updateParagraph(paragraph);
+    return json({ intent: Intent.UPDATE_PARAGRAPH });
+  } catch (errors) {
+    logger.error(handleUpdateParagraph.name, 'error', errors);
     return json({ errors: { errors } });
   }
 };

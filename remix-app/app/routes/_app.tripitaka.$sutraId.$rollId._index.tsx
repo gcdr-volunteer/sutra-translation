@@ -20,6 +20,7 @@ import { badRequest } from 'remix-utils';
 import { getRollByPrimaryKey } from '~/models/roll';
 import { Can } from '~/authorisation';
 import { useScrollToParagraph, useSetTheme } from '~/hooks';
+import { handleUpdateParagraph } from '../services/__app/tripitaka/$sutraId/$rollId/staging';
 export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const user = await assertAuthUser(request);
   if (!user) {
@@ -70,6 +71,17 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       updatedBy: user?.email ?? '',
     };
     return await handleResolveComment(newComment, user);
+  }
+
+  if (entryData?.intent === Intent.UPDATE_PARAGRAPH) {
+    const { paragraphId, content } = entryData;
+    const newParagraph = {
+      rollId: rollId.replace(user.origin_lang, user.target_lang),
+      paragraphId: (paragraphId as string).replace(user.origin_lang, user.target_lang),
+      content: content as string,
+      updatedBy: user?.email,
+    };
+    return handleUpdateParagraph(newParagraph);
   }
 
   if (entryData?.intent === Intent.CREATE_MESSAGE) {

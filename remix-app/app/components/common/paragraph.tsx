@@ -8,10 +8,17 @@ import {
   useToast,
   Radio,
   useHighlight,
+  Input,
+  Textarea,
 } from '@chakra-ui/react';
 import { FormModal } from '~/components/common';
 import { Comment } from './comment';
-import type { CreatedType, Comment as TComment, Paragraph as TParagraph } from '~/types';
+import {
+  RoleType,
+  type CreatedType,
+  type Comment as TComment,
+  type Paragraph as TParagraph,
+} from '~/types';
 import { Intent } from '~/types/common';
 import { MessageDialog } from '../comment_dialog';
 import { AppContext } from '~/routes/_app';
@@ -23,14 +30,12 @@ import { buildRegex } from '../../utils';
 
 export const ParagraphTarget = ({
   paragraphId,
-  comments,
   toggle,
   background,
   content,
   font,
 }: {
   paragraphId: string;
-  comments: TComment[];
   toggle?: boolean;
   background?: string;
   content: string;
@@ -50,8 +55,67 @@ export const ParagraphTarget = ({
       gap={8}
       position={'relative'}
     >
-      <TextWithComment font={font} text={content} comments={comments} paragraphId={paragraphId} />
+      <EditableText font={font} text={content} paragraphId={paragraphId} />
     </Flex>
+  );
+};
+
+export const EditableText = ({
+  paragraphId,
+  text,
+  font,
+}: {
+  paragraphId: string;
+  text: string;
+  font: {
+    fontSize: string;
+    fontFamilyTarget: string;
+  };
+}) => {
+  const { currentUser } = useContext(AppContext);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [editedText, setEditedText] = useState(text);
+
+  const actionData = useActionData<{ intent: Intent }>();
+  useEffect(() => {
+    if (actionData?.intent === Intent.UPDATE_PARAGRAPH) {
+      onClose();
+    }
+  }, [actionData, onClose]);
+
+  const handleDoubleClick = useCallback(() => {
+    if (currentUser?.roles.includes(RoleType.Leader)) {
+      onOpen();
+    }
+  }, [currentUser?.roles, onOpen]);
+
+  return (
+    <Box>
+      <Text
+        fontFamily={font.fontFamilyTarget}
+        fontSize={font.fontSize}
+        onDoubleClick={handleDoubleClick}
+      >
+        {text}
+      </Text>
+      <FormModal
+        value={Intent.UPDATE_PARAGRAPH}
+        header='Edit Content'
+        body={
+          <>
+            <Textarea
+              name='content'
+              value={editedText}
+              onChange={(e) => setEditedText(e.target.value)}
+              rows={10}
+            />
+            <Input hidden={true} name='paragraphId' value={paragraphId} />
+          </>
+        }
+        isOpen={isOpen}
+        onClose={onClose}
+      />
+    </Box>
   );
 };
 
@@ -313,13 +377,13 @@ export const ParagraphPair = ({
   footnotes: string[];
 }) => {
   const font = useSetTheme();
-  const commentsInThisParagraph = useMemo(() => {
-    if (target.comments) {
-      return target.comments.filter((comment) => comment.paragraphId === target.SK);
-    } else {
-      return [];
-    }
-  }, [target.comments, target.SK]);
+  // const commentsInThisParagraph = useMemo(() => {
+  //   if (target.comments) {
+  //     return target.comments.filter((comment) => comment.paragraphId === target.SK);
+  //   } else {
+  //     return [];
+  //   }
+  // }, [target.comments, target.SK]);
   return (
     <Flex flexDir={{ sm: 'column', md: 'column', lg: 'column', xl: 'row' }} gap={4}>
       <Paragraph font={font} background='secondary.300' content={origin?.content} />
@@ -328,7 +392,6 @@ export const ParagraphPair = ({
         content={target.content}
         paragraphId={origin.SK}
         background='secondary.200'
-        comments={commentsInThisParagraph}
       />
     </Flex>
   );

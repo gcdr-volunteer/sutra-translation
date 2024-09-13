@@ -27,11 +27,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }, {} as Record<string, boolean>);
   const extractedSutras = sutras
     ?.filter((sutra) => {
-      if (user?.roles.includes(RoleType.Admin)) {
+      if (user?.roles.includes(RoleType.Admin) || user?.roles.includes(RoleType.Leader)) {
         return true;
-      }
-      if (user?.roles.includes(RoleType.Leader)) {
-        return sutra.team === user?.team;
       }
       return sutra.SK === user?.working_sutra;
     })
